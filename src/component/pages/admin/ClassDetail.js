@@ -1,115 +1,172 @@
-// src/component/pages/admin/ClassDetail.js
-import React from "react";
-import { useParams } from "react-router-dom";
-import { mock } from "service/mockData";
-import { PageHeader, Card, CardHeader, CardTitle, CardContent, Badge, Table, Th, Td } from "component/ui";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { adminApi } from "service/adminApi";
+import { PageHeader, Card, CardHeader, CardTitle, CardContent, Badge, Button, Table, Th, Td } from "component/ui";
+import { Info, BookOpen, Users, Calendar, ChevronLeft, UserPlus, Upload, Plus } from "lucide-react";
 
 export default function ClassDetail() {
     const { id } = useParams();
-    const cl = mock.classes.find((x) => x.id === id);
+    const nav = useNavigate();
+    const [activeTab, setActiveTab] = useState("Overview");
+    const [cl, setCl] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-    if (!cl) return <div className="text-sm text-slate-600">Class not found.</div>;
+    useEffect(() => {
+        const fetchDetail = async () => {
+            try {
+                const res = await adminApi.getClassDetail(id);
+                setCl(res.data.data);
+                setLoading(false);
+            } catch (err) {
+                console.error("Error fetching class detail:", err);
+                setLoading(false);
+            }
+        };
+        fetchDetail();
+    }, [id]);
+
+    if (loading) return <div className="p-8 text-center text-slate-500">Loading class information...</div>;
+    if (!cl) return <div className="p-8 text-center text-red-500">Class not found.</div>;
+
+    const tabs = [
+        { id: "Overview", icon: <Info size={16}/> },
+        { id: "Teachers", icon: <BookOpen size={16}/> },
+        { id: "Students", icon: <Users size={16}/> },
+        { id: "Schedule", icon: <Calendar size={16}/> }
+    ];
 
     return (
-        <div>
-            <PageHeader title={cl.name} subtitle={`Teacher: ${cl.teacher} • Room: ${cl.room}`} />
-
-            <div className="grid gap-4 lg:grid-cols-3">
-                <Card className="lg:col-span-2">
-                    <CardHeader><CardTitle>Schedule</CardTitle></CardHeader>
-                    <CardContent className="space-y-2">
-                        {cl.schedule.map((s, idx) => (
-                            <div key={idx} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
-                                <div className="font-semibold text-slate-900">{s.day}</div>
-                                <div className="text-slate-700">{s.time}</div>
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader><CardTitle>Roster</CardTitle></CardHeader>
-                    <CardContent className="space-y-2">
-                        {cl.students.map((s) => (
-                            <div key={s} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
-                                <div className="font-semibold text-slate-900">{s}</div>
-                                <Badge tone="green">Active</Badge>
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
+        <div className="space-y-6">
+            <div className="flex items-center gap-4">
+                <button onClick={() => nav("/admin/classes")} className="p-2 hover:bg-slate-100 rounded-full transition">
+                    <ChevronLeft size={24} />
+                </button>
+                <PageHeader 
+                    title={cl.name} 
+                    subtitle={cl.course?.name} 
+                    right={[<Badge key="cap" tone="indigo">{cl.enrollments?.length || 0}/40 Students</Badge>]}
+                />
             </div>
 
-            <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                <Card>
-                    <CardHeader><CardTitle>Materials</CardTitle></CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                            {cl.materials.map((m) => (
-                                <div key={m.id} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
-                                    <div>
-                                        <div className="font-semibold text-slate-900">{m.title}</div>
-                                        <div className="text-xs text-slate-500">Updated: {m.updatedAt}</div>
-                                    </div>
-                                    <Badge tone="blue">{m.type}</Badge>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader><CardTitle>Assignments</CardTitle></CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <thead>
-                                    <tr>
-                                        <Th>Title</Th>
-                                        <Th>Due</Th>
-                                        <Th>Points</Th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {cl.assignments.map((a) => (
-                                        <tr key={a.id}>
-                                            <Td className="font-semibold text-slate-900">{a.title}</Td>
-                                            <Td>{a.due}</Td>
-                                            <Td><Badge tone="amber">{a.points}</Badge></Td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
+            {/* Tab Navigation chuẩn Figma */}
+            <div className="flex bg-slate-100 p-1 rounded-xl w-fit border border-slate-200">
+                {tabs.map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                            activeTab === tab.id ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                        }`}
+                    >
+                        {tab.icon} {tab.id}
+                    </button>
+                ))}
             </div>
 
             <div className="mt-4">
-                <Card>
-                    <CardHeader><CardTitle>Gradebook (demo)</CardTitle></CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <thead>
-                                    <tr>
-                                        <Th>Student</Th>
-                                        {cl.assignments.map((a) => <Th key={a.id}>{a.id}</Th>)}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {cl.gradebook.map((g) => (
-                                        <tr key={g.student}>
-                                            <Td className="font-semibold text-slate-900">{g.student}</Td>
-                                            {cl.assignments.map((a) => <Td key={a.id}>{g[a.id] ?? "-"}</Td>)}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
+                {activeTab === "Overview" && <OverviewTab cl={cl} />}
+                {activeTab === "Teachers" && <TeachersTab cl={cl} />}
+                {activeTab === "Students" && <StudentsTab cl={cl} />}
+                {activeTab === "Schedule" && <ScheduleTab cl={cl} />}
             </div>
         </div>
     );
 }
+
+// --- Định nghĩa các Tab Component để sửa lỗi 'is not defined' ---
+
+const OverviewTab = ({ cl }) => (
+    <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+            <CardHeader><CardTitle>Class Information</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4 text-sm italic">
+                <div><label className="text-slate-400 block not-italic font-medium">Semester</label><span className="font-bold">Spring 2026</span></div>
+                <div><label className="text-slate-400 block not-italic font-medium">Start Date</label><span className="font-bold">{cl.start_date}</span></div>
+                <div><label className="text-slate-400 block not-italic font-medium">Capacity</label><span className="font-bold">40 students</span></div>
+                <div><label className="text-slate-400 block not-italic font-medium">Status</label><Badge tone="green">{cl.status}</Badge></div>
+            </CardContent>
+        </Card>
+        <Card>
+            <CardHeader className="flex justify-between items-center"><CardTitle>Main Teacher</CardTitle><Button variant="outline" size="sm">Change</Button></CardHeader>
+            <CardContent className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                    {cl.teacher?.full_name?.charAt(0) || "T"}
+                </div>
+                <div>
+                    <div className="font-bold text-slate-900">{cl.teacher?.full_name || "Unassigned"}</div>
+                    <div className="text-xs text-slate-500">Primary Instructor</div>
+                </div>
+            </CardContent>
+        </Card>
+    </div>
+);
+
+const TeachersTab = ({ cl }) => (
+    <Card>
+        <CardHeader className="flex justify-between items-center">
+            <CardTitle>Assigned Teachers</CardTitle>
+            <Button size="sm" className="bg-blue-600"><UserPlus size={16} className="mr-2"/> Assign Teacher</Button>
+        </CardHeader>
+        <CardContent>
+            <Table>
+                <thead><tr><Th>Name</Th><Th>Email</Th><Th>Role</Th></tr></thead>
+                <tbody>
+                    <tr>
+                        <Td className="font-bold">{cl.teacher?.full_name}</Td>
+                        <Td>{cl.teacher?.email}</Td>
+                        <Td><Badge tone="blue">Primary</Badge></Td>
+                    </tr>
+                </tbody>
+            </Table>
+        </CardContent>
+    </Card>
+);
+
+const StudentsTab = ({ cl }) => (
+    <Card>
+        <CardHeader className="flex justify-between items-center">
+            <CardTitle>Enrolled Students</CardTitle>
+            <div className="flex gap-2">
+                <Button variant="outline" size="sm"><Upload size={16} className="mr-2"/> Import</Button>
+                <Button size="sm" className="bg-blue-600"><Plus size={16} className="mr-2"/> Add Student</Button>
+            </div>
+        </CardHeader>
+        <CardContent>
+            <Table>
+                <thead><tr><Th>Name</Th><Th>Email</Th><Th>Student ID</Th></tr></thead>
+                <tbody>
+                    {cl.enrollments?.map(en => (
+                        <tr key={en.id}>
+                            <Td className="font-bold">{en.student?.full_name}</Td>
+                            <Td>{en.student?.email}</Td>
+                            <Td>ST{en.student?.id}</Td>
+                        </tr>
+                    ))}
+                </tbody>
+            </Table>
+        </CardContent>
+    </Card>
+);
+
+const ScheduleTab = ({ cl }) => (
+    <Card>
+        <CardHeader className="flex justify-between items-center">
+            <CardTitle>Class Sessions</CardTitle>
+            <Button size="sm" className="bg-blue-600"><Plus size={16} className="mr-2"/> Add Session</Button>
+        </CardHeader>
+        <CardContent>
+            <Table>
+                <thead><tr><Th>Day</Th><Th>Time</Th><Th>Location</Th></tr></thead>
+                <tbody>
+                    {cl.sessions?.map(s => (
+                        <tr key={s.id}>
+                            <Td className="font-bold">{s.scheduled_date}</Td>
+                            <Td>09:00 - 10:30</Td>
+                            <Td><Badge tone="slate">Room 301</Badge></Td>
+                        </tr>
+                    ))}
+                </tbody>
+            </Table>
+        </CardContent>
+    </Card>
+);
