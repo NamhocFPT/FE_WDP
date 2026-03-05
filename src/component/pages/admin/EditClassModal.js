@@ -1,69 +1,54 @@
-// src/component/pages/admin/CreateClassModal.js
+// src/component/pages/Admin/EditClassModal.js
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { adminApi } from "service/adminApi";
 import { Button } from "component/ui";
-import { X, UserCheck } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-export default function CreateClassModal({ onClose, onSuccess }) {
-    // Quản lý danh sách Teachers lấy từ DB
-    const [metadata, setMetadata] = useState({ 
-        teachers: [], 
-    });
+export default function EditClassModal({ classData, onClose, onSuccess }) {
     const [courses, setCourses] = useState([]);
+    const [loading, setLoading] = useState(false);
+    
+    // Khởi tạo form với dữ liệu cũ từ props (initialData)
     const [formData, setFormData] = useState({
-        course_id: "",
-        teacher_id: "", // Cần gửi trường này để tránh lỗi NOT NULL
-        name: "",
-        semester: "Spring 2026",
-        start_date: "",
-        end_date: "",
-        max_capacity: 30
+        course_id: classData?.course_id || "",
+        name: classData?.name || "",
+        semester: classData?.semester || "Spring 2026",
+        start_date: classData?.start_date || "",
+        end_date: classData?.end_date || "",
+        max_capacity: classData?.max_capacity || 30
     });
     const [dateError, setDateError] = useState("");
 
     useEffect(() => {
-        // 1. Lấy danh sách khóa học cho dropdown
+        // Lấy danh sách khóa học cho dropdown
         adminApi.getCourses().then(res => {
             if (res.data.success) setCourses(res.data.data);
         });
-
-        // 2. Lấy danh sách metadata (bao gồm Teachers) từ Backend
-        const fetchMetadata = async () => {
-            try {
-                const metaRes = await adminApi.getCreateClassMetadata();
-            console.log("Dữ liệu Teacher từ Server:", metaRes.data); // Kiểm tra ở tab Console F12
-            
-            if (metaRes.data.success) {
-                setMetadata({
-                    // Phải đảm bảo key này khớp với dữ liệu Backend trả về (thường là 'teachers')
-                    teachers: metaRes.data.data.teachers || [] 
-                });
-            }
-            } catch (err) {
-                console.error("Lỗi lấy metadata teachers:", err);
-            }
-        };
-        fetchMetadata();
     }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
         setDateError("");
         try {
             if (new Date(formData.end_date) <= new Date(formData.start_date)) {
                 setDateError("Ngày kết thúc phải diễn ra sau Ngày bắt đầu. Vui lòng chọn lại.");
                 toast.error("Ngày kết thúc phải diễn ra sau Ngày bắt đầu. Vui lòng chọn lại.");
+                setLoading(false);
                 return;
             }
-            // Gửi đầy đủ thông tin bao gồm cả teacher_id
-            await adminApi.addClass(formData); 
-            toast.success("Tạo lớp học thành công!");
+            
+            // Gọi API Update thay vì Add
+            await adminApi.updateClass(classData.id, formData); 
+            toast.success("Cập nhật thông tin lớp học thành công!");
             onSuccess(); // Đóng modal và refresh danh sách
         } catch (err) {
-            console.error("Lỗi tạo lớp:", err);
-            toast.error(err.response?.data?.message || "Không thể tạo lớp học. Vui lòng kiểm tra lại dữ liệu.");
+            console.error("Lỗi cập nhật lớp:", err);
+            toast.error(err.response?.data?.message || "Không thể cập nhật lớp học. Vui lòng kiểm tra lại dữ liệu.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -72,7 +57,7 @@ export default function CreateClassModal({ onClose, onSuccess }) {
             <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-200">
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b border-slate-100">
-                    <h3 className="text-xl font-bold text-slate-900">Create New Class</h3>
+                    <h3 className="text-xl font-bold text-slate-900">Edit Class "{classData?.name}"</h3>
                     <X className="text-slate-400 cursor-pointer hover:text-slate-600" onClick={onClose} />
                 </div>
 
@@ -82,6 +67,7 @@ export default function CreateClassModal({ onClose, onSuccess }) {
                         <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Course</label>
                         <select 
                             required
+                            value={formData.course_id}
                             className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 bg-slate-50"
                             onChange={(e) => setFormData({...formData, course_id: e.target.value})}
                         >
@@ -90,14 +76,13 @@ export default function CreateClassModal({ onClose, onSuccess }) {
                         </select>
                     </div>
 
-
-
                     <div className="grid grid-cols-2 gap-4">
                         {/* Class Name */}
                         <div>
                             <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Class Name</label>
                             <input 
-                                type="text" placeholder="e.g. CS101-A" required
+                                type="text" placeholder="e.g. SE1886" required
+                                value={formData.name}
                                 className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
                                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                             />
@@ -106,6 +91,7 @@ export default function CreateClassModal({ onClose, onSuccess }) {
                         <div>
                             <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Semester</label>
                             <select 
+                                value={formData.semester}
                                 className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
                                 onChange={(e) => setFormData({...formData, semester: e.target.value})}
                             >
@@ -121,6 +107,7 @@ export default function CreateClassModal({ onClose, onSuccess }) {
                             <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Start Date</label>
                             <input 
                                 type="date" required
+                                value={formData.start_date}
                                 className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
                                 onChange={(e) => setFormData({...formData, start_date: e.target.value})}
                             />
@@ -129,31 +116,34 @@ export default function CreateClassModal({ onClose, onSuccess }) {
                             <label className="text-xs font-bold text-slate-500 uppercase block mb-2">End Date</label>
                             <input 
                                 type="date" required
+                                value={formData.end_date}
                                 className={`w-full p-3 border rounded-lg text-sm outline-none transition-all ${dateError ? "border-red-500 focus:ring-red-200" : "border-slate-200 focus:border-blue-500"}`}
                                 onChange={(e) => {
                                     setFormData({...formData, end_date: e.target.value});
-                                    setDateError(""); // Clear error on change
+                                    setDateError("");
                                 }}
                             />
                         </div>
                     </div>
                     {dateError && <p className="text-red-500 text-xs font-medium -mt-2">{dateError}</p>}
-                    
+
                     <div>
                         <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Maximum Capacity</label>
                         <input 
-                            type="number" defaultValue={30}
+                            type="number"
+                            value={formData.max_capacity}
                             className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
                             onChange={(e) => setFormData({...formData, max_capacity: e.target.value})}
                         />
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4 border-t border-slate-50">
-                        <Button type="button" className="bg-white text-slate-600 border border-slate-200 hover:bg-slate-50" onClick={onClose}>
+                        <Button type="button" className="bg-white text-slate-600 border border-slate-200 hover:bg-slate-50" onClick={onClose} disabled={loading}>
                             Cancel
                         </Button>
-                        <Button type="submit" className="bg-[#0f172a] text-white px-8 hover:bg-slate-800 shadow-lg transition-all">
-                            Create Class
+                        <Button type="submit" className="bg-[#2563eb] text-white px-8 hover:bg-slate-800 shadow-lg transition-all" disabled={loading}>
+                            {loading ? <Loader2 className="animate-spin mr-2" size={16} /> : null}
+                            Update Class
                         </Button>
                     </div>
                 </form>

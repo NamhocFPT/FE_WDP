@@ -13,12 +13,26 @@ export const adminApi = {
     // --- UC_ADM_11: CLASSES ---
     getClasses: () => api.get('/classes'),
     addClass: (data) => api.post('/classes', data),
-    // Bổ sung update để khớp Modal Edit Class (image_6cf546)
     updateClass: (id, data) => api.put(`/classes/${id}`, data),
     getClassDetail: (id) => api.get(`/classes/${id}`),
 
-    // --- CÁC CHỨC NĂNG BÊN TRONG TAB (image_6cf5a1, image_6cf59b, image_6cf57c) ---
-    assignTeacher: (classId, teacherId) => api.post(`/classes/${classId}/assign-teacher`, { teacherId }),
-    enrollStudent: (classId, studentData) => api.post(`/classes/${classId}/enroll`, studentData),
+    // --- UC_ADM_12: TEACHERS ---
+    getTeachers: () => api.get('/teachers'),
+    assignTeacher: (classId, teacherId) => api.put(`/classes/${classId}/assign-teacher`, { teacher_id: teacherId }),
+
+    // --- UC_ADM_13: STUDENTS ---
+    getStudents: () => api.get('/students'),
+    enrollStudents: (classId, studentIds) => api.post(`/classes/${classId}/enroll`, { studentIds }),
+    importStudents: (classId, emails) => api.post(`/classes/${classId}/import-students`, { emails }),
+    unenrollStudent: (classId, studentId) => api.delete(`/classes/${classId}/students/${studentId}`),
+    
     addSession: (classId, sessionData) => api.post(`/classes/${classId}/sessions`, sessionData),
+    editSessions: (classId, data) => api.put(`/classes/${classId}/sessions`, data), // data = { sessionIds, day_of_week, start_time, end_time, room }
+    deleteSessions: (classId, sessionIds) => api.delete(`/classes/${classId}/sessions`, { data: { sessionIds } }),
+
+    // --- DASHBOARD & REPORTS ---
+    getDashboardStats: () => api.get('/dashboard/stats'),
+    getReportData: (semester, course, dateRange) => api.get('/reports/data', { params: { semester, course, dateRange } }),
+    getReportFilters: () => api.get('/reports/filters'),
+    getTeacherActivity: (semester, course, dateRange) => api.get('/reports/teacher-activity', { params: { semester, course, dateRange } }),
 };
