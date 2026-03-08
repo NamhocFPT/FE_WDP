@@ -8,8 +8,8 @@ export default function Navbar() {
     const user = store.getCurrentUser();
     const navigate = useNavigate();
 
-    const onLogout = () => {
-        store.logout();
+    const onLogout = async () => {
+        await store.logout();
         navigate("/login", { replace: true });
     };
 
