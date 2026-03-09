@@ -51,9 +51,11 @@ export const mock = {
     ],
 
     schedule: [
-        { id: "s1", date: "2026-02-26", time: "08:00", title: "WDP301 - Lecture", location: "A-203", role: "teacher" },
-        { id: "s2", date: "2026-02-27", time: "10:00", title: "Office Hour", location: "Zoom", role: "teacher" },
-        { id: "s3", date: "2026-02-26", time: "08:00", title: "WDP301 - Lecture", location: "A-203", role: "student" },
+        { id: "s1", date: "2026-03-02", time: "09:00", endTime: "10:30", title: "CS101-A", teacher: "Dr. Sarah Johnson", location: "Room 301", courseCode: "CS101", role: "teacher" },
+        { id: "s2", date: "2026-03-02", time: "11:00", endTime: "12:30", title: "CS201-A", teacher: "Prof. Michael Chen", location: "Room 402", courseCode: "CS201", role: "teacher" },
+        { id: "s3", date: "2026-03-03", time: "14:00", endTime: "15:30", title: "CS301-A", teacher: "Dr. Sarah Johnson", location: "Lab 205", courseCode: "CS301", role: "teacher" },
+        { id: "s4", date: "2026-03-04", time: "09:00", endTime: "10:30", title: "CS101-A", teacher: "Dr. Sarah Johnson", location: "Room 301", courseCode: "CS101", role: "teacher" },
+        { id: "s5", date: "2026-03-05", time: "10:00", endTime: "11:30", title: "WDP301 - Lecture", teacher: "Dr. Sarah Johnson", location: "A-203", courseCode: "WDP301", role: "student" },
     ],
 
     monthlyEnroll: [
