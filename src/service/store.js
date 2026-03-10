@@ -1,56 +1,50 @@
 // src/service/store.js
-const KEY = "smartedu_current_user";
+import { api } from "./api";
 
-const mockUsers = [
-    { id: "u1", email: "admin@smartedu.com", fullName: "Admin User", role: "admin" },
-    { id: "u2", email: "teacher@smartedu.com", fullName: "Dr. Sarah Johnson", role: "teacher" },
-    { id: "u3", email: "student@smartedu.com", fullName: "John Smith", role: "student" },
-];
+const TOKEN_KEY = "smartedu_token";
+const USER_KEY = "smartedu_user";
 
-function readUser() {
+function readData() {
     try {
-        const raw = localStorage.getItem(KEY);
-        return raw ? JSON.parse(raw) : null;
+        const token = localStorage.getItem(TOKEN_KEY);
+        const user = localStorage.getItem(USER_KEY) ? JSON.parse(localStorage.getItem(USER_KEY)) : null;
+        return { token, user };
     } catch {
-        return null;
+        return { token: null, user: null };
     }
 }
 
-function writeUser(user) {
-    if (!user) localStorage.removeItem(KEY);
-    else localStorage.setItem(KEY, JSON.stringify(user));
-}
-
-let currentUser = readUser();
+let { token: currentToken, user: currentUser } = readData();
 
 export const store = {
+    getToken() {
+        return currentToken;
+    },
+
     getCurrentUser() {
         return currentUser;
     },
 
-    login(email, password) {
-        // demo: chỉ cần đúng email + có password là ok
-        const user = mockUsers.find((u) => u.email === email);
-        if (!user || !password) return null;
-
+    setAuth(token, user) {
+        currentToken = token;
         currentUser = user;
-        writeUser(user);
-        return user;
+
+        if (token) localStorage.setItem(TOKEN_KEY, token);
+        else localStorage.removeItem(TOKEN_KEY);
+
+        if (user) {
+            // Map role ID to short role code for frontend routing compat
+            // Let's assume user.role is a string like "ADMIN", "STUDENT", we lowercase it.
+            const uiUser = { ...user, role: user.role?.toLowerCase() || "student", fullName: user.full_name || user.email };
+            currentUser = uiUser;
+            localStorage.setItem(USER_KEY, JSON.stringify(uiUser));
+        } else {
+            localStorage.removeItem(USER_KEY);
+        }
     },
 
-    updateProfile(partial) {
-        if (!currentUser) return null;
-        currentUser = { ...currentUser, ...partial };
-        writeUser(currentUser);
-        return currentUser;
-    },
-
-    logout() {
-        currentUser = null;
-        writeUser(null);
-    },
-
-    getMockUsers() {
-        return mockUsers;
-    },
+    async logout() {
+        await api.logout().catch(() => { });
+        this.setAuth(null, null);
+    }
 };

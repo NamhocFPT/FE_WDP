@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { store } from "service/store";
+import { api } from "service/api";
 import { Button, Card, CardContent, Input, Badge } from "component/ui";
 
 export default function Login() {
@@ -10,14 +11,22 @@ export default function Login() {
     const [password, setPassword] = useState("123456");
     const [error, setError] = useState("");
 
-    const onSubmit = (e) => {
+    const onSubmit = async (e) => {
         e.preventDefault();
         setError("");
 
-        const user = store.login(email, password);
-        if (!user) return setError("Sai tài khoản/mật khẩu (demo: đúng email + password không rỗng).");
+        try {
+            const { ok, data } = await api.login(email, password);
+            if (!ok || !data.success) {
+                return setError(data.message || "Sai tài khoản/mật khẩu.");
+            }
 
-        navigate(`/${user.role}`, { replace: true });
+            store.setAuth(data.data.token, data.data.user);
+            const user = store.getCurrentUser();
+            navigate(`/${user.role}`, { replace: true });
+        } catch (err) {
+            setError("Lỗi kết nối server.");
+        }
     };
 
     const quickFill = (role) => {
@@ -156,7 +165,7 @@ export default function Login() {
                                     <Badge tone="blue">teacher@smartedu.com</Badge>
                                     <Badge tone="blue">student@smartedu.com</Badge>
                                 </div>
-                                <div className="mt-2 text-xs text-slate-500">Password: bất kỳ (không rỗng)</div>
+                                <div className="mt-2 text-xs text-slate-500">Password default: 123456</div>
                             </div>
                         </div>
                     </div>
