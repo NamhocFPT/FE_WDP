@@ -148,7 +148,7 @@ export default function StudentAssignmentDetail() {
                     <Card>
                         <CardContent className="p-6">
                             <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
-                                📝 Yêu cầu & Hướng dẫn
+                                Yêu cầu & Hướng dẫn
                             </h3>
                             <div className="text-slate-600 text-sm whitespace-pre-wrap leading-relaxed border-t pt-4 mb-6">
                                 {assessment.instructions || "Giảng viên không có hướng dẫn thêm cho bài tập này."}
@@ -184,7 +184,7 @@ export default function StudentAssignmentDetail() {
                         <Card className="border-green-200 shadow-sm">
                             <CardContent className="p-6">
                                 <h3 className="font-bold text-green-700 mb-4 flex items-center gap-2">
-                                    📥 Bài làm đã nộp
+                                    Bài làm đã nộp
                                 </h3>
                                 {submission.files && submission.files.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border-t border-green-100 pt-4">
@@ -220,7 +220,6 @@ export default function StudentAssignmentDetail() {
                                 <form onSubmit={onSubmit} className="space-y-6">
                                     <div className="border-4 border-dashed border-blue-100 rounded-3xl p-12 text-center bg-blue-50/30 hover:bg-blue-50 transition-all relative group">
                                         <input type="file" multiple onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                                        <div className="text-blue-500 text-5xl mb-4 group-hover:scale-110 transition-transform">📤</div>
                                         <div className="text-blue-700 font-bold text-xl">Kéo thả file bài làm vào đây</div>
                                         <p className="text-slate-500 mt-2">PDF, DOCX, ZIP, PNG, JPG (Tối đa 50MB)</p>
                                     </div>
@@ -257,11 +256,15 @@ export default function StudentAssignmentDetail() {
                                 <tbody>
                                     <tr className="border-b">
                                         <Th className="bg-slate-50 text-slate-600 text-xs uppercase">Trạng thái</Th>
-                                        <Td>
-                                            {!submission ? <Badge tone="slate">Chưa nộp</Badge> : 
-                                             submission.status === 'submitted_late' ? <Badge tone="amber">Nộp muộn</Badge> : 
-                                             <Badge tone="green">Đã nộp</Badge>}
-                                        </Td>
+<Td>
+    {!submission ? (
+        <Badge tone="slate">Chưa nộp</Badge>
+    ) : (submission.status === 'submitted_late' || (assessment.due_at && new Date(submission.submitted_at) > new Date(assessment.due_at))) ? (
+        <Badge tone="amber">Nộp muộn</Badge>
+    ) : (
+        <Badge tone="green">Đã nộp</Badge>
+    )}
+</Td>
                                     </tr>
                                     <tr className="border-b">
                                         <Th className="bg-slate-50 text-slate-600 text-xs uppercase">Điểm số</Th>

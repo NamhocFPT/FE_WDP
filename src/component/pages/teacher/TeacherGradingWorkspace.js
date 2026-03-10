@@ -80,6 +80,40 @@ export default function TeacherGradingWorkspace() {
         }
     };
 
+// Hàm xem trước file (Preview)
+    const handlePreview = (fileUrl, originalName) => {
+        if (!fileUrl) return;
+
+        // 1. KIỂM TRA LOCALHOST: Nếu file lưu ở localhost, Microsoft/Google không thể đọc được
+        if (fileUrl.includes('localhost') || fileUrl.includes('127.0.0.1')) {
+            alert("Môi trường Localhost không hỗ trợ xem trước file Office Online. Hệ thống sẽ tự động tải file về.");
+            handleDownload(fileUrl, originalName);
+            return;
+        }
+
+        let ext = "";
+        const nameMatch = originalName?.match(/\.(pdf|doc|docx|png|jpg|jpeg|zip|rar)$/i);
+        if (nameMatch) {
+            ext = nameMatch[1].toLowerCase();
+        } else {
+            const urlMatch = fileUrl.match(/\.(pdf|doc|docx|png|jpg|jpeg|zip|rar)(?:\?|#|$)/i);
+            if (urlMatch) ext = urlMatch[1].toLowerCase();
+        }
+
+        if (['png', 'jpg', 'jpeg', 'pdf'].includes(ext)) {
+            // Trình duyệt hỗ trợ đọc trực tiếp PDF và Ảnh
+            window.open(fileUrl, '_blank');
+        } else if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) {
+            // 2. CHUYỂN SANG GOOGLE DOCS VIEWER: Ổn định và đọc link Cloudinary tốt hơn
+            const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+            window.open(viewerUrl, '_blank');
+        } else {
+            // File Zip, Rar hoặc không xác định thì fallback về Tải xuống
+            alert("Định dạng file này không hỗ trợ xem trước trực tiếp trên trình duyệt. Hệ thống sẽ tiến hành tải về.");
+            handleDownload(fileUrl, originalName);
+        }
+    };
+
     // Hàm lưu điểm (Đã bọc Validation an toàn tuyệt đối)
     const handleSaveGrade = async (isPublished = false) => {
         const scoreNum = parseFloat(score);
@@ -183,30 +217,105 @@ export default function TeacherGradingWorkspace() {
             {/* SPLIT SCREEN WORKSPACE */}
             <div className="flex-1 flex overflow-hidden">
                 
-                {/* TRÁI: DOCUMENT VIEWER */}
+                {/* TRÁI: DOCUMENT VIEWER & THÔNG TIN BÀI TẬP */}
                 <div className="flex-1 bg-slate-100 p-8 overflow-y-auto border-r border-slate-200">
                     <div className="max-w-4xl mx-auto space-y-6">
-                        <h2 className="font-bold text-slate-700 flex items-center gap-2 text-lg">
-                            📄 File bài làm đính kèm
+                        
+                        {/* THÔNG TIN ĐỀ BÀI */}
+                        <Card className="border-blue-200 shadow-sm bg-white overflow-hidden">
+                            <div className="bg-blue-50 px-6 py-3 border-b border-blue-100 flex justify-between items-center">
+                                <h3 className="font-bold text-blue-800 flex items-center gap-2">
+                                    📋 Đề bài & Yêu cầu
+                                </h3>
+                            </div>
+                            <CardContent className="p-6">
+                                <div className="grid grid-cols-2 gap-4 text-sm mb-4 border-b pb-4">
+                                    <div>
+                                        <p className="text-slate-500 font-semibold mb-1">Hạn nộp (Due Date)</p>
+                                        <p className="font-medium text-red-600">
+                                            {data.assessment.due_at ? new Date(data.assessment.due_at).toLocaleString('vi-VN') : 'Không giới hạn'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-slate-500 font-semibold mb-1">Điểm tối đa</p>
+                                        <p className="font-medium text-blue-600 font-bold">{data.assessment.max_score}</p>
+                                    </div>
+                                </div>
+                                
+                                {/* Nội dung hướng dẫn (Text) */}
+                                <div className="mb-4">
+                                    <p className="text-slate-500 font-semibold mb-2 text-sm">Hướng dẫn chi tiết:</p>
+                                    <div className="text-sm text-slate-700 whitespace-pre-wrap bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                        {data.assessment.instructions || "Không có hướng dẫn thêm."}
+                                    </div>
+                                </div>
+
+                                {/* HIỂN THỊ FILE ĐỀ BÀI */}
+                                {data.assessment.files && data.assessment.files.length > 0 && (
+                                    <div className="mt-4 pt-4 border-t border-slate-100">
+                                        <p className="text-slate-500 font-semibold mb-3 text-sm">Tài liệu đính kèm (Đề bài):</p>
+                                        <div className="flex flex-wrap gap-3">
+                                            {data.assessment.files.map(aFile => (
+                                                <div key={aFile.id} className="flex items-center bg-blue-50 border border-blue-100 rounded-lg overflow-hidden group">
+                                                    <button 
+                                                        className="text-blue-700 hover:bg-blue-100 px-3 py-1.5 text-sm font-semibold flex items-center gap-2 transition-colors"
+                                                        onClick={() => handlePreview(aFile.file_url, aFile.original_name)}
+                                                        title="Xem trước"
+                                                    >
+                                                        <span className="text-base">📄</span> {aFile.original_name}
+                                                    </button>
+                                                    <div className="w-px h-full bg-blue-200"></div>
+                                                    <button 
+                                                        className="px-2.5 py-1.5 text-slate-400 hover:text-blue-700 hover:bg-blue-100 transition-colors"
+                                                        onClick={() => handleDownload(aFile.file_url, aFile.original_name)}
+                                                        title="Tải về"
+                                                    >
+                                                        Tải về
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* DANH SÁCH FILE BÀI LÀM CỦA SINH VIÊN */}
+                        <h2 className="font-bold text-slate-700 flex items-center gap-2 text-lg mt-8 mb-4">
+                            📑 File bài làm của sinh viên
                         </h2>
                         
                         {data.files && data.files.length > 0 ? (
                             <div className="grid gap-4">
                                 {data.files.map(file => (
                                     <Card key={file.id} className="hover:shadow-md transition-shadow border-slate-200">
-                                        <CardContent className="p-5 flex justify-between items-center bg-white">
+                                        <CardContent className="p-5 flex justify-between items-center bg-white flex-wrap gap-4">
                                             <div className="flex items-center gap-4">
-                                                <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-2xl">
+                                                <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-2xl shrink-0">
                                                     📎
                                                 </div>
-                                                <div>
-                                                    <p className="font-bold text-slate-800">{file.original_name}</p>
-                                                    <p className="text-xs text-slate-400 mt-1">Đã nộp lúc: {new Date(data.submitted_at).toLocaleString('vi-VN')}</p>
+                                                <div className="min-w-0">
+                                                    <p className="font-bold text-slate-800 truncate">{file.original_name}</p>
+                                                    <p className="text-xs text-slate-400 mt-1">Nộp lúc: {new Date(data.submitted_at).toLocaleString('vi-VN')}</p>
                                                 </div>
                                             </div>
-                                            <Button onClick={() => handleDownload(file.file_url, file.original_name)}>
-                                                Tải về xem
-                                            </Button>
+                                            
+                                            {/* Nút thao tác Xem / Tải cho bài làm */}
+                                            <div className="flex items-center gap-2">
+                                                <Button 
+                                                    variant="outline" 
+                                                    className="border-slate-300 text-slate-700 hover:bg-slate-50"
+                                                    onClick={() => handlePreview(file.file_url, file.original_name)}
+                                                >
+                                                    Xem trước
+                                                </Button>
+                                                <Button 
+                                                    className="bg-slate-800 text-white hover:bg-slate-900"
+                                                    onClick={() => handleDownload(file.file_url, file.original_name)}
+                                                >
+                                                    Tải về
+                                                </Button>
+                                            </div>
                                         </CardContent>
                                     </Card>
                                 ))}
@@ -235,7 +344,7 @@ export default function TeacherGradingWorkspace() {
                             className={`flex-1 py-4 text-sm font-bold flex justify-center items-center gap-2 transition-colors ${activeTab === 'ai' ? 'border-b-2 border-purple-600 text-purple-600 bg-purple-50/30' : 'text-slate-500 hover:bg-slate-50'}`}
                             onClick={() => setActiveTab('ai')}
                         >
-                            ✨ AI Đề xuất
+                            AI Đề xuất
                         </button>
                     </div>
 
@@ -271,7 +380,7 @@ export default function TeacherGradingWorkspace() {
                             <div className="space-y-5 animate-in fade-in duration-300">
                                 <div className="bg-gradient-to-br from-purple-50 to-white p-5 rounded-2xl border border-purple-100 relative overflow-hidden">
                                     <h4 className="font-bold text-purple-800 mb-2 flex items-center gap-2 text-lg">
-                                        ✨ Trợ lý Gemini
+                                        Trợ lý SmartEdu
                                     </h4>
                                     <p className="text-sm text-purple-700 mb-5 leading-relaxed">
                                         AI sẽ phân tích nội dung file đính kèm của sinh viên, đối chiếu với yêu cầu của bài tập và đưa ra điểm số kèm nhận xét chi tiết.
@@ -281,7 +390,7 @@ export default function TeacherGradingWorkspace() {
                                         onClick={handleRunAI}
                                         disabled={isAILoading || !data.files || data.files.length === 0}
                                     >
-                                        {isAILoading ? "🧠 Trí tuệ nhân tạo đang phân tích..." : "Phân Tích Bài Làm"}
+                                        {isAILoading ? "AI đang phân tích..." : "Phân Tích Bài Làm"}
                                     </Button>
                                     
                                     {(!data.files || data.files.length === 0) && (
