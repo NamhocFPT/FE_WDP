@@ -1,52 +1,702 @@
-// src/component/pages/teacher/TeacherSchedule.js
-import React, { useMemo, useState } from "react";
-import { mock } from "service/mockData";
-import { PageHeader, Card, CardContent, Badge, Modal, Button } from "component/ui";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import {
+    format,
+    startOfWeek,
+    endOfWeek,
+    addDays,
+    subDays,
+    addWeeks,
+    subWeeks,
+    addMonths,
+    subMonths,
+    startOfMonth,
+    endOfMonth,
+    isSameDay,
+    isSameMonth,
+    parseISO,
+    startOfDay,
+    getDay
+} from "date-fns";
+import { vi } from "date-fns/locale";
+import { PageHeader, Card, CardContent, Badge, Modal, Button, SearchableSelect } from "component/ui";
+import { get } from "utils/request";
+import { Clock, CheckCircle2, AlertTriangle, XCircle, Search, RefreshCcw } from "lucide-react";
+
+const CALENDAR_VIEWS = [
+    { id: "day", label: "Ngày" },
+    { id: "week", label: "Tuần" },
+    { id: "month", label: "Tháng" },
+];
+
+function getStatusInfo(status) {
+    switch (status) {
+        case "upcoming":
+            return {
+                bg: "bg-[#E3F2FD]",
+                border: "border-l-[4px] border-[#1976D2]",
+                text: "text-slate-800",
+                icon: null,
+                label: "Sắp tới",
+            };
+        case "ongoing":
+            return {
+                bg: "bg-[#BBDEFB]",
+                border: "border-l-[4px] border-[#1976D2] ring-1 ring-[#1976D2]/20",
+                text: "text-blue-900 font-medium",
+                icon: <Clock className="w-3 h-3 text-blue-600 animate-pulse inline-block mr-1" />,
+                label: "Đang diễn ra",
+            };
+        case "completed":
+            return {
+                bg: "bg-[#E8F5E9]",
+                border: "border-l-[4px] border-[#388E3C]",
+                text: "text-slate-800",
+                icon: <CheckCircle2 className="w-3 h-3 text-[#388E3C] inline-block mr-1" />,
+                label: "Đã xong",
+            };
+        case "missing_attendance":
+            return {
+                bg: "bg-[#FFF3E0]",
+                border: "border-l-[4px] border-[#F57C00]",
+                text: "text-slate-800",
+                icon: <AlertTriangle className="w-3 h-3 text-[#F57C00] inline-block mr-1" />,
+                label: "Chưa điểm danh",
+            };
+        case "cancelled":
+            return {
+                bg: "bg-[#F5F5F5]",
+                border: "border-l-[4px] border-slate-400",
+                text: "text-slate-500 line-through opacity-70",
+                icon: <XCircle className="w-3 h-3 text-slate-500 inline-block mr-1" />,
+                label: "Đã hủy",
+            };
+        default:
+            return {
+                bg: "bg-white",
+                border: "border-l-[4px] border-slate-200",
+                text: "text-slate-700",
+                icon: null,
+                label: "Không rõ",
+            };
+    }
+}
+
+const FPT_SLOTS = [
+    { id: 1, name: "Slot 1" },
+    { id: 2, name: "Slot 2" },
+    { id: 3, name: "Slot 3" },
+    { id: 4, name: "Slot 4" },
+    { id: 5, name: "Slot 5" },
+    { id: 6, name: "Slot 6" },
+];
+
+function getSlotFromTime(dateStr) {
+    const time = parseISO(dateStr).getHours() + parseISO(dateStr).getMinutes() / 60;
+    if (time < 9.5) return 1;
+    if (time < 12.5) return 2;
+    if (time < 15.25) return 3;
+    if (time < 17.75) return 4;
+    if (time < 20.0) return 5;
+    return 6; 
+}
+
+// Fallback mock data in case API fails
+const MOCK_SESSIONS = [
+    {
+        id: "s1",
+        start_time: "2026-03-10T07:30:00",
+        end_time: "2026-03-10T09:00:00",
+        class: { name: "SE1886" },
+        course: { code: "CSD201" },
+        room: "Phòng 202, Tòa A",
+        display_status: "upcoming",
+        is_cancelled: false,
+        attendance_summary: { total: 30, present: 28, absent: 1, late: 1, excused: 0, not_taken: false },
+        students: [
+            { id: 1, name: "Nguyễn Văn A", attendance: { status: "present", note: "" } },
+            { id: 2, name: "Trần Thị B", attendance: { status: "absent", note: "Nghỉ ốm" } },
+            { id: 3, name: "Lê Văn C", attendance: { status: "late", note: "Trễ 10p" } },
+            { id: 4, name: "Phạm D", attendance: null },
+        ],
+        materials: [{ title: "Chương 5 - Linked List", type: "pdf", file_url: "#" }],
+    },
+    {
+        id: "s2",
+        start_time: "2026-03-11T13:00:00",
+        end_time: "2026-03-11T14:30:00",
+        class: { name: "SE1886" },
+        course: { code: "PRJ301" },
+        room: "Phòng 305, Tòa A",
+        display_status: "ongoing",
+        is_cancelled: false,
+        attendance_summary: { not_taken: true },
+        students: [],
+        materials: [],
+    },
+    {
+        id: "s3",
+        start_time: "2026-03-12T07:30:00",
+        end_time: "2026-03-12T09:00:00",
+        class: { name: "SE1889" },
+        course: { code: "SWP391" },
+        room: "Phòng 401, Tòa B",
+        display_status: "completed",
+        is_cancelled: false,
+        attendance_summary: { total: 30, present: 30, absent: 0, late: 0, excused: 0, not_taken: false },
+        students: [],
+        materials: [],
+    },
+    {
+        id: "s4",
+        start_time: "2026-03-13T09:15:00",
+        end_time: "2026-03-13T10:45:00",
+        class: { name: "SA1234" },
+        course: { code: "MAE101" },
+        room: "Phòng 102, Tòa C",
+        display_status: "missing_attendance",
+        is_cancelled: false,
+        attendance_summary: { not_taken: true },
+        students: [],
+        materials: [],
+    },
+    {
+        id: "s5",
+        start_time: "2026-03-14T13:00:00",
+        end_time: "2026-03-14T14:30:00",
+        class: { name: "SA1234" },
+        course: { code: "MAE101" },
+        room: "Phòng 102, Tòa C",
+        display_status: "cancelled",
+        is_cancelled: true,
+        cancelled_at: "2026-03-08T10:00:00",
+        cancelled_reason: "Nghỉ lễ",
+        attendance_summary: { not_taken: true },
+        students: [],
+        materials: [],
+    },
+];
 
 export default function TeacherSchedule() {
-    const items = useMemo(() => mock.schedule.filter((s) => s.role === "teacher"), []);
-    const [selected, setSelected] = useState(null);
+    const [viewMode, setViewMode] = useState("week"); // day | week | month
+    const [currentDate, setCurrentDate] = useState(new Date("2026-03-10T12:00:00")); // Mocking today for demo to align with request date
+    
+    const [classes, setClasses] = useState([{ label: "Tất cả lớp", value: "" }]);
+    const [selectedClassId, setSelectedClassId] = useState("");
+    
+    const [sessions, setSessions] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const [selectedSession, setSelectedSession] = useState(null);
+    const [cancelledSession, setCancelledSession] = useState(null); // For Cancelled Popup
+    const [detailTab, setDetailTab] = useState("attendance"); // attendance | documents
+
+    // Derived Date Range
+    const { dateFrom, dateTo } = useMemo(() => {
+        let from, to;
+        switch (viewMode) {
+            case "day":
+                from = startOfDay(currentDate);
+                to = startOfDay(currentDate);
+                break;
+            case "week":
+                from = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday
+                to = endOfWeek(currentDate, { weekStartsOn: 1 });
+                break;
+            case "month":
+                from = startOfMonth(currentDate);
+                to = endOfMonth(currentDate);
+                break;
+            default:
+                from = new Date();
+                to = new Date();
+        }
+        return { dateFrom: from, dateTo: to };
+    }, [currentDate, viewMode]);
+
+    const headerDateText = useMemo(() => {
+        if (viewMode === "day") {
+            return format(currentDate, "dd/MM/yyyy (EEEE)", { locale: vi });
+        } else if (viewMode === "week") {
+            return `${format(dateFrom, "dd/MM")} - ${format(dateTo, "dd/MM/yyyy", { locale: vi })}`;
+        } else if (viewMode === "month") {
+            return `Tháng ${format(currentDate, "MM/yyyy", { locale: vi })}`;
+        }
+        return "";
+    }, [currentDate, viewMode, dateFrom, dateTo]);
+
+    // Fetch Data
+    const fetchData = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            // Uncomment the real API calls when backend is ready
+            // const [classesRes, scheduleRes] = await Promise.all([
+            //     get("teacher/schedule/classes"),
+            //     get(`teacher/schedule?from=${format(dateFrom, 'yyyy-MM-dd')}&to=${format(dateTo, 'yyyy-MM-dd')}${selectedClassId ? `&class_id=${selectedClassId}` : ''}`)
+            // ]);
+            // setClasses([{label: "Tất cả lớp", value: ""}, ...(classesRes.data || [])]);
+            // setSessions(scheduleRes.data || []);
+
+            // MOCKING API RESPONSE
+            setTimeout(() => {
+                let filtered = MOCK_SESSIONS;
+                if (selectedClassId) {
+                    filtered = filtered.filter(s => s.class.name === selectedClassId); // Mock filter
+                }
+                
+                // Keep only sessions inside current view range for demo accuracy
+                filtered = filtered.filter(s => {
+                    const d = parseISO(s.start_time);
+                    if (viewMode === "day") return isSameDay(d, currentDate);
+                    if (viewMode === "week") return d >= dateFrom && d <= dateTo;
+                    if (viewMode === "month") return isSameMonth(d, currentDate);
+                    return true;
+                });
+                
+                setSessions(filtered);
+                setIsLoading(false);
+            }, 400);
+
+        } catch (error) {
+            console.error("Failed to fetch schedule data", error);
+            setIsLoading(false);
+        }
+    }, [dateFrom, dateTo, selectedClassId, viewMode, currentDate]);
+
+    useEffect(() => {
+        // Load classes once on mount (simulated)
+        setClasses([
+            { label: "Tất cả lớp", value: "" },
+            { label: "SE1886", value: "SE1886" },
+            { label: "SE1889", value: "SE1889" },
+            { label: "SA1234", value: "SA1234" },
+        ]);
+        fetchData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dateFrom, dateTo, selectedClassId]);
+
+    // Navigation Handlers
+    const handlePrev = () => {
+        if (viewMode === "day") setCurrentDate(subDays(currentDate, 1));
+        else if (viewMode === "week") setCurrentDate(subWeeks(currentDate, 1));
+        else if (viewMode === "month") setCurrentDate(subMonths(currentDate, 1));
+    };
+
+    const handleNext = () => {
+        if (viewMode === "day") setCurrentDate(addDays(currentDate, 1));
+        else if (viewMode === "week") setCurrentDate(addWeeks(currentDate, 1));
+        else if (viewMode === "month") setCurrentDate(addMonths(currentDate, 1));
+    };
+
+    const handleToday = () => {
+        setCurrentDate(new Date("2026-03-10T12:00:00")); // Use real new Date() in prod
+    };
+
+    const handleSlotClick = async (sessionParam) => {
+        try {
+            // const res = await get(`/teacher/schedule/${sessionParam.id}`);
+            // const session = res.data.data;
+            const session = MOCK_SESSIONS.find(s => s.id === sessionParam.id) || sessionParam; // Mock API call
+
+            if (session.is_cancelled) {
+                setCancelledSession(session);
+            } else {
+                setSelectedSession(session);
+                setDetailTab("attendance"); // reset tab
+            }
+        } catch (error) {
+            console.error("Failed to fetch session detail", error);
+        }
+    };
+
+    // Rendering Helpers
+    const renderCalendarGrid = () => {
+        if (isLoading) {
+            return (
+                <div className="flex h-64 items-center justify-center text-slate-500">
+                    <RefreshCcw className="h-6 w-6 animate-spin mr-2" /> Đang tải lịch dạy...
+                </div>
+            );
+        }
+
+        if (sessions.length === 0) {
+            return (
+                <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-lg border border-slate-100 border-dashed">
+                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                        <span className="text-2xl">📅</span>
+                    </div>
+                    <div className="text-slate-600 font-medium text-center">
+                        Không có lịch giảng dạy trong khoảng<br/>thời gian này.
+                    </div>
+                </div>
+            );
+        }
+
+        if (viewMode === "week") {
+            const days = [];
+            for (let i = 0; i < 7; i++) {
+                days.push(addDays(dateFrom, i));
+            }
+
+            return (
+                <div className="border border-slate-200 rounded-lg overflow-x-auto">
+                    <div className="min-w-[800px] grid grid-cols-[80px_repeat(7,1fr)] bg-slate-200 gap-px">
+                        {/* Empty Top-Left Cell */}
+                        <div className="bg-slate-50"></div>
+                        
+                        {/* Header Row */}
+                        {days.map((day, idx) => (
+                            <div key={idx} className="bg-slate-50 py-3 text-center">
+                                <div className="text-xs font-semibold text-slate-500 uppercase">
+                                    {format(day, "EEEE", { locale: vi })}
+                                </div>
+                                <div className={`text-lg font-bold ${isSameDay(day, new Date("2026-03-10")) ? 'text-blue-600' : 'text-slate-900'}`}>
+                                    {format(day, "dd/MM")}
+                                </div>
+                            </div>
+                        ))}
+                        
+                        {/* Grid Body */}
+                        {FPT_SLOTS.map(slot => (
+                            <React.Fragment key={slot.id}>
+                                {/* Slot Label Cell */}
+                                <div className="bg-slate-50 flex flex-col justify-center items-center py-4 px-2 text-center pointer-events-none">
+                                    <span className="text-sm font-semibold text-slate-700">{slot.name}</span>
+                                </div>
+                                
+                                {/* Slot Cells for Each Day */}
+                                {days.map((day, dIdx) => {
+                                    const cellSessions = sessions.filter(s => {
+                                        return isSameDay(parseISO(s.start_time), day) && getSlotFromTime(s.start_time) === slot.id;
+                                    }).sort((a,b) => parseISO(a.start_time) - parseISO(b.start_time));
+                                    
+                                    return (
+                                        <div key={`${slot.id}-${dIdx}`} className="bg-white min-h-[100px] p-1 space-y-2">
+                                            {cellSessions.map(session => (
+                                                <SessionBlock key={session.id} session={session} onClick={() => handleSlotClick(session)} />
+                                            ))}
+                                        </div>
+                                    );
+                                })}
+                            </React.Fragment>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        if (viewMode === "day") {
+            const daySessionsCount = sessions.filter(s => isSameDay(parseISO(s.start_time), dateFrom)).length;
+
+            return (
+                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden min-h-[400px]">
+                    <div className="bg-slate-50 py-3 px-4 border-b border-slate-200">
+                         <div className="text-sm font-semibold text-slate-500 uppercase">
+                            {format(dateFrom, "EEEE", { locale: vi })}
+                        </div>
+                        <div className="text-xl font-bold text-slate-900">
+                            {format(dateFrom, "dd MMMM yyyy", { locale: vi })}
+                        </div>
+                    </div>
+                    <div className="p-4 max-w-3xl">
+                        {daySessionsCount === 0 ? (
+                            <div className="text-center text-slate-500 py-10">Không có lịch trong ngày này.</div>
+                        ) : (
+                            <div className="border border-slate-200 rounded-lg overflow-hidden flex flex-col divide-y divide-slate-200">
+                                {FPT_SLOTS.map(slot => {
+                                    const slotSessions = sessions.filter(s => {
+                                        return isSameDay(parseISO(s.start_time), dateFrom) && getSlotFromTime(s.start_time) === slot.id;
+                                    }).sort((a,b) => parseISO(a.start_time) - parseISO(b.start_time));
+                                    
+                                    if (slotSessions.length === 0) return null;
+
+                                    return (
+                                        <div key={slot.id} className="flex flex-col md:flex-row bg-white">
+                                            <div className="w-full md:w-32 shrink-0 bg-slate-50 p-4 font-semibold text-slate-700 flex items-center justify-center border-b md:border-b-0 md:border-r border-slate-200">
+                                                {slot.name}
+                                            </div>
+                                            <div className="flex-1 p-4 space-y-3">
+                                                {slotSessions.map(session => (
+                                                    <SessionBlock key={session.id} session={session} onClick={() => handleSlotClick(session)} large />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )
+        }
+
+        if (viewMode === "month") {
+            // A simple list grouped by date for month view
+            const grouped = sessions.reduce((acc, curr) => {
+                const dateKey = format(parseISO(curr.start_time), 'yyyy-MM-dd');
+                if(!acc[dateKey]) acc[dateKey] = [];
+                acc[dateKey].push(curr);
+                return acc;
+            }, {});
+
+            return (
+                <div className="space-y-4 max-w-4xl">
+                    {Object.keys(grouped).sort().map(dateKey => (
+                        <Card key={dateKey}>
+                             <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 font-bold text-slate-800 flex gap-2 items-center">
+                                 <div className="bg-blue-100 text-blue-700 rounded-md px-2 py-1 text-sm">{format(parseISO(dateKey), "dd/MM")}</div>
+                                 {format(parseISO(dateKey), "EEEE", {locale: vi})}
+                             </div>
+                             <div className="p-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                  {grouped[dateKey].sort((a,b) => parseISO(a.start_time) - parseISO(b.start_time)).map(session => (
+                                      <SessionBlock key={session.id} session={session} onClick={() => handleSlotClick(session)} />
+                                  ))}
+                             </div>
+                        </Card>
+                    ))}
+                </div>
+            )
+        }
+
+        return null;
+    };
+
 
     return (
-        <div>
-            <PageHeader title="Teacher Schedule" subtitle="Weekly sessions (demo)." />
+        <div className="p-6 max-w-[1400px] mx-auto space-y-6">
+            <PageHeader title="Lịch giảng dạy" subtitle="Quản lý lịch dạy và điểm danh, tài liệu học tập" />
 
-            <Card>
-                <CardContent className="space-y-2">
-                    {items.map((s) => (
-                        <button
-                            key={s.id}
-                            className="w-full text-left rounded-xl border border-slate-200 bg-white p-3 hover:bg-slate-50"
-                            onClick={() => setSelected(s)}
-                        >
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="text-sm font-semibold text-slate-900">{s.title}</div>
-                                    <div className="text-xs text-slate-500">{s.date} • {s.time} • {s.location}</div>
-                                </div>
-                                <Badge tone="blue">Open</Badge>
-                            </div>
-                        </button>
-                    ))}
-                </CardContent>
+            <Card className="rounded-xl overflow-visible shadow-sm">
+                <div className="px-4 py-3 border-b border-slate-200 bg-white rounded-t-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    {/* Left: Filter */}
+                    <div className="w-full md:w-64">
+                         <SearchableSelect 
+                            options={classes} 
+                            value={selectedClassId} 
+                            onChange={(val) => setSelectedClassId(val)}
+                            placeholder="Lọc theo lớp..."
+                         />
+                    </div>
+
+                    {/* Center: Navigation */}
+                    <div className="flex items-center space-x-2">
+                        <Button variant="outline" className="px-3" onClick={handlePrev}>◀</Button>
+                        <div className="font-semibold text-slate-800 min-w-[180px] text-center capitalize">
+                            {headerDateText}
+                        </div>
+                         <Button variant="outline" className="px-3" onClick={handleNext}>▶</Button>
+                         <Button variant="outline" onClick={handleToday} className="ml-2">Hôm nay</Button>
+                    </div>
+
+                    {/* Right: View Mode Tabs */}
+                    <div className="flex bg-slate-100 p-1 rounded-lg">
+                        {CALENDAR_VIEWS.map((mode) => (
+                            <button
+                                key={mode.id}
+                                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+                                    viewMode === mode.id
+                                        ? "bg-white shadow-sm text-slate-900"
+                                        : "text-slate-600 hover:text-slate-900"
+                                }`}
+                                onClick={() => setViewMode(mode.id)}
+                            >
+                                {mode.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="p-4 bg-slate-50 min-h-[400px]">
+                    {renderCalendarGrid()}
+                </div>
             </Card>
 
-            <Modal open={!!selected} title="Session detail" onClose={() => setSelected(null)}>
-                {selected ? (
-                    <div className="space-y-3">
-                        <div>
-                            <div className="text-sm font-semibold text-slate-900">{selected.title}</div>
-                            <div className="text-xs text-slate-500">{selected.date} • {selected.time} • {selected.location}</div>
+            {/* Modal: Class Detail */}
+            <Modal open={!!selectedSession} title="Chi tiết buổi học" onClose={() => setSelectedSession(null)}>
+                {selectedSession && (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <div>
+                                <div className="text-sm text-slate-500">Lớp học</div>
+                                <div className="font-semibold text-slate-900">
+                                    🏫 {selectedSession.class.name}
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-sm text-slate-500">Môn học</div>
+                                <div className="font-semibold text-slate-900">
+                                    📚 {selectedSession.course.code}
+                                </div>
+                            </div>
+                            <div className="col-span-2 flex items-center gap-2">
+                                 <Clock className="w-4 h-4 text-slate-400" />
+                                 <span className="font-medium text-slate-800">
+                                     {format(parseISO(selectedSession.start_time), 'HH:mm')} - {format(parseISO(selectedSession.end_time), 'HH:mm')}
+                                 </span>
+                                 <span className="text-slate-400">|</span>
+                                 <span className="text-slate-600">📍 {selectedSession.room}</span>
+                                 {selectedSession.display_status === 'ongoing' && (
+                                     <Badge tone="blue" className="ml-auto animate-pulse">Đang diễn ra</Badge>
+                                 )}
+                            </div>
                         </div>
 
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                            Demo: bạn có thể thêm Attendance / Notes / Materials ở đây.
+                         {/* Tabs for details */}
+                         <div className="border-b border-slate-200">
+                            <nav className="-mb-px flex gap-6" aria-label="Tabs">
+                                <button
+                                    onClick={() => setDetailTab("attendance")}
+                                    className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                                        detailTab === "attendance"
+                                            ? "border-blue-500 text-blue-600"
+                                            : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                                    }`}
+                                >
+                                    👥 Sinh viên & Điểm danh
+                                </button>
+                                <button
+                                    onClick={() => setDetailTab("documents")}
+                                    className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                                        detailTab === "documents"
+                                            ? "border-blue-500 text-blue-600"
+                                            : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                                    }`}
+                                >
+                                    📎 Tài liệu ({selectedSession.materials?.length || 0})
+                                </button>
+                            </nav>
                         </div>
 
-                        <Button onClick={() => setSelected(null)}>Close</Button>
+                        {/* Attendance Tab */}
+                        {detailTab === "attendance" && (
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-200 text-sm">
+                                    <div className="font-medium text-slate-700">
+                                        Tổng: {selectedSession.attendance_summary?.total || 0}
+                                    </div>
+                                    <div className="flex gap-3 text-slate-600">
+                                        <span className="text-emerald-600 font-medium">✓ {selectedSession.attendance_summary?.present || 0}</span>
+                                        <span className="text-red-600 font-medium">✕ {selectedSession.attendance_summary?.absent || 0}</span>
+                                        <span className="text-amber-600 font-medium">⏰ {selectedSession.attendance_summary?.late || 0}</span>
+                                    </div>
+                                </div>
+                                
+                                {selectedSession.attendance_summary?.not_taken && (
+                                    <div className="bg-orange-50 text-orange-800 p-3 rounded-lg border border-orange-200 text-sm flex items-center justify-between">
+                                        <span>Buổi học này chưa được điểm danh.</span>
+                                        <Button variant="primary" className="bg-orange-600 hover:bg-orange-700">Điểm danh ngay</Button>
+                                    </div>
+                                )}
+
+                                {selectedSession.students && selectedSession.students.length > 0 && (
+                                     <div className="max-h-[250px] overflow-auto border border-slate-200 rounded-lg">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="text-xs text-slate-700 uppercase bg-slate-50 sticky top-0 border-b border-slate-200">
+                                                <tr>
+                                                    <th className="px-3 py-2">#</th>
+                                                    <th className="px-3 py-2">Họ tên</th>
+                                                    <th className="px-3 py-2">Trạng thái</th>
+                                                    <th className="px-3 py-2 w-1/3">Ghi chú</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {selectedSession.students.map((student, idx) => (
+                                                    <tr key={student.id} className="hover:bg-slate-50">
+                                                        <td className="px-3 py-2 text-slate-500">{idx + 1}</td>
+                                                        <td className="px-3 py-2 font-medium text-slate-900">{student.name}</td>
+                                                        <td className="px-3 py-2">
+                                                            {!student.attendance ? (
+                                                                <span className="text-slate-400">—</span>
+                                                            ) : student.attendance.status === "present" ? (
+                                                                <span className="text-emerald-600 font-medium">✓ Present</span>
+                                                            ) : student.attendance.status === "absent" ? (
+                                                                <span className="text-red-600 font-medium">✕ Absent</span>
+                                                            ) : (
+                                                                <span className="text-amber-600 font-medium">⏰ Late</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-slate-500 truncate max-w-[120px]" title={student.attendance?.note}>
+                                                            {student.attendance?.note || ''}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                     </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Documents Tab */}
+                        {detailTab === "documents" && (
+                            <div className="space-y-2">
+                                {selectedSession.materials && selectedSession.materials.length > 0 ? (
+                                    selectedSession.materials.map((mat, i) => (
+                                        <a href={mat.file_url} key={i} className="flex items-center justify-between p-3 bg-white border border-slate-200 hover:border-blue-300 rounded-lg transition-colors group">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded bg-red-100 text-red-600 flex items-center justify-center font-bold text-xs uppercase">
+                                                    {mat.type}
+                                                </div>
+                                                <div className="font-medium text-slate-800 group-hover:text-blue-600">{mat.title}</div>
+                                            </div>
+                                            <Button variant="ghost" size="sm">Tải về</Button>
+                                        </a>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border border-slate-200 border-dashed">
+                                        Không có tài liệu nào cho buổi học này.
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
-                ) : null}
+                )}
+            </Modal>
+
+            {/* Modal: Cancelled Exception */}
+            <Modal open={!!cancelledSession} title="⚠️ Buổi học đã bị hủy" onClose={() => setCancelledSession(null)}>
+                {cancelledSession && (
+                    <div className="space-y-4">
+                        <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 text-slate-800 text-sm leading-relaxed">
+                            Buổi học <strong>{cancelledSession.class.name}</strong> - <strong>{cancelledSession.course.code}</strong> đã bị hủy bởi Quản trị viên vào ngày <strong>{format(parseISO(cancelledSession.cancelled_at), 'dd/MM/yyyy')}</strong>.
+                            <br/><br/>
+                            Lý do: <span className="text-red-600 font-medium">{cancelledSession.cancelled_reason || "Không có lý do cụ thể"}</span>
+                            <br/><br/>
+                            <em className="text-slate-500">Bạn không thể thao tác trên buổi học này.</em>
+                        </div>
+                        <div className="flex justify-end mt-4">
+                            <Button variant="primary" onClick={() => setCancelledSession(null)}>Đã hiểu</Button>
+                        </div>
+                    </div>
+                )}
             </Modal>
         </div>
+    );
+}
+
+// Sub-component for a single calendar block
+function SessionBlock({ session, onClick, large = false }) {
+    const styleInfo = getStatusInfo(session.display_status);
+    
+    return (
+        <button
+            onClick={onClick}
+            className={`w-full text-left rounded-md p-2 hover:brightness-95 transition-all outline-none focus:ring-2 focus:ring-blue-400 ${styleInfo.bg} ${styleInfo.border}`}
+        >
+            <div className={`text-xs font-semibold ${styleInfo.text} flex items-center gap-1`}>
+                 {styleInfo.icon}
+                 {format(parseISO(session.start_time), 'HH:mm')} - {format(parseISO(session.end_time), 'HH:mm')}
+            </div>
+            <div className={`font-bold text-slate-900 mt-1 truncate ${large ? 'text-lg' : 'text-sm'}`}>
+                {session.class.name} <span className="text-slate-500 font-normal">| {session.course.code}</span>
+            </div>
+            <div className={`text-slate-600 mt-0.5 truncate ${large ? 'text-sm' : 'text-xs'}`}>
+                 📍 {session.room}
+            </div>
+            {large && session.display_status === 'missing_attendance' && (
+                <div className="mt-2 inline-flex items-center text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full font-medium">
+                    Cần điểm danh
+                </div>
+            )}
+        </button>
     );
 }
