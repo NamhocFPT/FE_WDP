@@ -6,8 +6,6 @@ import { store } from "service/store";
 
 // Auth
 import Login from "component/pages/auth/Login";
-import ForgotPassword from "component/pages/auth/ForgotPassword";
-import ResetPassword from "component/pages/auth/ResetPassword";
 
 // Common
 import ChangePassword from "component/pages/common/ChangePassword";
@@ -53,8 +51,6 @@ function RootRedirect() {
 // ✅ export MẢNG routes để dùng với useRoutes()
 export const router = [
   { path: "/login", element: <Login /> },
-  { path: "/forgot-password", element: <ForgotPassword /> },
-  { path: "/reset-password", element: <ResetPassword /> },
   { path: "/", element: <RootRedirect /> },
   { path: "/forbidden", element: <Forbidden /> },
 

@@ -144,16 +144,9 @@ export default function Login() {
                                             Login
                                         </Button>
 
-                                        <div className="flex items-center justify-between text-sm">
-                                            <Link
-                                                to="/forgot-password"
-                                                className="font-semibold text-slate-700 hover:text-slate-900"
-                                            >
-                                                Forgot password?
-                                            </Link>
+                                        <div className="flex items-center justify-end text-sm">
                                             <span className="text-xs text-slate-500">Demo only</span>
-                                        </div>
-                                    </form>
+                                        </div>                                    </form>
                                 </CardContent>
                             </Card>
 
