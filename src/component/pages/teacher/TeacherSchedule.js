@@ -178,7 +178,7 @@ const MOCK_SESSIONS = [
 
 export default function TeacherSchedule() {
     const [viewMode, setViewMode] = useState("week"); // day | week | month
-    const [currentDate, setCurrentDate] = useState(new Date("2026-03-10T12:00:00")); // Mocking today for demo to align with request date
+    const [currentDate, setCurrentDate] = useState(new Date()); // Fetch based on today
     
     const [classes, setClasses] = useState([{ label: "Tất cả lớp", value: "" }]);
     const [selectedClassId, setSelectedClassId] = useState("");
@@ -229,33 +229,38 @@ export default function TeacherSchedule() {
         setIsLoading(true);
         try {
             // Uncomment the real API calls when backend is ready
-            // const [classesRes, scheduleRes] = await Promise.all([
-            //     get("teacher/schedule/classes"),
-            //     get(`teacher/schedule?from=${format(dateFrom, 'yyyy-MM-dd')}&to=${format(dateTo, 'yyyy-MM-dd')}${selectedClassId ? `&class_id=${selectedClassId}` : ''}`)
-            // ]);
-            // setClasses([{label: "Tất cả lớp", value: ""}, ...(classesRes.data || [])]);
-            // setSessions(scheduleRes.data || []);
-
-            // MOCKING API RESPONSE
-            setTimeout(() => {
-                let filtered = MOCK_SESSIONS;
-                if (selectedClassId) {
-                    filtered = filtered.filter(s => s.class.name === selectedClassId); // Mock filter
-                }
-                
-                // Keep only sessions inside current view range for demo accuracy
-                filtered = filtered.filter(s => {
-                    const d = parseISO(s.start_time);
-                    if (viewMode === "day") return isSameDay(d, currentDate);
-                    if (viewMode === "week") return d >= dateFrom && d <= dateTo;
-                    if (viewMode === "month") return isSameMonth(d, currentDate);
-                    return true;
-                });
-                
-                setSessions(filtered);
-                setIsLoading(false);
-            }, 400);
-
+            const [classesRes, scheduleRes] = await Promise.all([
+                get("api/teacher/schedule/classes"),
+                get(`api/teacher/schedule?from=${format(dateFrom, 'yyyy-MM-dd')}&to=${format(dateTo, 'yyyy-MM-dd')}${selectedClassId ? `&class_id=${selectedClassId}` : ''}`)
+            ]);
+            
+            // Backend trả về dạng { message: "OK", data: [...] }
+            // Utils request "get" trả thẳng object này. Vậy class list nằm ở classesRes.data 
+            // và schedule nằm ở scheduleRes.data
+            
+            const classesData = classesRes.data || [];
+            const mappedClasses = classesData.map(c => ({ 
+                label: c.class_name || c.name || c.class_id, 
+                value: c.class_id || c.id 
+            }));
+            
+            setClasses([{label: "Tất cả lớp", value: ""}, ...mappedClasses]);
+            
+            // Adjust data mapping for the schedule blocks
+            const apiSessions = scheduleRes.data || [];
+            
+            // Filter sessions inside current view range to avoid spilling (just in case API returns loose dates)
+            const filteredApiSessions = apiSessions.filter(s => {
+                const d = parseISO(s.start_time);
+                if (viewMode === "day") return isSameDay(d, currentDate);
+                if (viewMode === "week") return d >= dateFrom && d <= dateTo;
+                if (viewMode === "month") return isSameMonth(d, currentDate);
+                return true;
+            });
+            
+            setSessions(filteredApiSessions);
+            setIsLoading(false);
+            
         } catch (error) {
             console.error("Failed to fetch schedule data", error);
             setIsLoading(false);
@@ -263,13 +268,6 @@ export default function TeacherSchedule() {
     }, [dateFrom, dateTo, selectedClassId, viewMode, currentDate]);
 
     useEffect(() => {
-        // Load classes once on mount (simulated)
-        setClasses([
-            { label: "Tất cả lớp", value: "" },
-            { label: "SE1886", value: "SE1886" },
-            { label: "SE1889", value: "SE1889" },
-            { label: "SA1234", value: "SA1234" },
-        ]);
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dateFrom, dateTo, selectedClassId]);
@@ -288,19 +286,19 @@ export default function TeacherSchedule() {
     };
 
     const handleToday = () => {
-        setCurrentDate(new Date("2026-03-10T12:00:00")); // Use real new Date() in prod
+        setCurrentDate(new Date());
     };
 
     const handleSlotClick = async (sessionParam) => {
         try {
-            // const res = await get(`/teacher/schedule/${sessionParam.id}`);
-            // const session = res.data.data;
-            const session = MOCK_SESSIONS.find(s => s.id === sessionParam.id) || sessionParam; // Mock API call
+            const res = await get(`api/teacher/schedule/${sessionParam.id}`);
+            // Backend trả về { message: "OK", data: { ... session detail ... } }
+            const sessionData = res.data;
 
-            if (session.is_cancelled) {
-                setCancelledSession(session);
+            if (sessionData && sessionData.is_cancelled) {
+                setCancelledSession(sessionData);
             } else {
-                setSelectedSession(session);
+                setSelectedSession(sessionData);
                 setDetailTab("attendance"); // reset tab
             }
         } catch (error) {
@@ -349,7 +347,7 @@ export default function TeacherSchedule() {
                                 <div className="text-xs font-semibold text-slate-500 uppercase">
                                     {format(day, "EEEE", { locale: vi })}
                                 </div>
-                                <div className={`text-lg font-bold ${isSameDay(day, new Date("2026-03-10")) ? 'text-blue-600' : 'text-slate-900'}`}>
+                                <div className={`text-lg font-bold ${isSameDay(day, new Date()) ? 'text-blue-600' : 'text-slate-900'}`}>
                                     {format(day, "dd/MM")}
                                 </div>
                             </div>
