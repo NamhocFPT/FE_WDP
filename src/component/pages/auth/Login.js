@@ -6,18 +6,28 @@ import { Button, Card, CardContent, Input, Badge } from "component/ui";
 
 export default function Login() {
     const navigate = useNavigate();
-    const [email, setEmail] = useState("admin@smartedu.com");
-    const [password, setPassword] = useState("123456");
+    const [email, setEmail] = useState(""); // Xóa admin@smartedu.com mặc định
+    const [password, setPassword] = useState(""); // Xóa 123456 mặc định
     const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false); // Thêm state loading
 
-    const onSubmit = (e) => {
+    const onSubmit = async (e) => {
         e.preventDefault();
         setError("");
+        setIsLoading(true);
 
-        const user = store.login(email, password);
-        if (!user) return setError("Sai tài khoản/mật khẩu (demo: đúng email + password không rỗng).");
-
-        navigate(`/${user.role}`, { replace: true });
+        try {
+            // Gọi hàm async login từ store
+            const user = await store.login(email, password);
+            
+            // Nếu thành công, chuyển hướng theo role
+            navigate(`/${user.role.toLowerCase()}`, { replace: true });
+        } catch (err) {
+            // Hiển thị lỗi từ backend trả về
+            setError(err.message || "Đã xảy ra lỗi hệ thống.");
+        } finally {
+            setIsLoading(false); // Tắt trạng thái loading
+        }
     };
 
     const quickFill = (role) => {
@@ -27,13 +37,13 @@ export default function Login() {
             student: "student@smartedu.com",
         };
         setEmail(map[role]);
-        setPassword("123456");
+        setPassword("123456"); // Mật khẩu test chung, bạn có thể sửa lại cho khớp DB
         setError("");
     };
 
     return (
         <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-white to-slate-100">
-            {/* nền + blur nhẹ */}
+            {/* Nền + blur nhẹ */}
             <div className="pointer-events-none fixed inset-0">
                 <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-slate-900/10 blur-3xl" />
                 <div className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
@@ -53,21 +63,18 @@ export default function Login() {
                                     All in one place.
                                 </h1>
                                 <p className="mt-3 text-sm opacity-80">
-                                    Template UI cho Admin / Teacher / Student (demo).
+                                    Hệ thống quản lý học tập (LMS).
                                 </p>
 
                                 <div className="mt-5 flex flex-wrap gap-2">
-                                    <Badge tone="blue">admin@smartedu.com</Badge>
-                                    <Badge tone="blue">teacher@smartedu.com</Badge>
-                                    <Badge tone="blue">student@smartedu.com</Badge>
+                                    <Badge tone="blue">Admin</Badge>
+                                    <Badge tone="blue">Teacher</Badge>
+                                    <Badge tone="blue">Student</Badge>
                                 </div>
-                                <p className="mt-3 text-xs opacity-70">
-                                    Password: nhập gì cũng được (miễn không rỗng).
-                                </p>
                             </div>
 
                             <div className="text-xs opacity-60">
-                                © {new Date().getFullYear()} SmartEdu • Demo UI
+                                © {new Date().getFullYear()} SmartEdu
                             </div>
                         </div>
 
@@ -77,7 +84,7 @@ export default function Login() {
                                 <CardContent className="p-0">
                                     <div className="text-2xl font-extrabold text-slate-900">Sign in</div>
                                     <div className="mt-1 text-sm text-slate-600">
-                                        Chọn role demo hoặc nhập email để đăng nhập.
+                                        Đăng nhập bằng tài khoản đã cấp.
                                     </div>
 
                                     {/* quick buttons */}
@@ -112,6 +119,7 @@ export default function Login() {
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
                                                 placeholder="you@smartedu.com"
+                                                required
                                             />
                                         </div>
 
@@ -122,17 +130,18 @@ export default function Login() {
                                                 value={password}
                                                 onChange={(e) => setPassword(e.target.value)}
                                                 placeholder="••••••••"
+                                                required
                                             />
                                         </div>
 
-                                        {error ? (
+                                        {error && (
                                             <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
                                                 {error}
                                             </div>
-                                        ) : null}
+                                        )}
 
-                                        <Button className="w-full" type="submit">
-                                            Login
+                                        <Button className="w-full" type="submit" disabled={isLoading}>
+                                            {isLoading ? "Đang xử lý..." : "Login"}
                                         </Button>
 
                                         <div className="flex items-center justify-between text-sm">
@@ -142,22 +151,10 @@ export default function Login() {
                                             >
                                                 Forgot password?
                                             </Link>
-                                            <span className="text-xs text-slate-500">Demo only</span>
                                         </div>
                                     </form>
                                 </CardContent>
                             </Card>
-
-                            {/* mobile hint */}
-                            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 md:hidden">
-                                <div className="font-semibold text-slate-900">Demo accounts</div>
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                    <Badge tone="blue">admin@smartedu.com</Badge>
-                                    <Badge tone="blue">teacher@smartedu.com</Badge>
-                                    <Badge tone="blue">student@smartedu.com</Badge>
-                                </div>
-                                <div className="mt-2 text-xs text-slate-500">Password: bất kỳ (không rỗng)</div>
-                            </div>
                         </div>
                     </div>
                 </div>

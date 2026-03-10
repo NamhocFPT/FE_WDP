@@ -1,42 +1,19 @@
 // src/component/pages/student/Grades.js
 import React from "react";
-import { mock } from "service/mockData";
-import { PageHeader, Card, CardContent, Table, Th, Td, Badge } from "component/ui";
+import { PageHeader, Card, CardContent } from "component/ui";
 
 export default function Grades() {
-    const cl = mock.classes[0];
-
     return (
-        <div>
-            <PageHeader title="Grades" subtitle="Your grades overview (demo)." />
+        <div className="space-y-6">
+            <PageHeader title="My Grades" subtitle="Your academic performance overview." />
 
-            <Card>
-                <CardContent>
-                    <div className="text-sm font-semibold text-slate-900">{cl.name}</div>
-                    <div className="mt-1 text-xs text-slate-500">Teacher: {cl.teacher}</div>
-
-                    <div className="mt-4 overflow-x-auto">
-                        <Table>
-                            <thead>
-                                <tr>
-                                    <Th>Assignment</Th>
-                                    <Th>Score</Th>
-                                    <Th>Max</Th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {cl.assignments.map((a) => (
-                                    <tr key={a.id}>
-                                        <Td className="font-semibold text-slate-900">{a.title}</Td>
-                                        <Td><Badge tone="green">{Math.floor(Math.random() * 4) + (a.points - 3)}</Badge></Td>
-                                        <Td><Badge tone="amber">{a.points}</Badge></Td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </Table>
-                    </div>
-
-                    <div className="mt-3 text-xs text-slate-500">* Demo numbers, bạn có thể nối API sau.</div>
+            <Card className="border-dashed border-2 border-slate-200">
+                <CardContent className="p-16 text-center">
+                    <div className="text-4xl mb-4">📊</div>
+                    <h3 className="text-xl font-bold text-slate-800 mb-2">Grade Book is updating</h3>
+                    <p className="text-slate-500 max-w-md mx-auto">
+                        We are currently syncing grades from your instructors. Please check back later to view your detailed scores and feedback for this semester.
+                    </p>
                 </CardContent>
             </Card>
         </div>
