@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { adminApi } from "service/adminApi";
 import { PageHeader, Card, CardHeader, CardTitle, CardContent, Badge, Button, Table, Th, Td } from "component/ui";
@@ -24,7 +24,7 @@ export default function ClassDetail() {
     const [isImportStudentsOpen, setIsImportStudentsOpen] = useState(false);
     const [editSessionGroup, setEditSessionGroup] = useState(null);
 
-    const fetchDetail = async () => {
+    const fetchDetail = useCallback(async () => {
         try {
             const res = await adminApi.getClassDetail(id);
             setCl(res.data.data);
@@ -33,11 +33,11 @@ export default function ClassDetail() {
             console.error("Error fetching class detail:", err);
             setLoading(false);
         }
-    };
+    }, [id]);
 
     useEffect(() => {
         fetchDetail();
-    }, [id]);
+    }, [fetchDetail]);
 
     if (loading) return <div className="p-8 text-center text-slate-500">Loading class information...</div>;
     if (!cl) return <div className="p-8 text-center text-red-500">Class not found.</div>;

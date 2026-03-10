@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { adminApi } from "service/adminApi";
 import { X, Search, UserCheck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "component/ui";
 
 export default function AssignTeacherModal({ isOpen, onClose, classId, currentTeacherId, onSuccess }) {
     const [teachers, setTeachers] = useState([]);
@@ -27,7 +26,7 @@ export default function AssignTeacherModal({ isOpen, onClose, classId, currentTe
     const filteredTeachers = useMemo(() => {
         if (!search) return teachers;
         const lowSearch = search.toLowerCase();
-        return teachers.filter(t => 
+        return teachers.filter(t =>
             t.full_name?.toLowerCase().includes(lowSearch) ||
             t.email?.toLowerCase().includes(lowSearch)
         );
@@ -73,9 +72,9 @@ export default function AssignTeacherModal({ isOpen, onClose, classId, currentTe
                 <div className="p-6 flex-1 overflow-y-auto space-y-4">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <input 
-                            type="text" 
-                            placeholder="Tìm kiếm theo tên hoặc email..." 
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm theo tên hoặc email..."
                             className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 bg-slate-50 transition-colors"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -94,14 +93,13 @@ export default function AssignTeacherModal({ isOpen, onClose, classId, currentTe
                             </div>
                         ) : (
                             filteredTeachers.map(teacher => (
-                                <div 
+                                <div
                                     key={teacher.id}
                                     onClick={() => setSelectedTeacher(teacher.id)}
-                                    className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                                        selectedTeacher === teacher.id 
-                                            ? "border-blue-600 bg-blue-50" 
+                                    className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedTeacher === teacher.id
+                                            ? "border-blue-600 bg-blue-50"
                                             : "border-slate-100 hover:border-slate-200 hover:bg-slate-50"
-                                    }`}
+                                        }`}
                                 >
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center text-slate-600 font-bold">
@@ -112,7 +110,7 @@ export default function AssignTeacherModal({ isOpen, onClose, classId, currentTe
                                             <div className="text-sm text-slate-500">{teacher.email}</div>
                                         </div>
                                     </div>
-                                    
+
                                     {selectedTeacher === teacher.id && (
                                         <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center">
                                             <UserCheck size={14} />
@@ -126,16 +124,16 @@ export default function AssignTeacherModal({ isOpen, onClose, classId, currentTe
 
                 {/* Footer */}
                 <div className="p-6 border-t border-slate-100 flex justify-end gap-3 shrink-0 bg-slate-50/50 rounded-b-2xl">
-                    <button 
-                        type="button" 
+                    <button
+                        type="button"
                         className="px-6 py-2.5 bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 rounded-lg font-medium transition-colors"
                         onClick={onClose}
                         disabled={assigning}
                     >
                         Hủy
                     </button>
-                    <button 
-                        type="button" 
+                    <button
+                        type="button"
                         className="px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-medium shadow-lg shadow-blue-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         onClick={handleAssign}
                         disabled={assigning || !selectedTeacher || selectedTeacher === currentTeacherId}

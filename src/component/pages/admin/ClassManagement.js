@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { adminApi } from "service/adminApi"; 
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge } from "component/ui";
-import { ChevronRight, Search, Pencil, Users, Ban, Loader2, ToggleLeft } from "lucide-react";
+import { ChevronRight, Search, Pencil, Users, Loader2, ToggleLeft } from "lucide-react";
 // Import Component Modal
 import CreateClassModal from "./CreateClassModal"; 
 import EditClassModal from "./EditClassModal";

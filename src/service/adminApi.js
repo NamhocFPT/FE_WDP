@@ -9,9 +9,10 @@ export const adminApi = {
     // Bổ sung để khớp nút Edit/Delete trong Figma
     updateCourse: (id, data) => api.put(`/courses/${id}`, data),
     deleteCourse: (id) => api.delete(`/courses/${id}`),
-    
+
     // --- UC_ADM_11: CLASSES ---
     getClasses: () => api.get('/classes'),
+    getCreateClassMetadata: () => api.get('/classes/create'),
     addClass: (data) => api.post('/classes', data),
     updateClass: (id, data) => api.put(`/classes/${id}`, data),
     getClassDetail: (id) => api.get(`/classes/${id}`),
@@ -25,7 +26,7 @@ export const adminApi = {
     enrollStudents: (classId, studentIds) => api.post(`/classes/${classId}/enroll`, { studentIds }),
     importStudents: (classId, emails) => api.post(`/classes/${classId}/import-students`, { emails }),
     unenrollStudent: (classId, studentId) => api.delete(`/classes/${classId}/students/${studentId}`),
-    
+
     addSession: (classId, sessionData) => api.post(`/classes/${classId}/sessions`, sessionData),
     editSessions: (classId, data) => api.put(`/classes/${classId}/sessions`, data), // data = { sessionIds, day_of_week, start_time, end_time, room }
     deleteSessions: (classId, sessionIds) => api.delete(`/classes/${classId}/sessions`, { data: { sessionIds } }),
