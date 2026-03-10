@@ -12,7 +12,7 @@ export default function TeacherClassList() {
         const fetchClasses = async () => {
             try {
                 const token = localStorage.getItem("smartedu_token");
-                const res = await fetch("http://localhost:9999/api/teachers/my-classes", {
+                const res = await fetch("http://localhost:9999/api/teacher/my-classes", {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 const data = await res.json();

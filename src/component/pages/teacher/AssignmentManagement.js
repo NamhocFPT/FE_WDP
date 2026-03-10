@@ -37,7 +37,7 @@ export default function AssignmentManagement() {
     const fetchAssignments = async () => {
         try {
             const token = localStorage.getItem("smartedu_token");
-            const response = await fetch(`http://localhost:9999/api/teachers/classes/${classId}/assessments`, {
+            const response = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/assessments`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const data = await response.json();
@@ -59,7 +59,7 @@ export default function AssignmentManagement() {
         
         try {
             const token = localStorage.getItem("smartedu_token");
-            const response = await fetch(`http://localhost:9999/api/teachers/classes/${classId}/assessments/${assessmentId}`, {
+            const response = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/assessments/${assessmentId}`, {
                 method: "DELETE",
                 headers: { "Authorization": `Bearer ${token}` }
             });
@@ -79,7 +79,7 @@ export default function AssignmentManagement() {
     const onQuickPublish = async (assignment) => {
         try {
             const token = localStorage.getItem("smartedu_token");
-            const response = await fetch(`http://localhost:9999/api/teachers/classes/${classId}/assessments/essay/${assignment.id}`, {
+            const response = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/assessments/essay/${assignment.id}`, {
                 method: "PUT",
                 headers: { 
                     "Content-Type": "application/json",
@@ -182,8 +182,8 @@ export default function AssignmentManagement() {
             };
 
             const url = editingId 
-                ? `http://localhost:9999/api/teachers/classes/${classId}/assessments/essay/${editingId}`
-                : `http://localhost:9999/api/teachers/classes/${classId}/assessments/essay`;
+                ? `http://localhost:9999/api/teacher/classes/${classId}/assessments/essay/${editingId}`
+                : `http://localhost:9999/api/teacher/classes/${classId}/assessments/essay`;
             
             const method = editingId ? "PUT" : "POST";
 

@@ -15,7 +15,7 @@ export default function SubmissionList() {
     const fetchSubmissions = async () => {
         try {
             const token = localStorage.getItem("smartedu_token");
-            const res = await fetch(`http://localhost:9999/api/teachers/assessments/${assessmentId}/submissions`, {
+            const res = await fetch(`http://localhost:9999/api/teacher/assessments/${assessmentId}/submissions`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const result = await res.json();

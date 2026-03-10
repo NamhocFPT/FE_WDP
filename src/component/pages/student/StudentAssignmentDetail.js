@@ -16,7 +16,7 @@ export default function StudentAssignmentDetail() {
     const fetchData = async () => {
         try {
             const token = localStorage.getItem("smartedu_token");
-            const res = await fetch(`http://localhost:9999/api/students/assessments/${assessmentId}`, {
+            const res = await fetch(`http://localhost:9999/api/student/assessments/${assessmentId}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const result = await res.json();
@@ -104,7 +104,7 @@ export default function StudentAssignmentDetail() {
                 throw new Error(uploadData.message || "Lỗi khi tải file lên.");
             }
 
-            const res = await fetch(`http://localhost:9999/api/students/assessments/${assessmentId}/submit`, {
+            const res = await fetch(`http://localhost:9999/api/student/assessments/${assessmentId}/submit`, {
                 method: "POST",
                 headers: { 
                     "Content-Type": "application/json",

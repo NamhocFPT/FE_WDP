@@ -1,24 +1,27 @@
 // src/component/pages/student/MyClasses.js
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { studentApi } from "service/studentApi";
 import { PageHeader, Card, CardContent, Button, Badge } from "component/ui";
 
 export default function MyClasses() {
     const nav = useNavigate();
     const [classes, setClasses] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchClasses = async () => {
+            setIsLoading(true);
             try {
-                const token = localStorage.getItem("smartedu_token");
-                const res = await fetch("http://localhost:9999/api/students/classes", {
-                    headers: { "Authorization": `Bearer ${token}` }
-                });
-                const result = await res.json();
-                if (result.success) setClasses(result.data);
-            } catch (error) {
-                console.error("Lỗi lấy danh sách lớp:", error);
+                // Sử dụng studentApi để gọi data (Chuẩn cấu trúc project)
+                const res = await studentApi.getMyClasses();
+                if (res.data?.success) {
+                    setClasses(res.data.data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch classes:", err);
+                setError("Could not load your classes.");
             } finally {
                 setIsLoading(false);
             }
@@ -30,36 +33,57 @@ export default function MyClasses() {
         <div className="space-y-6">
             <PageHeader title="My Classes" subtitle="Classes you are enrolled in." />
 
+            {/* Xử lý trạng thái Loading và Error */}
             {isLoading ? (
-                <div className="text-center p-10 text-slate-500">Đang tải danh sách lớp...</div>
+                <div className="text-center p-10 text-slate-500 animate-pulse">
+                    Đang tải danh sách lớp...
+                </div>
+            ) : error ? (
+                <div className="text-center p-10 bg-red-50 border-2 border-dashed border-red-200 rounded-xl text-red-500 font-medium">
+                    {error}
+                </div>
             ) : classes.length === 0 ? (
-                <div className="text-center p-10 border-2 border-dashed border-slate-200 rounded-xl text-slate-500">
-                    You have not been enrolled in any classes for this semester.
+                <div className="text-center p-12 border-2 border-dashed border-slate-200 bg-slate-50 rounded-xl text-slate-500">
+                    <div className="text-4xl mb-3">🎓</div>
+                    Bạn chưa tham gia lớp học nào trong học kỳ này.
                 </div>
             ) : (
+                /* Grid giao diện thẻ lớp học xịn xò */
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {classes.map((c) => (
                         <Card key={c.id} className="hover:shadow-md transition-shadow border-t-4 border-t-blue-500">
-                            <CardContent className="p-5">
+                            <CardContent className="p-5 flex flex-col h-full">
                                 <div className="flex items-start justify-between mb-4">
                                     <div>
-                                        <div className="text-lg font-bold text-slate-900">{c.name}</div>
-                                        <div className="mt-1 text-sm text-slate-600">Teacher: {c.teacher}</div>
+                                        <div className="text-lg font-bold text-slate-900 line-clamp-1" title={c.name}>
+                                            {c.name}
+                                        </div>
+                                        <div className="mt-1 text-sm text-slate-600">
+                                            Teacher: <span className="font-medium text-slate-800">{c.teacher || "Chưa phân công"}</span>
+                                        </div>
                                     </div>
-                                    <Badge tone="blue">Room {c.room}</Badge>
+                                    <Badge tone="blue" className="shrink-0 whitespace-nowrap">
+                                        Room {c.room || "N/A"}
+                                    </Badge>
                                 </div>
 
-                                <div className="mt-4 text-xs text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                                    {c.schedule.length > 0 
-                                        ? c.schedule.map((s) => `${s.day} ${s.time}`).join(" • ")
-                                        : "Chưa có lịch học"}
+                                {/* Lịch học */}
+                                <div className="mt-auto mb-5 text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100 flex items-center gap-2">
+                                    <span className="text-lg">⏰</span>
+                                    <span>
+                                        {c.schedule && c.schedule.length > 0 
+                                            ? c.schedule.map((s) => `${s.day} ${s.time}`).join(" • ")
+                                            : "Chưa có lịch học cụ thể"}
+                                    </span>
                                 </div>
 
-                                <div className="mt-5">
-                                    <Button className="w-full bg-slate-800 text-white hover:bg-slate-900" onClick={() => nav(`/student/classes/${c.id}`)}>
-                                        Vào lớp học
-                                    </Button>
-                                </div>
+                                {/* Nút Action */}
+                                <Button 
+                                    className="w-full bg-slate-800 text-white hover:bg-slate-900 transition-colors" 
+                                    onClick={() => nav(`/student/classes/${c.id}`)}
+                                >
+                                    Vào lớp học
+                                </Button>
                             </CardContent>
                         </Card>
                     ))}
