@@ -29,12 +29,16 @@ import QuizCreation from "component/pages/teacher/QuizCreation";
 import MaterialsManagement from "component/pages/teacher/MaterialsManagement";
 import AssignmentManagement from "component/pages/teacher/AssignmentManagement";
 import GradingPage from "component/pages/teacher/GradingPage";
+import QuizQuestionManager from "component/pages/teacher/QuizQuestionManager";
 
 // Student
 import StudentDashboard from "component/pages/student/StudentDashboard";
 import MyClasses from "component/pages/student/MyClasses";
 import ClassHome from "component/pages/student/ClassHome";
 import Grades from "component/pages/student/Grades";
+import StudentQuizStart from "component/pages/student/StudentQuizStart";
+import StudentQuizTake from "component/pages/student/StudentQuizTake";
+import StudentQuizSummary from "component/pages/student/StudentQuizSummary";
 
 function ProtectedRoute({ children }) {
   const currentUser = store.getCurrentUser();
@@ -108,6 +112,7 @@ export const router = [
       { path: "assignments", element: <AssignmentManagement /> },
       { path: "grading", element: <GradingPage /> },
       { path: "notifications", element: <TeacherDashboard /> },
+      { path: "classes/:classId/quizzes/:quizId/questions", element: <QuizQuestionManager /> },
     ],
   },
 
@@ -126,6 +131,9 @@ export const router = [
       { path: "schedule", element: <StudentDashboard /> },
       { path: "materials", element: <StudentDashboard /> },
       { path: "quizzes", element: <StudentDashboard /> },
+      { path: "quizzes/:quizId/start", element: <StudentQuizStart /> },
+      { path: "attempts/:submissionId/take", element: <StudentQuizTake /> },
+      { path: "attempts/:submissionId/summary", element: <StudentQuizSummary /> },
       { path: "grades", element: <Grades /> },
     ],
   },

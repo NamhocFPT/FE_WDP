@@ -3,6 +3,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { adminApi } from "service/adminApi";
 import { Button, Badge, Table, Th, Td } from "component/ui";
 import { Plus, Pencil, Trash2, Search, X, Loader2, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 
 export default function CourseManagement() {
     const [q, setQ] = useState("");
@@ -54,12 +55,13 @@ export default function CourseManagement() {
     const confirmHide = async () => {
         setLoading(true);
         try {
-            // Gọi API update để đánh dấu xóa mềm
-            await adminApi.updateCourse(itemToDelete.id, { ...itemToDelete, is_deleted: true });
+            // Thay vì updateCourse, gọi hàm deleteCourse của Backend xử lý xóa mềm và kiểm tra logic
+            await adminApi.deleteCourse(itemToDelete.id);
             await fetchCourses();
             setIsDeleteModalOpen(false);
+            toast.success("Xóa khóa học thành công!");
         } catch (err) {
-            alert("Lỗi khi ẩn khóa học!");
+            toast.error(err.response?.data?.message || "Lỗi khi ẩn khóa học!");
         } finally {
             setLoading(false);
         }
@@ -72,15 +74,17 @@ export default function CourseManagement() {
         try {
             if (editId) {
                 await adminApi.updateCourse(editId, formData);
+                toast.success("Cập nhật khóa học thành công!");
             } else {
                 await adminApi.addCourse(formData);
+                toast.success("Thêm mới khóa học thành công!");
             }
             await fetchCourses();
             setIsModalOpen(false);
             setEditId(null);
             setFormData({ code: "", name: "", expected_sessions: "", description: "", status: "active" });
         } catch (err) { 
-            alert("Thao tác thất bại!"); 
+            toast.error(err.response?.data?.message || "Thao tác thất bại!"); 
         } finally { 
             setLoading(false); 
         }
@@ -172,7 +176,7 @@ export default function CourseManagement() {
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Sessions</label>
-                                    <input type="number" className="w-full border border-slate-200 p-2 rounded text-sm focus:border-blue-500 outline-none" 
+                                    <input type="number" required className="w-full border border-slate-200 p-2 rounded text-sm focus:border-blue-500 outline-none" 
                                         value={formData.expected_sessions} onChange={e => setFormData({...formData, expected_sessions: e.target.value})} />
                                 </div>
                             </div>

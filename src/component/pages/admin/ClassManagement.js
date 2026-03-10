@@ -1,18 +1,26 @@
 // src/component/pages/admin/ClassManagement.js
 import React, { useEffect, useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { adminApi } from "service/adminApi"; 
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge } from "component/ui";
-import { ChevronRight, Search, Pencil, Users } from "lucide-react";
-// Import Component Modal mới tạo ở Bước 2
+import { ChevronRight, Search, Pencil, Users, Ban, Loader2, ToggleLeft } from "lucide-react";
+// Import Component Modal
 import CreateClassModal from "./CreateClassModal"; 
+import EditClassModal from "./EditClassModal";
+import { toast } from "sonner";
 
 export default function ClassManagement() {
     const nav = useNavigate();
     const [classes, setClasses] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState(false);
     const [q, setQ] = useState(""); 
-    const [isModalOpen, setIsModalOpen] = useState(false); // Quản lý đóng/mở Popup
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); 
+    const [editClass, setEditClass] = useState(null); 
+    // Status Change Modal
+    const [statusModalClass, setStatusModalClass] = useState(null);
+    const [statusAction, setStatusAction] = useState(""); // "closed" or "cancelled"
 
     const fetchClasses = async () => {
         try {
@@ -47,7 +55,7 @@ export default function ClassManagement() {
                     <Button 
                         key="add" 
                         className="bg-[#0f172a] text-white px-5" 
-                        onClick={() => setIsModalOpen(true)} // ĐỔI TỪ nav SANG setIsModalOpen
+                        onClick={() => setIsCreateModalOpen(true)}
                     >
                         Create Class
                     </Button>
@@ -96,15 +104,20 @@ export default function ClassManagement() {
                                             </div>
                                         </Td>
                                         <Td>
-                                            <Badge tone={cl.status === "active" ? "green" : "closed"}>
+                                            <Badge tone={cl.status === "active" ? "green" : (cl.status === "upcoming" ? "blue" : (cl.status === "cancelled" ? "red" : "slate"))}>
                                                 {cl.status || "active"}
                                             </Badge>
                                         </Td>
                                         <Td className="flex justify-center gap-4 py-5">
                                             <button onClick={() => nav(`/admin/classes/${cl.id}`)}>
-                                                <ChevronRight size={18} className="text-blue-600" />
+                                                <ChevronRight size={18} className="text-blue-600 hover:text-blue-800" />
                                             </button>
-                                            <Pencil size={16} className="text-slate-400" />
+                                            <button onClick={() => setEditClass(cl)}>
+                                                <Pencil size={18} className="text-slate-400 hover:text-slate-700" />
+                                            </button>
+                                            <button onClick={() => { setStatusModalClass(cl); setStatusAction(cl.status); }}>
+                                                <ToggleLeft size={18} className="text-slate-400 hover:text-indigo-600" title="Change Class Status" />
+                                            </button>
                                         </Td>
                                     </tr>
                                 ))}
@@ -114,15 +127,79 @@ export default function ClassManagement() {
                 </CardContent>
             </Card>
 
-            {/* TÍCH HỢP POPUP TẠI ĐÂY */}
-            {isModalOpen && (
+            {/* CREATE POPUP */}
+            {isCreateModalOpen && (
                 <CreateClassModal 
-                    onClose={() => setIsModalOpen(false)} 
+                    onClose={() => setIsCreateModalOpen(false)} 
                     onSuccess={() => {
-                        setIsModalOpen(false);
-                        fetchClasses(); // Tải lại danh sách sau khi tạo
+                        setIsCreateModalOpen(false);
+                        fetchClasses(); 
                     }}
                 />
+            )}
+
+            {/* EDIT POPUP */}
+            {editClass && (
+                <EditClassModal 
+                    classData={editClass}
+                    onClose={() => setEditClass(null)} 
+                    onSuccess={() => {
+                        setEditClass(null);
+                        fetchClasses(); 
+                    }}
+                />
+            )}
+
+            {/* CANCEL/CLOSE CONFIRMATION MODAL */}
+            {statusModalClass && createPortal(
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]">
+                    <div className="bg-white rounded-xl shadow-2xl w-[400px] p-6 text-center space-y-4 animate-in zoom-in-95 duration-200">
+                        <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto">
+                            <ToggleLeft size={32} />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-slate-900">Chi tiết thay đổi trạng thái</h3>
+                            <p className="text-sm text-slate-500 mt-2">
+                                Bạn đang chuyển lớp <span className="font-bold text-slate-800">"{statusModalClass?.name}"</span> sang trạng thái <span className="font-bold text-indigo-600 uppercase">{statusAction}</span>. Thao tác này có thể ảnh hưởng đến sinh viên.
+                            </p>
+                            <select 
+                                className="w-full mt-4 p-3 border border-slate-200 rounded-lg text-sm bg-slate-50"
+                                value={statusAction}
+                                onChange={(e) => setStatusAction(e.target.value)}
+                            >
+                                <option value="active">Active (Đang diễn ra)</option>
+                                <option value="upcoming">Upcoming (Sắp tới)</option>
+                                <option value="closed">Closed (Đã đóng)</option>
+                                <option value="cancelled">Cancelled (Đã hủy)</option>
+                            </select>
+                        </div>
+                        
+                        <div className="flex gap-3 pt-2">
+                            <button className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-colors" onClick={() => setStatusModalClass(null)} disabled={actionLoading}>
+                                Quay lại
+                            </button>
+                            <button 
+                                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm"
+                                onClick={async () => {
+                                    setActionLoading(true);
+                                    try {
+                                        await adminApi.updateClass(statusModalClass.id, { status: statusAction });
+                                        toast.success("Đổi trạng thái lớp thành công!");
+                                        setStatusModalClass(null);
+                                        fetchClasses();
+                                    } catch(e) { 
+                                        console.error(e);
+                                        toast.error(e.response?.data?.message || "Có lỗi xảy ra"); 
+                                    } finally { setActionLoading(false); }
+                                }}
+                                disabled={actionLoading}
+                            >
+                                {actionLoading ? <Loader2 className="animate-spin" size={18} /> : "Xác nhận"}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );
