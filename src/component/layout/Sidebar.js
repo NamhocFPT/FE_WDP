@@ -17,7 +17,7 @@ const navByRole = {
         { to: "/teacher", label: "Dashboard" },
         { to: "/teacher/schedule", label: "Schedule" },
         { to: "/teacher/materials", label: "Materials" },
-        { to: "/teacher/assignments", label: "Assignments" },
+        { to: "/teacher/classes", label: "Assignments" }, // Đổi tên từ Assignments -> My Classes
         { to: "/teacher/quizzes", label: "Quizzes" },
         { to: "/teacher/grading", label: "Grading" },
     ],
@@ -30,35 +30,40 @@ const navByRole = {
 
 export default function Sidebar() {
     const user = store.getCurrentUser();
-    const items = navByRole[user?.role] || [];
+    // Đảm bảo roleKey luôn khớp (chuyển về chữ thường)
+    const roleKey = user?.role?.toLowerCase();
+    const items = navByRole[roleKey] || [];
 
     return (
         <aside className="sticky top-0 hidden h-screen w-64 border-r border-slate-200 bg-white p-4 md:block">
-            <div className="flex items-center justify-between">
-                <div className="text-sm font-extrabold tracking-tight text-slate-900">SmartEdu</div>
-                <Badge tone="blue">{user?.role}</Badge>
+            <div className="flex items-center justify-between mb-6">
+                <div className="text-xl font-extrabold tracking-tight text-slate-900">SmartEdu</div>
+                <Badge tone="blue" className="uppercase text-[10px]">{user?.role}</Badge>
             </div>
 
-            <div className="mt-4 space-y-1">
+            <nav className="space-y-1">
                 {items.map((it) => (
                     <NavLink
                         key={it.to}
                         to={it.to}
+                        // end=true để tránh active Dashboard khi vào các trang con
                         end={it.to === "/admin" || it.to === "/teacher" || it.to === "/student"}
                         className={({ isActive }) =>
                             cn(
-                                "block rounded-lg px-3 py-2 text-sm font-semibold",
-                                isActive ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100"
+                                "block rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors",
+                                isActive 
+                                    ? "bg-slate-900 text-white shadow-md" 
+                                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                             )
                         }
                     >
                         {it.label}
                     </NavLink>
                 ))}
-            </div>
+            </nav>
 
-            <div className="mt-6 border-t border-slate-100 pt-4 text-xs text-slate-500">
-                Tip: bạn có thể vào <span className="font-semibold">Profile</span> để đổi tên demo.
+            <div className="absolute bottom-4 left-4 right-4 border-t border-slate-100 pt-4">
+                <p className="text-[10px] text-slate-400 font-medium">Hệ thống LMS thông minh v1.0</p>
             </div>
         </aside>
     );

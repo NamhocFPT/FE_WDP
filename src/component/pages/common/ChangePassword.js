@@ -1,5 +1,6 @@
 // src/component/pages/common/ChangePassword.js
 import React, { useState } from "react";
+import { api } from "service/api";
 import { PageHeader, Card, CardContent, Input, Button } from "component/ui";
 
 export default function ChangePassword() {
@@ -8,13 +9,25 @@ export default function ChangePassword() {
     const [cfm, setCfm] = useState("");
     const [msg, setMsg] = useState("");
 
-    const onSubmit = (e) => {
+    const onSubmit = async (e) => {
         e.preventDefault();
         setMsg("");
         if (!oldP) return setMsg("Old password is required.");
         if (!newP || newP.length < 6) return setMsg("New password must be at least 6 characters.");
         if (newP !== cfm) return setMsg("Confirm password does not match.");
-        setMsg("Updated (demo).");
+
+        try {
+            const { ok, data } = await api.changePassword(oldP, newP);
+            if (!ok || !data.success) {
+                return setMsg(data.error?.validationErrors?.[0]?.message || data.message || "Failed to change password.");
+            }
+            setMsg("Password updated successfully.");
+            setOldP("");
+            setNewP("");
+            setCfm("");
+        } catch {
+            setMsg("Network error.");
+        }
     };
 
     return (
