@@ -51,7 +51,7 @@ export default function MyClasses() {
 
                                 <div className="mt-3 text-xs text-slate-600">
                                     {c.schedule && c.schedule.length > 0
-                                        ? c.schedule.map((s) => `${s.day} ${s.time}`).join(" • ")
+                                        ? Array.from(new Set(c.schedule.map((s) => `${s.day} ${s.time}`))).join(" • ")
                                         : "Chưa có lịch học"}
                                 </div>
 

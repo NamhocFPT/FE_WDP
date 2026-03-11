@@ -57,7 +57,7 @@ export default function ClassHome() {
                     <Card>
                         <CardHeader><CardTitle>Schedule</CardTitle></CardHeader>
                         <CardContent className="space-y-2">
-                            {cl.schedule && cl.schedule.length > 0 ? cl.schedule.map((s, idx) => (
+                            {cl.schedule && cl.schedule.length > 0 ? Array.from(new Set(cl.schedule.map(s => JSON.stringify({ day: s.day, time: s.time })))).map(str => JSON.parse(str)).map((s, idx) => (
                                 <div key={idx} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
                                     <div className="font-semibold text-slate-900">{s.day}</div>
                                     <div className="text-slate-700">{s.time}</div>

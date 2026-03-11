@@ -1,6 +1,15 @@
 import axios from 'axios';
+import { store } from './store';
 
-const api = axios.create({ baseURL: 'http://localhost:3000/api/admin' });
+const api = axios.create({ baseURL: 'http://localhost:9999/api/admin' });
+
+api.interceptors.request.use((config) => {
+    const token = store.getToken();
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
 
 export const adminApi = {
     // --- UC_ADM_10: COURSES ---

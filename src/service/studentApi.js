@@ -1,7 +1,15 @@
 import axios from 'axios';
 import { store } from './store';
 
-const api = axios.create({ baseURL: 'http://localhost:3000/api/student' });
+const api = axios.create({ baseURL: 'http://localhost:9999/api/student' });
+
+api.interceptors.request.use((config) => {
+    const token = store.getToken();
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
 
 const getStudentId = () => store.getCurrentUser()?.id;
 
