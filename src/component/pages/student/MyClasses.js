@@ -1,5 +1,5 @@
 // src/component/pages/student/MyClasses.js
-import React, { useState, useEffect }, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { studentApi } from "service/studentApi";
 import { PageHeader, Card, CardContent, Button, Badge } from "component/ui";
@@ -28,29 +28,8 @@ export default function MyClasses() {
         };
         fetchClasses();
     }, []);
-    const [classes, setClasses] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const fetchClasses = async () => {
-            try {
-                const res = await studentApi.getMyClasses();
-                if (res.data?.success) {
-                    setClasses(res.data.data);
-                }
-            } catch (err) {
-                console.error("Failed to fetch classes:", err);
-                setError("Could not load your classes.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchClasses();
-    }, []);
 
-    if (loading) return <div className="p-4">Loading classes...</div>;
-    if (error) return <div className="p-4 text-red-500">{error}</div>;
 
     return (
         <div className="space-y-6">

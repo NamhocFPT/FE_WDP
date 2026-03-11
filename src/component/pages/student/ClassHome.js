@@ -183,7 +183,7 @@ export default function ClassHome() {
                                 <div className="text-sm text-slate-700 leading-relaxed border-l-2 border-blue-200 pl-3 ml-2">{a.content}</div>
                                 <div className="mt-3 text-xs font-semibold text-slate-400 ml-5">{a.date}</div>
                             </div>
-                        ))}
+                        )) : <p className="text-sm text-slate-500 italic text-center py-6">Chưa có thông báo nào.</p>}
                     </CardContent>
                 </Card>
             )}

@@ -122,7 +122,7 @@ export const router = [
       { path: "grading", element: <GradingPage /> },
       { path: "notifications", element: <TeacherDashboard /> },
       { path: "assessments/:assessmentId/submissions", element: <SubmissionList /> },
-      { path: "grading/:submissionId", element: <TeacherGradingWorkspace /> }
+      { path: "grading/:submissionId", element: <TeacherGradingWorkspace /> },
       { path: "classes/:classId/quizzes/:quizId/questions", element: <QuizQuestionManager /> },
     ],
   },

@@ -1,8 +1,6 @@
 // src/component/pages/student/StudentDashboard.js
 import React, { useState, useEffect } from "react";
 import { studentApi } from "service/studentApi";
-import React, { useState, useEffect } from "react";
-import { studentApi } from "service/studentApi";
 import { PageHeader, StatCard, Card, CardHeader, CardTitle, CardContent, Badge } from "component/ui";
 
 export default function StudentDashboard() {
