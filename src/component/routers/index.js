@@ -32,12 +32,16 @@ import MaterialsManagement from "component/pages/teacher/MaterialsManagement";
 import AssignmentManagement from "component/pages/teacher/AssignmentManagement";
 import GradingPage from "component/pages/teacher/GradingPage";
 import QuizQuestionManager from "component/pages/teacher/QuizQuestionManager";
+import TeacherClassList from "../pages/teacher/TeacherClassList";
+import SubmissionList from "../pages/teacher/SubmissionList";
+import TeacherGradingWorkspace from '../pages/teacher/TeacherGradingWorkspace';
 
 // Student
 import StudentDashboard from "component/pages/student/StudentDashboard";
 import MyClasses from "component/pages/student/MyClasses";
 import ClassHome from "component/pages/student/ClassHome";
 import Grades from "component/pages/student/Grades";
+import StudentAssignmentDetail from "../pages/student/StudentAssignmentDetail";
 import StudentQuizStart from "component/pages/student/StudentQuizStart";
 import StudentQuizTake from "component/pages/student/StudentQuizTake";
 import StudentQuizSummary from "component/pages/student/StudentQuizSummary";
@@ -112,10 +116,13 @@ export const router = [
       { index: true, element: <TeacherDashboard /> },
       { path: "schedule", element: <TeacherSchedule /> },
       { path: "materials", element: <MaterialsManagement /> },
+      { path: "classes", element: <TeacherClassList /> },
       { path: "quizzes", element: <QuizCreation /> },
-      { path: "assignments", element: <AssignmentManagement /> },
+      { path: "classes/:classId/assignments", element: <AssignmentManagement /> },
       { path: "grading", element: <GradingPage /> },
       { path: "notifications", element: <TeacherDashboard /> },
+      { path: "assessments/:assessmentId/submissions", element: <SubmissionList /> },
+      { path: "grading/:submissionId", element: <TeacherGradingWorkspace /> }
       { path: "classes/:classId/quizzes/:quizId/questions", element: <QuizQuestionManager /> },
     ],
   },
@@ -139,6 +146,7 @@ export const router = [
       { path: "attempts/:submissionId/take", element: <StudentQuizTake /> },
       { path: "attempts/:submissionId/summary", element: <StudentQuizSummary /> },
       { path: "grades", element: <Grades /> },
+      { path: "assessments/:assessmentId", element: <StudentAssignmentDetail /> },
     ],
   },
 
