@@ -56,8 +56,8 @@ export default function ClassHome() {
         <button
             onClick={() => setTab(v)}
             className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all ${tab === v
-                    ? "bg-slate-900 text-white shadow-md"
-                    : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                ? "bg-slate-900 text-white shadow-md"
+                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
                 }`}
         >
             {label}

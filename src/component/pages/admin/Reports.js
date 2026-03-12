@@ -566,7 +566,7 @@ export default function Reports() {
             )}
 
             {/* Summary Stats Cards — shown only on grade tab */}
-            {!loading && activeTab === 'grade' && (
+            {/* {!loading && activeTab === 'grade' && (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
                         {
@@ -603,7 +603,7 @@ export default function Reports() {
                         </Card>
                     ))}
                 </div>
-            )}
+            )} */}
         </div>
     );
 }
