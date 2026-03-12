@@ -28,6 +28,8 @@ export default function Login() {
             navigate(`/${user.role}`, { replace: true });
         } catch (err) {
             setError("Lỗi kết nối server.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
