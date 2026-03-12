@@ -108,6 +108,7 @@ export const router = [
       { index: true, element: <TeacherDashboard /> },
       { path: "schedule", element: <TeacherSchedule /> },
       { path: "materials", element: <MaterialsManagement /> },
+      { path: "classes/:classId/materials", element: <MaterialsManagement /> },
       { path: "quizzes", element: <QuizCreation /> },
       { path: "assignments", element: <AssignmentManagement /> },
       { path: "grading", element: <GradingPage /> },

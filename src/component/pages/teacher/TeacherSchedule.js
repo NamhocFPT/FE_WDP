@@ -18,9 +18,11 @@ import {
     getDay
 } from "date-fns";
 import { vi } from "date-fns/locale";
-import { PageHeader, Card, CardContent, Badge, Modal, Button, SearchableSelect } from "component/ui";
+import { PageHeader, Card, CardContent, Badge, Modal, Button, SearchableSelect, Input } from "component/ui";
 import { get } from "utils/request";
-import { Clock, CheckCircle2, AlertTriangle, XCircle, Search, RefreshCcw } from "lucide-react";
+import { api } from "service/api";
+import { Clock, CheckCircle2, AlertTriangle, XCircle, Search, RefreshCcw, FileText, ImageIcon, LinkIcon, FileIcon as FileDoc, Upload, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 const CALENDAR_VIEWS = [
     { id: "day", label: "Ngày" },
@@ -190,6 +192,15 @@ export default function TeacherSchedule() {
     const [cancelledSession, setCancelledSession] = useState(null); // For Cancelled Popup
     const [detailTab, setDetailTab] = useState("attendance"); // attendance | documents
 
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [uploadMode, setUploadMode] = useState("file"); // file | link
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [linkUrl, setLinkUrl] = useState("");
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+    const [isUploading, setIsUploading] = useState(false);
+    const [isLoadingMaterials, setIsLoadingMaterials] = useState(false);
+
     // Derived Date Range
     const { dateFrom, dateTo } = useMemo(() => {
         let from, to;
@@ -300,9 +311,111 @@ export default function TeacherSchedule() {
             } else {
                 setSelectedSession(sessionData);
                 setDetailTab("attendance"); // reset tab
+                // Tự động load tài liệu luôn cho session này
+                fetchSessionMaterials(sessionData);
             }
         } catch (error) {
             console.error("Failed to fetch session detail", error);
+        }
+    };
+
+    const fetchSessionMaterials = async (sessionData) => {
+        if (!sessionData) return;
+        const classId = sessionData.class?.id || sessionData.class_id;
+        if (!classId) return;
+
+        setIsLoadingMaterials(true);
+        try {
+            const res = await api.get(`/teacher/classes/${classId}/materials`);
+            if (res.ok && res.data?.data) {
+                const data = res.data.data;
+                const generalMaterials = data.general || [];
+                
+                // Tìm session materials khớp với session_id hiện tại
+                const matchingSessionGroup = (data.by_session || []).find(
+                    group => group.session?.id === sessionData.id
+                );
+                const sessionMaterials = matchingSessionGroup?.materials || [];
+
+                setSelectedSession(prev => ({
+                    ...prev,
+                    generalMaterials,
+                    sessionMaterials,
+                    materialsCount: generalMaterials.length + sessionMaterials.length
+                }));
+            }
+        } catch (error) {
+            console.error("Failed to fetch materials", error);
+        } finally {
+            setIsLoadingMaterials(false);
+        }
+    };
+
+    // Upload Handlers
+    const closeUploadModal = () => {
+        setIsUploadModalOpen(false);
+        setUploadMode("file");
+        setSelectedFile(null);
+        setLinkUrl("");
+        setTitle("");
+        setDescription("");
+    };
+
+    const handleUpload = async () => {
+        if (!selectedSession) return;
+        const classId = selectedSession.class.id || selectedSession.class_id;
+        
+        if (uploadMode === "file") {
+            if (!selectedFile) return toast.error("Vui lòng chọn file");
+            
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+            if (title.trim()) formData.append("title", title.trim());
+            if (description.trim()) formData.append("description", description.trim());
+            formData.append("session_id", selectedSession.id); // Ép buộc chỉ upload cho session này
+
+            try {
+                setIsUploading(true);
+                const res = await api.post(`/teacher/classes/${classId}/materials`, formData);
+                if (res.ok) {
+                    toast.success("Tải lên tài liệu thành công!");
+                    closeUploadModal();
+                    // Refetch materials
+                    fetchSessionMaterials(selectedSession); 
+                } else {
+                    toast.error(res.data?.message || "Tải lên thất bại");
+                }
+            } catch (error) {
+                toast.error("Đã xảy ra lỗi khi tải lên. Vui lòng thử lại.");
+            } finally {
+                setIsUploading(false);
+            }
+            
+        } else {
+            if (!linkUrl.trim()) return toast.error("Vui lòng nhập đường dẫn URL");
+            if (!title.trim()) return toast.error("Vui lòng nhập tên tài liệu");
+
+            try {
+                setIsUploading(true);
+                const res = await api.post(`/teacher/classes/${classId}/materials`, {
+                    title: title.trim(),
+                    url: linkUrl.trim(),
+                    description: description?.trim() || null,
+                    session_id: selectedSession.id
+                });
+                
+                if (res.ok) {
+                    toast.success("Thêm liên kết thành công!");
+                    closeUploadModal();
+                    fetchSessionMaterials(selectedSession);
+                } else {
+                    toast.error(res.data?.message || "Thêm liên kết thất bại");
+                }
+            } catch (error) {
+                toast.error("Đã xảy ra lỗi khi tải lên. Vui lòng thử lại.");
+            } finally {
+                setIsUploading(false);
+            }
         }
     };
 
@@ -458,6 +571,28 @@ export default function TeacherSchedule() {
         return null;
     };
 
+    const getMaterialIconInfo = (type) => {
+        const typeStr = (type || "").toLowerCase();
+        if (typeStr.includes('pdf')) {
+            return { icon: <FileText size={20} />, bg: 'bg-red-50 text-red-600', border: 'border-red-100', label: 'PDF' };
+        }
+        if (typeStr.includes('word') || typeStr.includes('doc')) {
+            return { icon: <FileDoc size={20} />, bg: 'bg-blue-50 text-blue-600', border: 'border-blue-100', label: 'DOC' };
+        }
+        if (typeStr.includes('excel') || typeStr.includes('sheet') || typeStr.includes('xls')) {
+            return { icon: <FileDoc size={20} />, bg: 'bg-emerald-50 text-emerald-600', border: 'border-emerald-100', label: 'SPREADSHEET' };
+        }
+        if (typeStr.includes('powerpoint') || typeStr.includes('ppt')) {
+            return { icon: <FileDoc size={20} />, bg: 'bg-orange-50 text-orange-600', border: 'border-orange-100', label: 'PRESENTATION' };
+        }
+        if (typeStr.includes('image') || typeStr.includes('jpg') || typeStr.includes('png')) {
+            return { icon: <ImageIcon size={20} />, bg: 'bg-purple-50 text-purple-600', border: 'border-purple-100', label: 'IMAGE' };
+        }
+        if (typeStr.includes('link') || typeStr.includes('url')) {
+            return { icon: <LinkIcon size={20} />, bg: 'bg-indigo-50 text-indigo-600', border: 'border-indigo-100', label: 'LINK' };
+        }
+        return { icon: <FileText size={20} />, bg: 'bg-slate-50 text-slate-600', border: 'border-slate-200', label: 'FILE' };
+    };
 
     return (
         <div className="p-6 max-w-[1400px] mx-auto space-y-6">
@@ -511,8 +646,8 @@ export default function TeacherSchedule() {
             {/* Modal: Class Detail */}
             <Modal open={!!selectedSession} title="Chi tiết buổi học" onClose={() => setSelectedSession(null)}>
                 {selectedSession && (
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                        <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 shrink-0">
                             <div>
                                 <div className="text-sm text-slate-500">Lớp học</div>
                                 <div className="font-semibold text-slate-900">
@@ -559,7 +694,7 @@ export default function TeacherSchedule() {
                                             : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                                     }`}
                                 >
-                                    📎 Tài liệu ({selectedSession.materials?.length || 0})
+                                    📎 Tài liệu ({selectedSession.materialsCount || 0})
                                 </button>
                             </nav>
                         </div>
@@ -626,28 +761,176 @@ export default function TeacherSchedule() {
 
                         {/* Documents Tab */}
                         {detailTab === "documents" && (
-                            <div className="space-y-2">
-                                {selectedSession.materials && selectedSession.materials.length > 0 ? (
-                                    selectedSession.materials.map((mat, i) => (
-                                        <a href={mat.file_url} key={i} className="flex items-center justify-between p-3 bg-white border border-slate-200 hover:border-blue-300 rounded-lg transition-colors group">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded bg-red-100 text-red-600 flex items-center justify-center font-bold text-xs uppercase">
-                                                    {mat.type}
-                                                </div>
-                                                <div className="font-medium text-slate-800 group-hover:text-blue-600">{mat.title}</div>
-                                            </div>
-                                            <Button variant="ghost" size="sm">Tải về</Button>
-                                        </a>
-                                    ))
+                            <div className="space-y-6">
+                                {isLoadingMaterials ? (
+                                    <div className="flex h-32 items-center justify-center text-slate-500">
+                                        <RefreshCcw className="h-5 w-5 animate-spin mr-2" /> Đang tải tài liệu...
+                                    </div>
                                 ) : (
-                                    <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border border-slate-200 border-dashed">
-                                        Không có tài liệu nào cho buổi học này.
+                                    <>
+                                        {/* Session Materials */}
+                                <div>
+                                    <div className="flex justify-between items-center mb-3">
+                                        <h3 className="font-semibold text-slate-800 text-sm">Tài liệu buổi học này</h3>
+                                        <Button size="sm" variant="outline" onClick={() => setIsUploadModalOpen(true)} className="gap-2">
+                                            <Upload size={14} /> Tải lên
+                                        </Button>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        {selectedSession.sessionMaterials && selectedSession.sessionMaterials.length > 0 ? (
+                                            selectedSession.sessionMaterials.map((mat, i) => {
+                                                const iconInfo = getMaterialIconInfo(mat.file_type || mat.type);
+                                                return (
+                                                <a href={mat.file_url || mat.url} target="_blank" rel="noreferrer" key={i} className={`flex items-center justify-between p-3 bg-white border ${iconInfo.border} hover:border-slate-300 hover:shadow-sm rounded-xl transition-all group`}>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`w-12 h-12 rounded-lg ${iconInfo.bg} flex flex-col items-center justify-center font-bold text-[10px] uppercase gap-1 shrink-0`}>
+                                                            {iconInfo.label}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-semibold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-1">{mat.title}</div>
+                                                            {mat.description && <div className="text-xs text-slate-500 line-clamp-1 mt-0.5">{mat.description}</div>}
+                                                        </div>
+                                                    </div>
+                                                    <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">Mở</Button>
+                                                </a>
+                                            )})
+                                        ) : (
+                                            <div className="text-center py-6 text-slate-500 bg-slate-50 rounded-xl border border-slate-200 border-dashed text-sm">
+                                                Chưa có tài liệu riêng cho buổi học này.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                {/* General Materials */}
+                                {selectedSession.generalMaterials && selectedSession.generalMaterials.length > 0 && (
+                                    <div>
+                                        <h3 className="font-semibold text-slate-800 text-sm mb-3 pt-4 border-t border-slate-100">Tài liệu chung của lớp</h3>
+                                        <div className="space-y-2">
+                                            {selectedSession.generalMaterials.map((mat, i) => {
+                                                const iconInfo = getMaterialIconInfo(mat.file_type || mat.type);
+                                                return (
+                                                <a href={mat.file_url || mat.url} target="_blank" rel="noreferrer" key={i} className={`flex items-center justify-between p-3 bg-slate-50/50 border ${iconInfo.border} hover:bg-white hover:border-slate-300 hover:shadow-sm rounded-xl transition-all group`}>
+                                                    <div className="flex items-center gap-4 opacity-80 group-hover:opacity-100 transition-opacity">
+                                                        <div className={`w-10 h-10 rounded-lg ${iconInfo.bg} flex flex-col items-center justify-center font-bold text-[9px] uppercase gap-1 shrink-0`}>
+                                                            {iconInfo.label}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-medium text-slate-700 group-hover:text-blue-600 transition-colors line-clamp-1">{mat.title}</div>
+                                                        </div>
+                                                    </div>
+                                                    <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">Mở</Button>
+                                                </a>
+                                            )})}
+                                        </div>
                                     </div>
                                 )}
+                            </>
+                        )}
                             </div>
                         )}
                     </div>
                 )}
+            </Modal>
+
+            {/* Upload File Modal */}
+            <Modal open={isUploadModalOpen} title="Tải lên tài liệu buổi học" onClose={closeUploadModal} size="md">
+                <div className="space-y-4">
+                    {/* Upload Mode Selector */}
+                    <div className="flex gap-2 p-1 bg-slate-100 rounded-lg w-fit">
+                        <button 
+                            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${uploadMode === "file" ? "bg-white shadow-sm text-slate-800" : "text-slate-500 hover:text-slate-700"}`}
+                            onClick={() => setUploadMode("file")}
+                        >
+                            File từ máy tính
+                        </button>
+                        <button 
+                            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${uploadMode === "link" ? "bg-white shadow-sm text-slate-800" : "text-slate-500 hover:text-slate-700"}`}
+                            onClick={() => setUploadMode("link")}
+                        >
+                            Link chia sẻ (URL)
+                        </button>
+                    </div>
+
+                    {uploadMode === "file" ? (
+                        <>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-slate-700">Tên tài liệu (Không bắt buộc)</label>
+                                <Input placeholder="Nhập tên hiển thị thay thế..." value={title} onChange={e => setTitle(e.target.value)} />
+                                <div className="text-xs text-slate-500">Nếu để trống, tên file sẽ được dùng làm tiêu đề.</div>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-slate-700">File tài liệu <span className="text-red-500">*</span></label>
+                                <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:bg-slate-50 transition-colors">
+                                    <input 
+                                        type="file" 
+                                        className="hidden" 
+                                        id="file-upload" 
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files.length > 0) {
+                                                setSelectedFile(e.target.files[0]);
+                                            }
+                                        }}
+                                    />
+                                    <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
+                                        {selectedFile ? (
+                                            <>
+                                                <FileDoc className="w-10 h-10 text-blue-500 mb-2" />
+                                                <span className="font-medium text-slate-800 truncate max-w-[250px]">{selectedFile.name}</span>
+                                                <span className="text-xs text-slate-500 mt-1">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Upload className="w-10 h-10 text-slate-400 mb-2" />
+                                                <span className="font-medium text-blue-600 mb-1">Bấm để chọn file</span>
+                                                <span className="text-xs text-slate-500">Hỗ trợ PDF, DOCX, XLSX, PPTX, JPG (Tối đa 100MB)</span>
+                                            </>
+                                        )}
+                                    </label>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-slate-700">Tiêu đề liên kết <span className="text-red-500">*</span></label>
+                                <Input placeholder="Ví dụ: Video bài giảng Youtube" value={title} onChange={e => setTitle(e.target.value)} />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium text-slate-700">Đường dẫn URL <span className="text-red-500">*</span></label>
+                                <Input placeholder="https://..." value={linkUrl} onChange={e => setLinkUrl(e.target.value)} />
+                            </div>
+                        </>
+                    )}
+
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium text-slate-700">Mô tả thêm (Không bắt buộc)</label>
+                        <textarea 
+                            className="w-full rounded-lg border border-slate-200 text-sm p-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[80px]"
+                            placeholder="Ghi chú về tài liệu này..."
+                            value={description}
+                            onChange={e => setDescription(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="p-3 bg-blue-50 text-blue-700 rounded-lg text-sm mb-4 border border-blue-100">
+                        <span className="font-medium">Lưu ý:</span> Tài liệu này sẽ chỉ được gắn vào buổi học hiện tại thay vì toàn bộ khóa học.
+                    </div>
+
+                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                        <Button variant="outline" onClick={closeUploadModal}>Thoát</Button>
+                        <Button 
+                            variant="primary" 
+                            onClick={handleUpload}
+                            disabled={isUploading || (uploadMode === "file" && !selectedFile) || (uploadMode === "link" && (!linkUrl.trim() || !title.trim()))}
+                        >
+                            {isUploading ? (
+                                <><RefreshCcw className="w-4 h-4 animate-spin mr-2 inline" /> Đang xử lý...</>
+                            ) : "Xác nhận tải lên"}
+                        </Button>
+                    </div>
+                </div>
             </Modal>
 
             {/* Modal: Cancelled Exception */}
