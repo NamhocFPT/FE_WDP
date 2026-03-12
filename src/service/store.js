@@ -1,15 +1,22 @@
 // src/service/store.js
 const USER_KEY = "smartedu_current_user";
-const TOKEN_KEY = "smartedu_token"; // Thêm key để lưu JWT Token
+const TOKEN_KEY = "smartedu_token";
 
 // Đọc thông tin user từ LocalStorage khi khởi chạy app
 function readUser() {
     try {
-        const token = localStorage.getItem(TOKEN_USER_KEY);
-        const user = localStorage.getItem(USER_KEY) ? JSON.parse(localStorage.getItem(USER_KEY)) : null;
-        return { token, user };
+        const raw = localStorage.getItem(USER_KEY);
+        return raw ? JSON.parse(raw) : null;
     } catch {
-        return { token: null, user: null };
+        return null;
+    }
+}
+
+function readToken() {
+    try {
+        return localStorage.getItem(TOKEN_KEY) || null;
+    } catch {
+        return null;
     }
 }
 
@@ -25,6 +32,7 @@ function writeUser(user, token) {
 }
 
 let currentUser = readUser();
+let currentToken = readToken();
 
 export const store = {
     getToken() {
@@ -35,54 +43,27 @@ export const store = {
         return currentUser;
     },
 
-    // Hàm gọi API Login tới Backend cổng 9999
-    async login(email, password) {
-        try {
-            const response = await fetch("http://localhost:9999/api/auth/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ email, password }),
-            });
-
-            const data = await response.json();
-
-            // Nếu HTTP status là 2xx và success = true
-            if (response.ok && data.success) {
-                const { user, token } = data.data;
-
-                // --- THÊM DÒNG NÀY ĐỂ FIX LỖI ---
-                if (user && user.role) {
-                    user.role = user.role.toLowerCase();
-                }
-
-                currentUser = user;
-                writeUser(user, token); // Lưu lại phiên đăng nhập
-                return user;
-            } else {
-                // Quăng lỗi để bên UI (Login.js) bắt được và hiển thị
-                throw new Error(data.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.");
-            }
-        } catch (error) {
-            console.error("Login API Error:", error);
-            // Nếu lỗi do mất kết nối mạng (Network Error)
-            if (error.message === "Failed to fetch") {
-                throw new Error("Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại Backend (Port 9999).");
-            }
-            throw error;
+    // Được gọi từ Login.js sau khi api.login() thành công
+    setAuth(token, user) {
+        // Chuyển role về lowercase để khớp với route (/admin, /teacher, /student)
+        if (user && user.role) {
+            user.role = user.role.toLowerCase();
         }
+        currentUser = user;
+        currentToken = token;
+        writeUser(user, token);
     },
 
     updateProfile(partial) {
         if (!currentUser) return null;
         currentUser = { ...currentUser, ...partial };
-        writeUser(currentUser);
+        writeUser(currentUser, currentToken);
         return currentUser;
     },
 
     logout() {
         currentUser = null;
+        currentToken = null;
         writeUser(null); // Xóa token và user khỏi LocalStorage
     }
 };
