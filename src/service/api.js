@@ -6,9 +6,16 @@ const BASE_URL = "http://localhost:9999/api";
 async function fetchWithAuth(url, options = {}) {
     const token = store.getToken();
     const headers = {
-        "Content-Type": "application/json",
         ...options.headers,
     };
+
+    if (!headers["Content-Type"] && !(options.body instanceof FormData)) {
+        headers["Content-Type"] = "application/json";
+    }
+
+    if (options.body instanceof FormData) {
+        delete headers["Content-Type"];
+    }
 
     if (token) {
         headers["Authorization"] = `Bearer ${token}`;
@@ -24,6 +31,34 @@ async function fetchWithAuth(url, options = {}) {
 }
 
 export const api = {
+    async get(url, options = {}) {
+        return fetchWithAuth(url, { ...options, method: "GET" });
+    },
+    async post(url, body, options = {}) {
+        return fetchWithAuth(url, {
+            ...options,
+            method: "POST",
+            body: body instanceof FormData ? body : JSON.stringify(body),
+        });
+    },
+    async put(url, body, options = {}) {
+        return fetchWithAuth(url, {
+            ...options,
+            method: "PUT",
+            body: body instanceof FormData ? body : JSON.stringify(body),
+        });
+    },
+    async patch(url, body, options = {}) {
+        return fetchWithAuth(url, {
+            ...options,
+            method: "PATCH",
+            body: body ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
+        });
+    },
+    async delete(url, options = {}) {
+        return fetchWithAuth(url, { ...options, method: "DELETE" });
+    },
+
     async login(email, password) {
         return fetchWithAuth("/auth/login", {
             method: "POST",
