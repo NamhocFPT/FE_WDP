@@ -25,7 +25,7 @@ export default function ScheduleManagement() {
     // Fetch classes using useEffect
     useEffect(() => {
         if (isAddModalOpen && classOptions.length === 0) {
-            fetch("http://localhost:3000/api/v1/admin/classes")
+            fetch("http://localhost:9999/api/v1/admin/classes")
                 .then(res => {
                     if (!res.ok) throw new Error("Network response was not ok");
                     return res.json();
@@ -50,7 +50,7 @@ export default function ScheduleManagement() {
     const fetchSchedules = async () => {
         setIsLoadingSchedule(true);
         try {
-            const url = new URL("http://localhost:3000/api/v1/admin/class-sessions");
+            const url = new URL("http://localhost:9999/api/v1/admin/class-sessions");
             url.searchParams.append("page", page);
             url.searchParams.append("limit", limit);
             url.searchParams.append("group_by", groupBy);
@@ -131,7 +131,7 @@ export default function ScheduleManagement() {
                 note: note || undefined
             };
 
-            const response = await fetch(`http://localhost:3000/api/v1/admin/classes/${selectedClassId}/sessions/manual`, {
+            const response = await fetch(`http://localhost:9999/api/v1/admin/classes/${selectedClassId}/sessions/manual`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
