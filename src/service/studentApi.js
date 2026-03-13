@@ -42,8 +42,20 @@ const getClassDetails = (classId) => {
     return api.get(`/classes/${classId}`, { params: { studentId: getStudentId() } });
 };
 
+// UC_STU_11: Xem bảng điểm chi tiết của một lớp
+const getClassGrades = (classId) => {
+    return api.get(`/classes/${classId}/grades`);
+};
+
+// UC_STU_11: Tổng quan điểm tất cả các môn
+const getGradesOverview = () => {
+    return api.get(`/grades/overview`);
+};
+
 export const studentApi = {
     getStudentDashboard,
     getMyClasses,
     getClassDetails,
-};
+    getClassGrades,
+    getGradesOverview,
+};
