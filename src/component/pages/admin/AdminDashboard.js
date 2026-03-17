@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from "react";
 import { PageHeader, StatCard, Card, CardHeader, CardTitle, CardContent } from "component/ui";
 import { Users, BookOpen, Presentation, CalendarCheck, Loader2 } from "lucide-react";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from "recharts";
 import { adminApi } from "service/adminApi";
 import { toast } from "sonner";
 
-const gradeColors = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
+const gradeColors = ["#6366f1", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
 
 export default function AdminDashboard() {
     const [timeFilter, setTimeFilter] = useState("Last 30 days");
@@ -44,12 +44,24 @@ export default function AdminDashboard() {
             return (
                 <div className="bg-white p-3 border border-slate-200 rounded-lg shadow-sm">
                     <p className="font-semibold text-slate-800">{`Grade ${payload[0].name}`}</p>
-                    <p className="text-slate-600">{`${payload[0].value} students`}</p>
+                    <p className="text-slate-600">{`${payload[0].value} student${payload[0].value !== 1 ? 's' : ''}`}</p>
                 </div>
             );
         }
         return null;
     };
+
+    // Custom Legend for PieChart
+    const CustomPieLegend = ({ payload }) => (
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
+            {payload.map((entry, index) => (
+                <div key={index} className="flex items-center gap-1.5 text-sm text-slate-600">
+                    <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                    <span>Grade {entry.value}</span>
+                </div>
+            ))}
+        </div>
+    );
 
     // Custom Tooltip for BarChart
     const CustomBarTooltip = ({ active, payload, label }) => {
@@ -126,65 +138,80 @@ export default function AdminDashboard() {
 
                 {/* Charts Section */}
                 <div className="grid gap-6 lg:grid-cols-2">
-                    {/* Pie Chart */}
-                    <Card className="shadow-sm border-slate-200 h-[400px] flex flex-col">
+                    {/* Donut Pie Chart */}
+                    <Card className="shadow-sm border-slate-200 flex flex-col" style={{ height: 400 }}>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-lg">Grade Distribution</CardTitle>
+                            <p className="text-sm text-slate-400">Overall breakdown across all graded submissions</p>
                         </CardHeader>
-                        <CardContent className="flex-1 flex items-center justify-center p-0">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={data.gradeDistributionData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={0}
-                                        outerRadius={120}
-                                        paddingAngle={2}
-                                        dataKey="value"
-                                        label={({ name, value }) => `${name}: ${value}`}
-                                        labelLine={true}
-                                    >
-                                        {data.gradeDistributionData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={gradeColors[index % gradeColors.length]} />
-                                        ))}
-                                    </Pie>
-                                    <RechartsTooltip content={<CustomPieTooltip />} />
-                                </PieChart>
-                            </ResponsiveContainer>
+                        <CardContent className="flex-1 flex flex-col items-center justify-center p-4">
+                            {data.gradeDistributionData.every(d => d.value === 0) ? (
+                                <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-400">
+                                    <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <span className="text-sm font-medium">No graded data yet</span>
+                                </div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <PieChart>
+                                        <Pie
+                                            data={data.gradeDistributionData.filter(d => d.value > 0)}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={100}
+                                            paddingAngle={3}
+                                            dataKey="value"
+                                            label={false}
+                                            labelLine={false}
+                                        >
+                                            {data.gradeDistributionData.filter(d => d.value > 0).map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={gradeColors[data.gradeDistributionData.indexOf(entry) % gradeColors.length]} />
+                                            ))}
+                                        </Pie>
+                                        <RechartsTooltip content={<CustomPieTooltip />} />
+                                        <Legend
+                                            content={<CustomPieLegend />}
+                                            formatter={(value) => `Grade ${value}`}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            )}
                         </CardContent>
                     </Card>
 
                     {/* Bar Chart */}
-                    <Card className="shadow-sm border-slate-200 h-[400px] flex flex-col">
+                    <Card className="shadow-sm border-slate-200 flex flex-col" style={{ height: 400 }}>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-lg">Students by Course</CardTitle>
+                            <p className="text-sm text-slate-400">Enrollment count per course</p>
                         </CardHeader>
                         <CardContent className="flex-1 pt-4">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height={300}>
                                 <BarChart data={data.studentsByCourseData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis 
-                                    dataKey="name" 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                    tick={{ fill: '#64748b', fontSize: 13 }}
-                                    dy={10}
-                                />
-                                <YAxis 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                    tick={{ fill: '#64748b', fontSize: 13 }}
-                                    dx={-10}
-                                    domain={[0, 60]}
-                                    ticks={[0, 15, 30, 45, 60]}
-                                />
-                                <RechartsTooltip content={<CustomBarTooltip />} cursor={{ fill: '#f1f5f9' }} />
-                                <Bar dataKey="students" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={60} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                    <XAxis
+                                        dataKey="name"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#64748b', fontSize: 13 }}
+                                        dy={10}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#64748b', fontSize: 13 }}
+                                        dx={-10}
+                                        allowDecimals={false}
+                                        domain={[0, 'auto']}
+                                    />
+                                    <RechartsTooltip content={<CustomBarTooltip />} cursor={{ fill: '#f1f5f9' }} />
+                                    <Bar dataKey="students" fill="#6366f1" radius={[6, 6, 0, 0]} maxBarSize={60} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
             </div>
 
             {/* Recent Activities */}

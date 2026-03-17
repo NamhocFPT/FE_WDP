@@ -402,36 +402,56 @@ export default function Reports() {
                         </CardContent>
                     </Card>
 
-                    {/* Grade Percentage Pie */}
+                    {/* Grade Percentage Donut */}
                     <Card className="shadow-sm border-slate-200 flex flex-col min-h-[400px]">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-base text-slate-800">Grade Percentage</CardTitle>
                             <p className="text-sm text-slate-500">Distribution by percentage</p>
                         </CardHeader>
-                        <CardContent className="flex-1 flex items-center justify-center p-0">
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={data.gradePercentageData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={0}
-                                        outerRadius={100}
-                                        paddingAngle={2}
-                                        dataKey="value"
-                                        label={({ name }) => name}
-                                        labelLine={true}
-                                    >
+                        <CardContent className="flex-1 flex flex-col items-center justify-center p-4">
+                            {data.gradePercentageData.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-400">
+                                    <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <span className="text-sm font-medium">No graded data yet</span>
+                                </div>
+                            ) : (
+                                <>
+                                    <ResponsiveContainer width="100%" height={250}>
+                                        <PieChart>
+                                            <Pie
+                                                data={data.gradePercentageData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={55}
+                                                outerRadius={95}
+                                                paddingAngle={3}
+                                                dataKey="value"
+                                                label={false}
+                                                labelLine={false}
+                                            >
+                                                {data.gradePercentageData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                            <RechartsTooltip 
+                                                contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+                                                formatter={(value, name) => [`${value}%`, name]}
+                                                itemStyle={{ color: '#1e293b', fontWeight: 500 }}
+                                            />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2">
                                         {data.gradePercentageData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                            <div key={index} className="flex items-center gap-1.5 text-sm text-slate-600">
+                                                <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                                                <span>{entry.name}</span>
+                                            </div>
                                         ))}
-                                    </Pie>
-                                    <RechartsTooltip 
-                                        contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
-                                        itemStyle={{ color: '#1e293b', fontWeight: 500 }}
-                                    />
-                                </PieChart>
-                            </ResponsiveContainer>
+                                    </div>
+                                </>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
