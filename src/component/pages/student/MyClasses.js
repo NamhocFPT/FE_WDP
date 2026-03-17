@@ -70,21 +70,13 @@ export default function MyClasses() {
                                 </div>
 
                                 {/* Lịch học */}
-                                <div className="mt-auto mb-5 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                                    <div className="flex items-center gap-2 font-semibold text-slate-800 mb-2">
-                                        <span className="text-base">⏰</span> Lịch học
-                                    </div>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {c.schedule && c.schedule.length > 0 ? (
-                                            Array.from(new Set(c.schedule.map((s) => `${s.day} ${s.time}`))).map((timeStr, idx) => (
-                                                <div key={idx} className="bg-white border border-slate-200 text-slate-600 px-2.5 py-1 rounded-md text-[11px] font-medium shadow-sm">
-                                                    {timeStr}
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <span className="text-slate-400 italic">Chưa có lịch học cụ thể</span>
-                                        )}
-                                    </div>
+                                <div className="mt-auto mb-5 text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100 flex items-center gap-2">
+                                    <span className="text-lg">⏰</span>
+                                    <span>
+                                        {c.schedule && c.schedule.length > 0
+                                            ? c.schedule.map((s) => `${s.day} ${s.time}`).join(" • ")
+                                            : "Chưa có lịch học cụ thể"}
+                                    </span>
                                 </div>
 
                                 {/* Nút Action */}
