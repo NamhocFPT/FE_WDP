@@ -84,13 +84,18 @@ export default function ClassHome() {
                 <div className="grid gap-4 lg:grid-cols-2 animate-in fade-in duration-300">
                     <Card>
                         <CardHeader><CardTitle>Schedule</CardTitle></CardHeader>
-                        <CardContent className="space-y-2">
-                            {cl.schedule?.length > 0 ? cl.schedule.map((s, idx) => (
-                                <div key={idx} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm hover:border-blue-300 transition-colors">
-                                    <div className="font-semibold text-slate-900">{s.day}</div>
-                                    <div className="text-slate-700 font-medium">{s.time}</div>
-                                </div>
-                            )) : <p className="text-sm text-slate-500 italic">Chưa có lịch học.</p>}
+                        <CardContent>
+                            <div className="flex flex-wrap gap-2">
+                                {cl.schedule?.length > 0 ? (
+                                    Array.from(new Set(cl.schedule.map((s) => `${s.day} ${s.time}`))).map((timeStr, idx) => (
+                                        <div key={idx} className="bg-slate-50 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:border-blue-300 hover:bg-white transition-colors">
+                                            {timeStr}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-slate-500 italic w-full text-center py-4 bg-slate-50 rounded-lg">Chưa có lịch học.</p>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
 
