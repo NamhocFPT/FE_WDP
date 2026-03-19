@@ -1,6 +1,8 @@
 // src/component/pages/student/StudentDashboard.js
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { studentApi } from "service/studentApi";
+
 import { PageHeader, StatCard, Card, CardHeader, CardTitle, CardContent, Badge } from "component/ui";
 
 export default function StudentDashboard() {
@@ -11,6 +13,7 @@ export default function StudentDashboard() {
     });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchDashboard = async () => {
@@ -69,8 +72,11 @@ export default function StudentDashboard() {
                 <StatCard label="Enrolled Classes" value={classes.length} hint="Active" />
                 <StatCard label="Upcoming Tasks" value={upcomingAssessments} hint="To do" />
                 <StatCard label="Today Sessions" value={todaySessions.length} hint="Classes today" />
-                <StatCard label="Recent Grades" value={0} hint="Coming soon" />
+                <div className="cursor-pointer" onClick={() => navigate('/student/grades')}>
+                    <StatCard label="My Progress" value="View" hint="All grades" />
+                </div>
             </div>
+
 
             {/* KHỐI CHI TIẾT LỊCH TRÌNH VÀ LỚP HỌC */}
             <div className="grid gap-4 lg:grid-cols-2">

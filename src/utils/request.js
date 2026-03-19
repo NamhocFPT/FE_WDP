@@ -45,6 +45,22 @@ export const patch = async(path,option,id) =>{
     const result = response.json();
     return result
 }
+export const put = async(path,option) =>{
+    const token = store.getToken();
+    const headers = {
+        Accept: 'application/json',
+        "Content-Type": "application/json"
+    };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(API_DOMAIN + path, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(option)
+    });
+    const result = await response.json();
+    return result
+}
 export const dele = async(path,id) => {
     const token = store.getToken();
     const headers = {};
