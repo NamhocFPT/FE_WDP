@@ -258,7 +258,7 @@ const fetchSubmissions = async () => {
                                                 <Button 
                                                     size="sm" 
                                                     className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-                                                    onClick={() => navigate(`/teacher/grading/${s.id}`)}
+                                                    onClick={() => navigate(`/teacher/grading/${s.id}`, { state: { submissionIds: filteredData.map(sub => sub.id) } })}
                                                     disabled={!hasSubmitted}
                                                 >
                                                     {isGraded ? 'Xem / Sửa điểm' : 'Chấm điểm'}

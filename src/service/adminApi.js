@@ -52,4 +52,8 @@ export const adminApi = {
     updateUser: (id, data) => api.put(`/users/${id}`, data),
     toggleUserStatus: (id) => api.patch(`/users/${id}/status`),
     resetUserPassword: (id) => api.patch(`/users/${id}/reset-password`),
+
+    // --- UC_ADM_15: IMPORT LỊCH HỌC ---
+    validateScheduleImport: (rows) => api.post('/schedule/import/validate', { rows }),
+    confirmScheduleImport: (validRows) => api.post('/schedule/import/confirm', { validRows }),
 };

@@ -74,7 +74,29 @@ export default function StudentAssignmentDetail() {
 
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
+        
+        // Front-end Validation (UC_STU_10)
+        const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+        const ALLOWED_EXTS = ['.pdf', '.docx', '.doc', '.zip', '.rar', '.jpg', '.jpeg', '.png'];
+        
+        for (const file of files) {
+            if (file.size > MAX_SIZE) {
+                setMessage({ type: "error", text: `File "${file.name}" vượt quá dung lượng cho phép (50MB).` });
+                e.target.value = ""; // clear input
+                setSelectedFiles([]);
+                return;
+            }
+            const ext = "." + file.name.split('.').pop().toLowerCase();
+            if (!ALLOWED_EXTS.includes(ext)) {
+                setMessage({ type: "error", text: `Định dạng File "${ext}" không hỗ trợ.` });
+                e.target.value = ""; // clear input
+                setSelectedFiles([]);
+                return;
+            }
+        }
+        
         setSelectedFiles(files);
+        setMessage(null);
     };
 
     const onSubmit = async (e) => {
@@ -267,10 +289,16 @@ export default function StudentAssignmentDetail() {
 </Td>
                                     </tr>
                                     <tr className="border-b">
-                                        <Th className="bg-slate-50 text-slate-600 text-xs uppercase">Điểm số</Th>
+                                         <Th className="bg-slate-50 text-slate-600 text-xs uppercase">Thang điểm</Th>
+                                         <Td className="font-bold text-slate-800">
+                                             {Number(assessment.max_score || 100)} điểm
+                                         </Td>
+                                     </tr>
+                                     <tr className="border-b">
+                                         <Th className="bg-slate-50 text-slate-600 text-xs uppercase">Điểm số</Th>
                                         <Td className="font-bold text-blue-700">
                                             {submission?.grade?.final_score !== undefined && submission?.grade?.final_score !== null
-                                                ? `${submission.grade.final_score} / ${assessment.max_score}` 
+                                                ? `${Number(submission.grade.final_score)} / ${Number(assessment.max_score)}` 
                                                 : "Chưa có điểm"}
                                         </Td>
                                     </tr>
@@ -303,7 +331,7 @@ export default function StudentAssignmentDetail() {
                             className="w-full bg-blue-600 text-white py-6 text-lg font-bold rounded-2xl shadow-blue-200 shadow-xl hover:bg-blue-700 transition-all hover:-translate-y-1"
                             onClick={() => setIsEditing(true)}
                         >
-                            {submission ? "Chỉnh sửa bài nộp" : "Nộp bài ngay"}
+                            {submission ? "Chỉnh sửa bài nộp" : "Thêm bài nộp"}
                         </Button>
                     )}
 

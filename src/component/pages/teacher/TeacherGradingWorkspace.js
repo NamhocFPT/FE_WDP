@@ -1,15 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, Button, Badge } from "component/ui";
 
 export default function TeacherGradingWorkspace() {
-    const { submissionId } = useParams();
+        const { submissionId } = useParams();
     const navigate = useNavigate();
+    const { state } = useLocation();
 
     const [data, setData] = useState(null);
     const [score, setScore] = useState("");
     const [feedback, setFeedback] = useState("");
     const [isSaving, setIsSaving] = useState(false);
+    
+    // Tự động điều hướng Next/Prev
+    const submissionIds = state?.submissionIds || [];
+    const currentIndex = submissionIds.indexOf(submissionId);
+    const nextSubmissionId = currentIndex !== -1 && currentIndex < submissionIds.length - 1 ? submissionIds[currentIndex + 1] : null;
+    const prevSubmissionId = currentIndex > 0 ? submissionIds[currentIndex - 1] : null;
+
+    const [isNotify, setIsNotify] = useState(true);
+    const [activeFileIndex, setActiveFileIndex] = useState(0);
     
     // Quản lý Tab & AI
     const [activeTab, setActiveTab] = useState("manual"); // 'manual' hoặc 'ai'
@@ -159,12 +169,7 @@ export default function TeacherGradingWorkspace() {
         }
     };
 
-    const handleResubmit = async () => {
-        if(window.confirm("Bạn có chắc chắn muốn cho phép sinh viên này nộp lại bài? Trạng thái bài làm sẽ quay về 'Chờ nộp'.")) {
-            // TODO: Gắn API gọi hàm allowResubmit ở Backend vào đây
-            alert("Tính năng đang được cập nhật...");
-        }
-    };
+
 
     // Hàm gọi AI chấm bài
     const handleRunAI = async () => {
@@ -281,44 +286,53 @@ export default function TeacherGradingWorkspace() {
                         </Card>
 
                         {/* DANH SÁCH FILE BÀI LÀM CỦA SINH VIÊN */}
-                        <h2 className="font-bold text-slate-700 flex items-center gap-2 text-lg mt-8 mb-4">
-                            📑 File bài làm của sinh viên
-                        </h2>
-                        
+                        <div className="flex items-center justify-between mb-4 border-b pb-3">
+                            <h2 className="font-bold text-slate-700 flex items-center gap-2 text-lg">
+                                📑 Trình xem tài liệu bài làm
+                            </h2>
+                            {nextSubmissionId && (
+                                <Button size="sm" variant="outline" onClick={() => navigate(`/teacher/grading/${nextSubmissionId}`, { state: { submissionIds } })}>
+                                    Học viên tiếp ➡️
+                                </Button>
+                            )}
+                        </div>
+
                         {data.files && data.files.length > 0 ? (
-                            <div className="grid gap-4">
-                                {data.files.map(file => (
-                                    <Card key={file.id} className="hover:shadow-md transition-shadow border-slate-200">
-                                        <CardContent className="p-5 flex justify-between items-center bg-white flex-wrap gap-4">
-                                            <div className="flex items-center gap-4">
-                                                <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-2xl shrink-0">
-                                                    📎
+                            <div className="flex flex-col h-[75vh] border rounded-2xl overflow-hidden bg-white shadow-sm">
+                                {/* TAB CHO PHÉP CHUYỂN FILE */}
+                                {data.files.length > 1 && (
+                                    <div className="flex border-b bg-slate-50 overflow-x-auto">
+                                        {data.files.map((file, idx) => (
+                                            <button 
+                                                key={file.id}
+                                                className={`px-4 py-2 text-xs font-bold border-r last:border-0 transition-colors ${activeFileIndex === idx ? 'bg-white text-blue-600 border-t-2 border-t-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}
+                                                onClick={() => setActiveFileIndex(idx)}
+                                            >
+                                                {file.original_name.substring(0, 15)}...
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                
+                                {/* EMBED CONTAINER */}
+                                <div className="flex-1 bg-slate-200 relative">
+                                    {(() => {
+                                        const f = data.files[activeFileIndex];
+                                        const ext = f.original_name.split('.').pop().toLowerCase();
+                                        if (['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
+                                            return <embed src={f.file_url} className="w-full h-full" type={ext==='pdf'?'application/pdf':'image/' + ext} />;
+                                        } else {
+                                            return (
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-slate-500">
+                                                    <span className="text-4xl mb-2">📎</span>
+                                                    <p className="font-bold text-slate-700">File không hỗ trợ xem trực tuyến</p>
+                                                    <p className="text-xs mb-4">Định dạng file này (.${ext}) không thể nhúng trực tiếp lên màn hình.</p>
+                                                    <Button onClick={() => handleDownload(f.file_url, f.original_name)} className="bg-slate-800 text-white">Tải về máy</Button>
                                                 </div>
-                                                <div className="min-w-0">
-                                                    <p className="font-bold text-slate-800 truncate">{file.original_name}</p>
-                                                    <p className="text-xs text-slate-400 mt-1">Nộp lúc: {new Date(data.submitted_at).toLocaleString('vi-VN')}</p>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Nút thao tác Xem / Tải cho bài làm */}
-                                            <div className="flex items-center gap-2">
-                                                <Button 
-                                                    variant="outline" 
-                                                    className="border-slate-300 text-slate-700 hover:bg-slate-50"
-                                                    onClick={() => handlePreview(file.file_url, file.original_name)}
-                                                >
-                                                    Xem trước
-                                                </Button>
-                                                <Button 
-                                                    className="bg-slate-800 text-white hover:bg-slate-900"
-                                                    onClick={() => handleDownload(file.file_url, file.original_name)}
-                                                >
-                                                    Tải về
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
+                                            );
+                                        }
+                                    })()}
+                                </div>
                             </div>
                         ) : (
                             <div className="bg-white p-12 text-center rounded-2xl border-2 border-dashed border-slate-300 text-slate-500">
@@ -437,11 +451,17 @@ export default function TeacherGradingWorkspace() {
                             disabled={isSaving || score === ""}
                             onClick={() => handleSaveGrade(true)}
                         >
-                            {isSaving ? "Đang xử lý..." : "Lưu & Công Bố Điểm"}
-                        </Button>
-                        <Button variant="outline" className="w-full py-4 text-slate-500 border-slate-300 hover:bg-slate-100" onClick={handleResubmit}>
-                            Yêu cầu nộp lại bài
-                        </Button>
+                            {isSaving ? "Đang xử lý..." : "Lưu & Công Bố Điểm"}</Button>
+                        
+                        {nextSubmissionId && (
+                            <Button 
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 font-bold rounded-xl"
+                                onClick={() => navigate(`/teacher/grading/${nextSubmissionId}`, { state: { submissionIds } })}
+                            >
+                                Lưu và Sang Học Viên Tiếp Theo ➡️
+                            </Button>
+                        )}
+
                     </div>
                 </div>
             </div>
