@@ -132,21 +132,26 @@ export default function QuizQuestionManager() {
 
     const handleAIGenerate = async () => {
         if (!aiPrompt.trim()) return toast.error("Vui lòng nhập yêu cầu cho AI");
+        if (!quizId || quizId === "undefined") {
+            return toast.error("Quiz ID không hợp lệ. Vui lòng quay lại và chọn đúng bài Quiz.");
+        }
         setIsGenerating(true);
         try {
             const res = await TeacherQuizService.generateAIQuestions(quizId, { prompt: aiPrompt });
             if (res.success) {
-                // AI suggests questions, we could show them for review before bulk saving
-                // For now, let's assume it returns a list to review
                 const aiQuestions = res.data; 
                 if (window.confirm(`AI đã tạo ${aiQuestions.length} câu hỏi. Bạn có muốn lưu tất cả vào Quiz không?`)) {
                     await TeacherQuizService.bulkSaveQuestions(quizId, aiQuestions);
                     toast.success("Đã lưu các câu hỏi từ AI");
                     setShowAIModal(false);
+                    setAiPrompt("");
                     fetchQuestions();
                 }
+            } else {
+                toast.error(res.message || "AI không thể tạo câu hỏi. Vui lòng thử lại.");
             }
         } catch (error) {
+            console.error("AI Generate Error:", error);
             toast.error("Lỗi khi tạo câu hỏi bằng AI");
         } finally {
             setIsGenerating(false);

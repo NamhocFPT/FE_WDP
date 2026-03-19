@@ -352,7 +352,7 @@ export default function AssignmentManagement() {
                                                 <div 
                                                     className="font-semibold text-blue-600 cursor-pointer hover:underline flex items-center gap-2"
                                                     onClick={() => {
-                                                        if (a.type === 'quiz') {
+                                                        if (a.type?.toUpperCase() === 'QUIZ') {
                                                             navigate(`/teacher/assessments/${a.id}/quiz-attempts`);
                                                         } else {
                                                             navigate(`/teacher/assessments/${a.id}/submissions`);
@@ -362,7 +362,7 @@ export default function AssignmentManagement() {
                                                     {a.is_published ? <Eye className="h-3.5 w-3.5 text-emerald-500" /> : <EyeOff className="h-3.5 w-3.5 text-amber-500" />}
                                                     {a.title}
                                                 </div>
-                                                <div className="text-xs text-slate-400 mt-1">ID: {a.id.substring(0,8)}... {a.type === 'quiz' ? '(Quiz)' : '(Essay)'}</div>
+                                                <div className="text-xs text-slate-400 mt-1">ID: {a.id.substring(0,8)}... {a.type?.toUpperCase() === 'QUIZ' ? '(Quiz)' : '(Essay)'}</div>
                                             </Td>
                                             <Td>{a.due_at ? new Date(a.due_at).toLocaleString('vi-VN') : "Không có hạn"}</Td>
                                             <Td><Badge tone="amber">{a.max_score || 100}</Badge></Td>
@@ -401,7 +401,7 @@ export default function AssignmentManagement() {
                                                     >
                                                         Xóa
                                                     </Button>
-                                                    {a.type === 'quiz' && (
+                                                    {a.type?.toUpperCase() === 'QUIZ' && (
                                                         <Button 
                                                             size="xs" 
                                                             className="bg-slate-800 text-white hover:bg-black"
