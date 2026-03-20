@@ -269,9 +269,25 @@ export default function StudentAssignmentDetail() {
                                     >
                                         <PlayCircle className="h-5 w-5 mr-2" /> Tiếp tục làm bài
                                     </Button>
+                                ) : (hasFinished && assessment.attempt_limit != null && submission?.attempt_no >= assessment.attempt_limit) ? (
+                                    <div className="mt-4 rounded-xl border-2 border-green-200 bg-green-50 p-5 text-center">
+                                        <div className="text-3xl mb-2">🏆</div>
+                                        <div className="text-lg font-black text-green-700">HOÀN THÀNH</div>
+                                        <div className="text-sm font-semibold text-green-600 mt-1">
+                                            Bạn đã hết số lần làm bài.
+                                        </div>
+                                        {submission.grade?.is_published && submission.grade?.final_score != null && (
+                                            <div className="mt-4 flex flex-col items-center">
+                                                <div className="inline-block px-5 py-2 bg-white rounded-xl border border-green-100 shadow-sm">
+                                                    <span className="text-xs text-slate-500 font-bold uppercase mr-2 block text-left mb-1">Điểm của bạn:</span>
+                                                    <span className="text-2xl font-black text-green-700">{submission.grade.final_score} / {assessment.max_score}</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 ) : (
                                     <Button
-                                        className="w-full py-5 text-base font-bold"
+                                        className="w-full py-5 text-base font-bold mt-4"
                                         variant="primary"
                                         onClick={() => navigate(`/student/quizzes/${assessmentId}/start`)}
                                     >

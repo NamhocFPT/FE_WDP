@@ -304,7 +304,8 @@ export default function StudentQuizTake() {
 
         const handleFullscreenChange = () => {
             if (!document.fullscreenElement && !document.webkitIsFullScreen && !document.mozFullScreen && !document.msFullscreenElement) {
-                handleViolation("Thoát chế độ Toàn màn hình");
+                setIsScreenHidden(true);
+                setCheatWarning("Thoát chế độ Toàn màn hình. Tính năng này bắt buộc khi làm bài.");
             }
         };
 
@@ -350,6 +351,15 @@ export default function StudentQuizTake() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    useEffect(() => {
+        if (!loading && questions.length > 0 && !timeExpired && !submitting) {
+            if (!document.fullscreenElement && !document.webkitIsFullScreen && !document.mozFullScreen && !document.msFullscreenElement) {
+                setIsScreenHidden(true);
+                setCheatWarning("Bạn phải làm bài ở chế độ toàn màn hình. Nhấn vào phần màu đen này để bắt đầu/tiếp tục làm bài.");
+            }
+        }
+    }, [loading, questions.length, timeExpired, submitting]);
+
     // -------------------------------------------------------
     // Render
     // -------------------------------------------------------
@@ -390,8 +400,13 @@ export default function StudentQuizTake() {
             {/* Anti-Cheat Overlay */}
             {isScreenHidden && (
                 <div 
-                    className="fixed inset-0 z-[99999] bg-black flex flex-col items-center justify-center text-white p-8 text-center"
-                    onClick={() => setIsScreenHidden(false)}
+                    className="fixed inset-0 z-[99999] bg-black flex flex-col items-center justify-center text-white p-8 text-center cursor-pointer"
+                    onClick={() => {
+                        setIsScreenHidden(false);
+                        if (!document.fullscreenElement) {
+                            document.documentElement.requestFullscreen().catch(()=>{});
+                        }
+                    }}
                 >
                     <div className="text-8xl mb-6">⚠️</div>
                     <h2 className="text-4xl font-black text-red-500 mb-4">HỆ THỐNG PHÁT HIỆN GIAN LẬN</h2>
