@@ -28,7 +28,7 @@ export default function Notifications() {
       }
       const res = await api.notifications.getNotifications(params);
       if (res.ok) {
-        setNotifications(res.data.data.items || []);
+        setNotifications(res.data.data.notifications || res.data.data.items || []);
         setTotalPages(res.data.data.totalPages || 1);
       }
     } catch (error) {
@@ -151,16 +151,16 @@ export default function Notifications() {
                     {notif.title}
                   </h3>
                 </div>
-                {notif.message && (
-                  <p className={`text-sm ml-[22px] ${!notif.is_read ? "text-slate-700" : "text-slate-500"}`}>
-                    {notif.message}
+                {(notif.body || notif.message) && (
+                  <p className={`text-sm ml-[22px] whitespace-pre-line ${!notif.is_read ? "text-slate-700" : "text-slate-500"}`}>
+                    {notif.body || notif.message}
                   </p>
                 )}
               </div>
               
               <div className="flex items-center gap-2 text-xs text-slate-400 sm:ml-4 whitespace-nowrap">
                 <Clock className="h-3.5 w-3.5" />
-                {notif.created_at ? format(new Date(notif.created_at), "HH:mm, dd/MM/yyyy", { locale: vi }) : "N/A"}
+                {(notif.sent_at || notif.created_at) ? format(new Date(notif.sent_at || notif.created_at), "HH:mm, dd/MM/yyyy", { locale: vi }) : "N/A"}
               </div>
             </div>
           ))

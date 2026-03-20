@@ -97,14 +97,14 @@ export default function NotificationBell() {
                 <div className={`text-sm ${!notif.is_read ? "font-semibold text-slate-900" : "font-medium text-slate-700"}`}>
                   {notif.title}
                 </div>
-                {notif.message && (
-                  <div className={`text-xs ${!notif.is_read ? "text-slate-700" : "text-slate-500"} line-clamp-2`}>
-                    {notif.message}
+                {(notif.body || notif.message) && (
+                  <div className={`text-xs ${!notif.is_read ? "text-slate-700" : "text-slate-500"} line-clamp-2 whitespace-pre-line`}>
+                    {notif.body || notif.message}
                   </div>
                 )}
                 <div className="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
                   <Clock className="h-3 w-3" />
-                  {notif.created_at ? formatDistanceToNow(new Date(notif.created_at), { addSuffix: true, locale: vi }) : "Vừa xong"}
+                  {(notif.sent_at || notif.created_at) ? formatDistanceToNow(new Date(notif.sent_at || notif.created_at), { addSuffix: true, locale: vi }) : "Vừa xong"}
                 </div>
               </div>
             ))
