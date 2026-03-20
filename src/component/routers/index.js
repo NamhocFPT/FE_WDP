@@ -51,6 +51,7 @@ import StudentAssignmentDetail from "../pages/student/StudentAssignmentDetail";
 import StudentQuizStart from "component/pages/student/StudentQuizStart";
 import StudentQuizTake from "component/pages/student/StudentQuizTake";
 import StudentQuizSummary from "component/pages/student/StudentQuizSummary";
+import StudentQuizResult from "component/pages/student/StudentQuizResult";
 
 function ProtectedRoute({ children }) {
   const currentUser = store.getCurrentUser();
@@ -164,12 +165,22 @@ export const router = [
       { path: "materials", element: <StudentDashboard /> },
       { path: "quizzes", element: <StudentDashboard /> },
       { path: "quizzes/:quizId/start", element: <StudentQuizStart /> },
-      { path: "attempts/:submissionId/take", element: <StudentQuizTake /> },
       { path: "attempts/:submissionId/summary", element: <StudentQuizSummary /> },
+      { path: "quiz-result", element: <StudentQuizResult /> },
       { path: "grades", element: <Grades /> },
       { path: "classes/:classId/grades", element: <StudentClassGrades /> },
       { path: "assessments/:assessmentId", element: <StudentAssignmentDetail /> },
     ],
+  },
+  
+  // Student Quiz Take - No Layout (Full screen Mode)
+  {
+    path: "/student/attempts/:submissionId/take",
+    element: (
+      <ProtectedRoute>
+        <StudentQuizTake />
+      </ProtectedRoute>
+    ),
   },
 
   { path: "*", element: <NotFound /> },

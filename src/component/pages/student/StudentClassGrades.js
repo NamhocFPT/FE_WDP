@@ -131,7 +131,9 @@ export default function StudentClassGrades() {
                                             </div>
                                         </Td>
                                         <Td>
-                                            <span className="font-semibold text-slate-600">{item.weight}%</span>
+                                            <span className="font-semibold text-slate-600">
+                                                {item.weight !== null && item.weight !== undefined ? `${item.weight}%` : '--'}
+                                            </span>
                                         </Td>
                                         <Td>
                                             <div className="flex items-baseline gap-1">

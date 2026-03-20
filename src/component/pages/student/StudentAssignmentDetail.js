@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge } from "component/ui";
+import { ClipboardList, Clock, Repeat, CheckCircle2, PlayCircle } from "lucide-react";
 
 export default function StudentAssignmentDetail() {
     const { assessmentId } = useParams();
@@ -155,6 +156,141 @@ export default function StudentAssignmentDetail() {
 
     const now = new Date();
     const isPastCutoff = assessment.cutoff_at && now > new Date(assessment.cutoff_at);
+    const isQuiz = assessment.type === 'QUIZ';
+
+    // ─── QUIZ TYPE: Redirect to quiz flow ───
+    if (isQuiz) {
+        const hasInProgress = submission?.status === 'in_progress';
+        const hasFinished = submission?.status === 'submitted' || submission?.status === 'graded';
+        const settings = (() => {
+            try {
+                const marker = '[quiz_settings]';
+                const idx = (assessment.instructions || '').lastIndexOf(marker);
+                if (idx === -1) return {};
+                return JSON.parse(assessment.instructions.slice(idx + marker.length).trim());
+            } catch { return {}; }
+        })();
+
+        return (
+            <div className="space-y-6">
+                <PageHeader
+                    title={assessment.title}
+                    subtitle={`Bài kiểm tra trắc nghiệm`}
+                    right={[<Button key="back" variant="outline" onClick={() => navigate(-1)}>Quay lại</Button>]}
+                />
+                <div className="grid gap-6 lg:grid-cols-3">
+                    {/* Left: Quiz Info */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <Card>
+                            <CardContent className="p-6">
+                                <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <ClipboardList className="h-5 w-5 text-blue-600" /> Thông tin bài kiểm tra
+                                </h3>
+                                <div className="grid sm:grid-cols-2 gap-4">
+                                    {assessment.time_limit_minutes && (
+                                        <div className="flex items-center gap-3 bg-blue-50 rounded-xl p-4">
+                                            <Clock className="h-6 w-6 text-blue-600 shrink-0" />
+                                            <div>
+                                                <div className="text-xs font-bold text-blue-500 uppercase">Thời gian</div>
+                                                <div className="font-bold text-slate-900">{assessment.time_limit_minutes} phút</div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {assessment.attempt_limit != null && (
+                                        <div className="flex items-center gap-3 bg-purple-50 rounded-xl p-4">
+                                            <Repeat className="h-6 w-6 text-purple-600 shrink-0" />
+                                            <div>
+                                                <div className="text-xs font-bold text-purple-500 uppercase">Số lần làm</div>
+                                                <div className="font-bold text-slate-900">{assessment.attempt_limit} lần</div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                {assessment.instructions && !assessment.instructions.includes('[quiz_settings]') && (
+                                    <div className="mt-4 text-sm text-slate-600 whitespace-pre-wrap leading-relaxed border-t pt-4">
+                                        {assessment.instructions}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Submission history */}
+                        {hasFinished && submission && (
+                            <Card className="border-green-200">
+                                <CardContent className="p-6">
+                                    <h3 className="font-bold text-green-700 mb-3 flex items-center gap-2">
+                                        <CheckCircle2 className="h-5 w-5" /> Kết quả bài làm
+                                    </h3>
+                                    <div className="text-sm text-slate-600 space-y-2">
+                                        <div>Lần làm: <b>#{submission.attempt_no || 1}</b></div>
+                                        {submission.submitted_at && (
+                                            <div>Nộp lúc: <b>{new Date(submission.submitted_at).toLocaleString('vi-VN')}</b></div>
+                                        )}
+                                        {submission.grade?.is_published && submission.grade?.final_score != null && (
+                                            <div className="text-lg font-black text-green-700">Điểm: {submission.grade.final_score} / {assessment.max_score}</div>
+                                        )}
+                                        {!submission.grade?.is_published && (
+                                            <div className="text-amber-600 font-semibold">Điểm chưa được công bố.</div>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+
+                    {/* Right: Action area */}
+                    <div className="space-y-4">
+                        <Card className="overflow-hidden">
+                            <div className="bg-slate-900 px-4 py-3 text-white font-bold text-sm">Trạng thái</div>
+                            <CardContent className="p-4 space-y-3 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Hạn nộp</span>
+                                    <span className="font-semibold">{assessment.due_at ? new Date(assessment.due_at).toLocaleString('vi-VN') : '---'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Trạng thái</span>
+                                    <span>
+                                        {hasInProgress ? <Badge tone="blue">Đang làm</Badge>
+                                            : hasFinished ? <Badge tone="green">Đã nộp</Badge>
+                                            : <Badge tone="slate">Chưa bắt đầu</Badge>}
+                                    </span>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* CTA */}
+                        {!isPastCutoff && (
+                            <>
+                                {hasInProgress && submission?.id ? (
+                                    <Button
+                                        className="w-full py-5 text-base font-bold"
+                                        variant="primary"
+                                        onClick={() => navigate(`/student/attempts/${submission.id}/take`)}
+                                    >
+                                        <PlayCircle className="h-5 w-5 mr-2" /> Tiếp tục làm bài
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        className="w-full py-5 text-base font-bold"
+                                        variant="primary"
+                                        onClick={() => navigate(`/student/quizzes/${assessmentId}/start`)}
+                                    >
+                                        <PlayCircle className="h-5 w-5 mr-2" />
+                                        {hasFinished ? 'Làm lại bài' : 'Bắt đầu làm bài'}
+                                    </Button>
+                                )}
+                            </>
+                        )}
+                        {isPastCutoff && (
+                            <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-600 font-semibold text-center">
+                                Đã hết hạn nộp bài.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">

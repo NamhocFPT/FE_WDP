@@ -31,7 +31,7 @@ export const getAttemptState = async (submissionId) => {
 // ===============================
 export const saveAnswer = async (submissionId, questionId, payload) => {
     try {
-        const res = await request.patch(`api/student/attempts/${submissionId}/questions/${questionId}/answer`, payload);
+        const res = await request.put(`api/student/attempts/${submissionId}/questions/${questionId}/answer`, payload);
         return res;
     } catch (error) {
         console.error("Error saveAnswer:", error);
