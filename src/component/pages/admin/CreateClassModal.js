@@ -3,12 +3,12 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { adminApi } from "service/adminApi";
 import { Button } from "component/ui";
-import { X, UserCheck } from "lucide-react";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CreateClassModal({ onClose, onSuccess }) {
     // Quản lý danh sách Teachers lấy từ DB
-    const [metadata, setMetadata] = useState({ 
+    const [, setMetadata] = useState({ 
         teachers: [], 
     });
     const [courses, setCourses] = useState([]);

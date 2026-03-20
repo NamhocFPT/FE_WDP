@@ -3,10 +3,13 @@ import React, { useMemo, useState, useEffect } from "react";
 import { mock } from "service/mockData";
 import { PageHeader, Card, CardContent, Badge, Input, Button, Modal, SearchableSelect } from "component/ui";
 import { Calendar, Upload, Download, Plus } from "lucide-react";
+import ImportScheduleModal from "./ImportScheduleModal";
+import * as XLSX from "xlsx";
 
 export default function ScheduleManagement() {
     const [q, setQ] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     // Filter items based on search query
     const [classOptions, setClassOptions] = useState([]);
@@ -22,10 +25,16 @@ export default function ScheduleManagement() {
     const [totalPages, setTotalPages] = useState(1);
     const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
 
+    // Export Excel Filters
+    const [semesterFilter, setSemesterFilter] = useState("");
+    const [roomFilter, setRoomFilter] = useState("");
+    const [fromFilter, setFromFilter] = useState("");
+    const [toFilter, setToFilter] = useState("");
+
     // Fetch classes using useEffect
     useEffect(() => {
         if (isAddModalOpen && classOptions.length === 0) {
-            fetch("http://localhost:3000/api/v1/admin/classes")
+            fetch("http://localhost:9999/api/v1/admin/classes")
                 .then(res => {
                     if (!res.ok) throw new Error("Network response was not ok");
                     return res.json();
@@ -50,12 +59,16 @@ export default function ScheduleManagement() {
     const fetchSchedules = async () => {
         setIsLoadingSchedule(true);
         try {
-            const url = new URL("http://localhost:3000/api/v1/admin/class-sessions");
+            const url = new URL("http://localhost:9999/api/v1/admin/class-sessions");
             url.searchParams.append("page", page);
             url.searchParams.append("limit", limit);
             url.searchParams.append("group_by", groupBy);
             if (classIdFilter) url.searchParams.append("class_id", classIdFilter);
             if (courseCodeFilter) url.searchParams.append("course_code", courseCodeFilter);
+            if (semesterFilter) url.searchParams.append("semester", semesterFilter);
+            if (roomFilter) url.searchParams.append("room", roomFilter);
+            if (fromFilter) url.searchParams.append("from", fromFilter);
+            if (toFilter) url.searchParams.append("to", toFilter);
 
             const res = await fetch(url.toString());
             if (!res.ok) throw new Error("Network response was not ok");
@@ -73,16 +86,66 @@ export default function ScheduleManagement() {
 
     useEffect(() => {
         fetchSchedules();
-    }, [page, limit, groupBy, classIdFilter, courseCodeFilter]);
+    }, [page, limit, groupBy, classIdFilter, courseCodeFilter, semesterFilter, roomFilter, fromFilter, toFilter]);
 
+
+    const handleExport = async () => {
+        try {
+            const url = new URL("http://localhost:9999/api/v1/admin/class-sessions");
+            url.searchParams.append("all", "true");
+            url.searchParams.append("group_by", groupBy);
+            if (classIdFilter) url.searchParams.append("class_id", classIdFilter);
+            if (courseCodeFilter) url.searchParams.append("course_code", courseCodeFilter);
+            if (semesterFilter) url.searchParams.append("semester", semesterFilter);
+            if (roomFilter) url.searchParams.append("room", roomFilter);
+            if (fromFilter) url.searchParams.append("from", fromFilter);
+            if (toFilter) url.searchParams.append("to", toFilter);
+
+            const res = await fetch(url.toString());
+            const result = await res.json();
+            const items = result.data || [];
+
+            if (items.length === 0) {
+                alert("Không có dữ liệu lịch học khớp điều kiện lọc.");
+                return;
+            }
+
+            let flatData = [];
+            if (groupBy && items[0]?.sessions) {
+                 items.forEach(g => { flatData = [...flatData, ...g.sessions]; });
+            } else {
+                 flatData = items;
+            }
+
+            const excelRows = flatData.map((s, index) => ({
+                "STT": index + 1,
+                "Lớp": s.class?.name || "",
+                "Môn": s.class?.course?.code || "",
+                "Ngày": new Date(s.start_time).toLocaleDateString("vi-VN"),
+                "Giờ Bắt đầu": new Date(s.start_time).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' }),
+                "Giờ Kết thúc": new Date(s.end_time).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' }),
+                "Phòng": s.room || "",
+                "Giảng viên": s.class?.teacher?.full_name || "",
+                "Chủ đề": s.topic || ""
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(excelRows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "LichHoc");
+            XLSX.writeFile(wb, `LichHoc_${new Date().toISOString().split('T')[0]}.xlsx`);
+        } catch (error) {
+            console.error("Export Error:", error);
+            alert("Lỗi xuất file Excel.");
+        }
+    };
 
     // Action buttons for PageHeader
     const pageActions = (
         <div className="flex gap-2">
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setIsImportModalOpen(true)}>
                 <Upload size={16} /> Import Schedule
             </Button>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" onClick={handleExport}>
                 <Download size={16} /> Export Schedule
             </Button>
             <Button variant="primary" className="gap-2 bg-blue-600 hover:bg-blue-700" onClick={() => setIsAddModalOpen(true)}>
@@ -131,7 +194,7 @@ export default function ScheduleManagement() {
                 note: note || undefined
             };
 
-            const response = await fetch(`http://localhost:3000/api/v1/admin/classes/${selectedClassId}/sessions/manual`, {
+            const response = await fetch(`http://localhost:9999/api/v1/admin/classes/${selectedClassId}/sessions/manual`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -173,33 +236,64 @@ export default function ScheduleManagement() {
 
             {/* Filter Controls */}
             <Card className="mb-4">
-                <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                    <div className="flex-1 w-full sm:w-1/3 border border-slate-200 rounded-lg bg-white relative">
-                        {/* We use SearchableSelect if you have a class list or just Input. We'll use simple Input for now */}
-                        <Input 
-                            value={classIdFilter}
-                            onChange={(e) => setClassIdFilter(e.target.value)}
-                            placeholder="Filter by Class ID..."
-                            className="border-none bg-transparent"
-                        />
+                <CardContent className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                        <div className="flex-1">
+                            <Input 
+                                value={classIdFilter}
+                                onChange={(e) => setClassIdFilter(e.target.value)}
+                                placeholder="Filter by Class ID..."
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <Input 
+                                value={courseCodeFilter}
+                                onChange={(e) => setCourseCodeFilter(e.target.value)}
+                                placeholder="Filter by Course Code..."
+                            />
+                        </div>
+                        <div className="w-full sm:w-1/4">
+                            <select 
+                                value={groupBy}
+                                onChange={(e) => setGroupBy(e.target.value)}
+                                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="teacher">Group by Teacher</option>
+                                <option value="date">Group by Date</option>
+                                <option value="class">Group by Class</option>
+                            </select>
+                        </div>
                     </div>
-                    <div className="flex-1 w-full sm:w-1/3">
-                        <Input 
-                            value={courseCodeFilter}
-                            onChange={(e) => setCourseCodeFilter(e.target.value)}
-                            placeholder="Filter by Course Code (e.g. PRJ301)..."
-                        />
-                    </div>
-                    <div className="w-full sm:w-1/4">
-                        <select 
-                            value={groupBy}
-                            onChange={(e) => setGroupBy(e.target.value)}
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="teacher">Group by Teacher</option>
-                            <option value="date">Group by Date</option>
-                            <option value="class">Group by Class</option>
-                        </select>
+                    
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                        <div className="flex-1">
+                            <Input 
+                                value={semesterFilter}
+                                onChange={(e) => setSemesterFilter(e.target.value)}
+                                placeholder="Học kỳ (VD: Spring 2026)..."
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <Input 
+                                value={roomFilter}
+                                onChange={(e) => setRoomFilter(e.target.value)}
+                                placeholder="Phòng (VD: P301)..."
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <Input 
+                                type="date"
+                                value={fromFilter}
+                                onChange={(e) => setFromFilter(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <Input 
+                                type="date"
+                                value={toFilter}
+                                onChange={(e) => setToFilter(e.target.value)}
+                            />
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -384,6 +478,12 @@ export default function ScheduleManagement() {
                     </div>
                 </div>
             </Modal>
+
+            <ImportScheduleModal 
+                isOpen={isImportModalOpen} 
+                onClose={() => setIsImportModalOpen(false)} 
+                onSuccess={fetchSchedules} 
+            />
         </div>
     );
 }

@@ -1,20 +1,38 @@
 // src/service/store.js
-import { api } from "./api";
-
+const USER_KEY = "smartedu_current_user";
 const TOKEN_KEY = "smartedu_token";
-const USER_KEY = "smartedu_user";
 
-function readData() {
+// Đọc thông tin user từ LocalStorage khi khởi chạy app
+function readUser() {
     try {
-        const token = localStorage.getItem(TOKEN_KEY);
-        const user = localStorage.getItem(USER_KEY) ? JSON.parse(localStorage.getItem(USER_KEY)) : null;
-        return { token, user };
+        const raw = localStorage.getItem(USER_KEY);
+        return raw ? JSON.parse(raw) : null;
     } catch {
-        return { token: null, user: null };
+        return null;
     }
 }
 
-let { token: currentToken, user: currentUser } = readData();
+function readToken() {
+    try {
+        return localStorage.getItem(TOKEN_KEY) || null;
+    } catch {
+        return null;
+    }
+}
+
+// Ghi đè hoặc xóa thông tin user/token vào LocalStorage
+function writeUser(user, token) {
+    if (!user) {
+        localStorage.removeItem(USER_KEY);
+        localStorage.removeItem(TOKEN_KEY);
+    } else {
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        if (token) localStorage.setItem(TOKEN_KEY, token);
+    }
+}
+
+let currentUser = readUser();
+let currentToken = readToken();
 
 export const store = {
     getToken() {
@@ -25,26 +43,27 @@ export const store = {
         return currentUser;
     },
 
+    // Được gọi từ Login.js sau khi api.login() thành công
     setAuth(token, user) {
-        currentToken = token;
-        currentUser = user;
-
-        if (token) localStorage.setItem(TOKEN_KEY, token);
-        else localStorage.removeItem(TOKEN_KEY);
-
-        if (user) {
-            // Map role ID to short role code for frontend routing compat
-            // Let's assume user.role is a string like "ADMIN", "STUDENT", we lowercase it.
-            const uiUser = { ...user, role: user.role?.toLowerCase() || "student", fullName: user.full_name || user.email };
-            currentUser = uiUser;
-            localStorage.setItem(USER_KEY, JSON.stringify(uiUser));
-        } else {
-            localStorage.removeItem(USER_KEY);
+        // Chuyển role về lowercase để khớp với route (/admin, /teacher, /student)
+        if (user && user.role) {
+            user.role = user.role.toLowerCase();
         }
+        currentUser = user;
+        currentToken = token;
+        writeUser(user, token);
     },
 
-    async logout() {
-        await api.logout().catch(() => { });
-        this.setAuth(null, null);
+    updateProfile(partial) {
+        if (!currentUser) return null;
+        currentUser = { ...currentUser, ...partial };
+        writeUser(currentUser, currentToken);
+        return currentUser;
+    },
+
+    logout() {
+        currentUser = null;
+        currentToken = null;
+        writeUser(null); // Xóa token và user khỏi LocalStorage
     }
 };

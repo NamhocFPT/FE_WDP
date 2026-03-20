@@ -146,7 +146,7 @@ export function SearchableSelect({ options, value, onChange, placeholder = "Sear
     const selectedOption = options.find((o) => o.value === value);
     const displayValue = isOpen ? query : (selectedOption ? selectedOption.label : "");
 
-    const filteredOptions = options.filter((o) => 
+    const filteredOptions = options.filter((o) =>
         o.label.toLowerCase().includes(query.toLowerCase())
     );
 

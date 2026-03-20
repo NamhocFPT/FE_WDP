@@ -169,7 +169,9 @@ export default function QuizCreation() {
             const payload = buildPayload();
 
             // CALL API UC_TEA_08
-            const data = await createQuiz({ classId: form.classId, payload });
+            const res = await createQuiz({ classId: form.classId, payload });
+            const data = res.data; // The actual quiz object from the API response
+            
             // backend data: { id, type, status:'draft', classId, next }
 
             // Postcondition: quiz created "Trống" (draft, chưa có câu hỏi)

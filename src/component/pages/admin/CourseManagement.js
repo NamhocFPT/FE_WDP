@@ -1,7 +1,7 @@
 // src/component/pages/admin/CourseManagement.js
 import React, { useMemo, useState, useEffect } from "react";
 import { adminApi } from "service/adminApi";
-import { Button, Badge, Table, Th, Td } from "component/ui";
+import { Button, Table, Th, Td } from "component/ui";
 import { Plus, Pencil, Trash2, Search, X, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
