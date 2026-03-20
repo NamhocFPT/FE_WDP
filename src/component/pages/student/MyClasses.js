@@ -29,8 +29,6 @@ export default function MyClasses() {
         fetchClasses();
     }, []);
 
-
-
     return (
         <div className="space-y-6">
             <PageHeader title="My Classes" subtitle="Classes you are enrolled in." />
@@ -76,7 +74,7 @@ export default function MyClasses() {
                                     </div>
                                     <div className="flex flex-wrap gap-1.5">
                                         {c.schedule && c.schedule.length > 0 ? (
-                                            Array.from(new Set(c.schedule.map((s) => `${s.day} ${s.time}`))).map((timeStr, idx) => (
+                                            Array.from(new Set(c.schedule.map((s) => `${s.day} ${s.time} • P.${s.room}`))).map((timeStr, idx) => (
                                                 <div key={idx} className="bg-white border border-slate-200 text-slate-600 px-2.5 py-1 rounded-md text-[11px] font-medium shadow-sm">
                                                     {timeStr}
                                                 </div>

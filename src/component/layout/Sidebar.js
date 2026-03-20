@@ -24,6 +24,7 @@ const navByRole = {
     student: [
         { to: "/student", label: "Dashboard" },
         { to: "/student/classes", label: "My Classes" },
+        { to: "/student/schedule", label: "My Schedule" },
         { to: "/student/grades", label: "Grades" },
     ],
 };

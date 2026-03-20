@@ -15,6 +15,7 @@ export default function StudentDashboard() {
     });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [activeTab, setActiveTab] = useState("all"); // tabs: all, quiz, assignment
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -67,6 +68,13 @@ export default function StudentDashboard() {
     const todaySessions = dashboardData.todaySessions || [];
     const recentActivities = dashboardData.recentActivities || [];
 
+    const filteredAssessments = upcomingAssessments.filter(a => {
+        if (activeTab === "all") return true;
+        const isQuiz = a.type === "QUIZ" || String(a.type).toUpperCase() === "QUIZ";
+        if (activeTab === "quiz") return isQuiz;
+        return !isQuiz;
+    });
+
     return (
         <div className="space-y-6">
             <PageHeader title="Student Dashboard" subtitle="Your classes, schedule and progress." />
@@ -109,13 +117,33 @@ export default function StudentDashboard() {
 
                 {/* Cột 2: Việc cần làm & Deadline */}
                 <Card>
-                    <CardHeader><CardTitle>Hạn chót sắp tới (7 ngày)</CardTitle></CardHeader>
-                    <CardContent className="space-y-2">
-                        {upcomingAssessments.length === 0 ? (
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 border-b">
+                        <CardTitle>Hạn chót sắp tới (7 ngày)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 p-0">
+                        {/* Tab Buttons */}
+                        <div className="flex border-b border-slate-200">
+                            {['all', 'quiz', 'assignment'].map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`flex-1 py-2 text-center text-sm font-semibold border-b-2 transition-all ${activeTab === tab ? 'border-b-blue-600 text-blue-600 bg-white' : 'border-b-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                                >
+                                    {tab === 'all' ? 'Tất cả' : tab === 'quiz' ? 'Quiz' : 'Bài tập'}
+                                </button>
+                            ))}
+                        </div>
+                        
+                        <div className="p-4 space-y-2">
+                        {filteredAssessments.length === 0 ? (
                             <div className="py-8 text-center text-sm text-slate-500 border border-dashed rounded-xl bg-slate-50">
-                                Tuyệt vời! Bạn không có bài tập nào sắp đến hạn.
+                                {activeTab === 'all' 
+                                    ? 'Tuyệt vời! Bạn không có bài tập hay quiz nào sắp đến hạn.' 
+                                    : activeTab === 'quiz' 
+                                        ? 'Không có quiz nào sắp đến hạn.' 
+                                        : 'Không có bài tập nào sắp đến hạn.'}
                             </div>
-                        ) : upcomingAssessments.map((a) => (
+                        ) : filteredAssessments.map((a) => (
                             <div 
                                 key={a.id} 
                                 onClick={() => {
@@ -136,6 +164,7 @@ export default function StudentDashboard() {
                                 <Badge tone={a.type === 'QUIZ' ? 'purple' : 'orange'}>{a.type}</Badge>
                             </div>
                         ))}
+                        </div>
                     </CardContent>
                 </Card>
             </div>

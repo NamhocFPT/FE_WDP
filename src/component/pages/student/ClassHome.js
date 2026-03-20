@@ -108,6 +108,7 @@ export default function ClassHome() {
             <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-4">
                 <TabBtn v="overview" label="Overview" />
                 <TabBtn v="materials" label="Materials" />
+                <TabBtn v="quizzes" label="Quizzes" />
                 <TabBtn v="assignments" label="Assignments" />
                 <TabBtn v="announcements" label="Announcements" />
                 <TabBtn v="grades" label="Grades" />
@@ -122,7 +123,7 @@ export default function ClassHome() {
                         <CardContent>
                             <div className="flex flex-wrap gap-2">
                                 {cl.schedule?.length > 0 ? (
-                                    Array.from(new Set(cl.schedule.map((s) => `${s.day} ${s.time}`))).map((timeStr, idx) => (
+                                    Array.from(new Set(cl.schedule.map((s) => `${s.day} ${s.time} • P.${s.room || 'TBA'}`))).map((timeStr, idx) => (
                                         <div key={idx} className="bg-slate-50 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:border-blue-300 hover:bg-white transition-colors">
                                             {timeStr}
                                         </div>
@@ -172,6 +173,43 @@ export default function ClassHome() {
                 </Card>
             )}
 
+            {/* TAB: QUIZZES */}
+            {tab === "quizzes" && (
+                <Card className="animate-in fade-in duration-300">
+                    <CardHeader><CardTitle>Quizzes</CardTitle></CardHeader>
+                    <CardContent>
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <thead>
+                                    <tr>
+                                        <Th>Title</Th>
+                                        <Th>Due Date</Th>
+                                        <Th>Max Points</Th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {cl.assignments?.filter(a => a.type === 'QUIZ' || String(a.type).toUpperCase() === 'QUIZ').length > 0 ? 
+                                        cl.assignments.filter(a => a.type === 'QUIZ' || String(a.type).toUpperCase() === 'QUIZ').map((a) => (
+                                        <tr key={a.id} className="hover:bg-slate-50 transition-colors group">
+                                            <Td>
+                                                <div
+                                                    className="font-bold text-blue-600 cursor-pointer group-hover:underline"
+                                                    onClick={() => navigate(`/student/quizzes/${a.id}/start`)}
+                                                >
+                                                    {a.title}
+                                                </div>
+                                            </Td>
+                                            <Td className="text-slate-600 text-sm font-medium">{a.due}</Td>
+                                            <Td><Badge tone="amber">{a.points}</Badge></Td>
+                                        </tr>
+                                    )) : <tr><Td colSpan="3" className="text-center py-8 text-slate-500 italic">No quizzes available.</Td></tr>}
+                                </tbody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             {/* TAB: ASSIGNMENTS */}
             {tab === "assignments" && (
                 <Card className="animate-in fade-in duration-300">
@@ -187,10 +225,10 @@ export default function ClassHome() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {cl.assignments?.length > 0 ? cl.assignments.map((a) => (
+                                    {cl.assignments?.filter(a => a.type !== 'QUIZ' && String(a.type).toUpperCase() !== 'QUIZ').length > 0 ? 
+                                        cl.assignments.filter(a => a.type !== 'QUIZ' && String(a.type).toUpperCase() !== 'QUIZ').map((a) => (
                                         <tr key={a.id} className="hover:bg-slate-50 transition-colors group">
                                             <Td>
-                                                {/* LINK CHUYỂN TRANG ĐẾN BÀI TẬP CHI TIẾT */}
                                                 <div
                                                     className="font-bold text-blue-600 cursor-pointer group-hover:underline"
                                                     onClick={() => navigate(`/student/assessments/${a.id}`)}

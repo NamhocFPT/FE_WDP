@@ -45,6 +45,7 @@ import StudentDashboard from "component/pages/student/StudentDashboard";
 import MyClasses from "component/pages/student/MyClasses";
 import ClassHome from "component/pages/student/ClassHome";
 import Grades from "component/pages/student/Grades";
+import MySchedule from "component/pages/student/MySchedule";
 import StudentClassGrades from "component/pages/student/StudentClassGrades";
 import StudentAssignmentDetail from "../pages/student/StudentAssignmentDetail";
 import StudentQuizStart from "component/pages/student/StudentQuizStart";
@@ -183,7 +184,7 @@ export const router = [
       { index: true, element: <StudentDashboard /> },
       { path: "classes", element: <MyClasses /> },
       { path: "classes/:id", element: <ClassHome /> },
-      { path: "schedule", element: <StudentDashboard /> },
+      { path: "schedule", element: <MySchedule /> },
       { path: "materials", element: <StudentDashboard /> },
       { path: "quizzes", element: <StudentDashboard /> },
       { path: "quizzes/:quizId/start", element: <StudentQuizStart /> },
