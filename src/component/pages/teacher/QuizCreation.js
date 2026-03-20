@@ -1,8 +1,9 @@
 // src/component/pages/teacher/QuizCreation.js
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { createQuiz, getTeacherClasses } from "service/TeacherQuizService";
+import { createQuiz, getTeacherClasses, getQuizDetail, updateQuiz } from "service/TeacherQuizService";
 import { Badge, Button, Card, CardContent, Input, PageHeader } from "component/ui";
+import { Clock, Users, ArrowRight, Settings2, Edit3, PlusCircle } from "lucide-react";
 
 function toISO(dtLocal) {
     if (!dtLocal) return null;
@@ -11,15 +12,25 @@ function toISO(dtLocal) {
     return d.toISOString();
 }
 
+function fromISOToLocal(isoString) {
+    if (!isoString) return "";
+    const d = new Date(isoString);
+    if (Number.isNaN(d.getTime())) return "";
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+}
+
 export default function QuizCreation() {
     const nav = useNavigate();
     const [sp] = useSearchParams();
 
-    // Trigger từ màn quản lý khóa học có thể truyền ?classId=...
+    // Trigger từ màn quản lý khóa học có thể truyền ?classId=...&quizId=...
     const classIdFromQuery = sp.get("classId");
+    const quizIdFromQuery = sp.get("quizId");
+    const isEditMode = !!quizIdFromQuery;
 
     const [teacherClasses, setTeacherClasses] = useState([]);
-    const [loadingClasses, setLoadingClasses] = useState(true);
+    const [loadingData, setLoadingData] = useState(true);
     const [classError, setClassError] = useState("");
 
     const titleRef = useRef(null);
@@ -82,28 +93,57 @@ export default function QuizCreation() {
     };
 
     useEffect(() => {
-        const fetchClasses = async () => {
+        const fetchInitialData = async () => {
             try {
-                setLoadingClasses(true);
-                const res = await getTeacherClasses();
-                // Giả sử API trả về mảng trực tiếp hoặc nằm trong res.data
-                const classesData = Array.isArray(res) ? res : res?.data || [];
+                setLoadingData(true);
+                // 1. Fetch classes
+                const resClasses = await getTeacherClasses();
+                const classesData = Array.isArray(resClasses) ? resClasses : resClasses?.data || [];
                 setTeacherClasses(classesData);
 
-                // Nếu chưa có classId trong form thì set mặc định là lớp đầu tiên
-                if (!form.classId && classesData.length > 0) {
-                    setField("classId", classesData[0].id);
+                let selectedClassId = form.classId;
+
+                if (!selectedClassId && classesData.length > 0) {
+                    selectedClassId = classesData[0].id;
+                    setField("classId", selectedClassId);
+                }
+
+                // 2. Fetch quiz details if in edit mode
+                if (isEditMode && quizIdFromQuery && (classIdFromQuery || selectedClassId)) {
+                    const cid = classIdFromQuery || selectedClassId;
+                    const resQuiz = await getQuizDetail(cid, quizIdFromQuery);
+                    const quizData = resQuiz.data || resQuiz;
+                    
+                    if (quizData) {
+                        const settings = quizData.settings_json || {};
+                        const parsedInstruct = quizData.instructions ? quizData.instructions.split("\n\n---")[0] : "";
+                        
+                        setForm(prev => ({
+                            ...prev,
+                            classId: quizData.class_id || prev.classId,
+                            title: quizData.title || "",
+                            instructions: parsedInstruct,
+                            timeLimitMinutes: quizData.time_limit_minutes || "",
+                            openAtLocal: fromISOToLocal(settings.openAt),
+                            closeAtLocal: fromISOToLocal(quizData.due_at),
+                            attemptLimit: quizData.attempt_limit === null ? "0" : String(quizData.attempt_limit || "1"),
+                            gradeMethod: settings.gradeMethod || "highest",
+                            shuffleQuestions: !!settings.shuffleQuestions,
+                            reviewOption: settings.reviewOption || "after_submit"
+                        }));
+                    }
                 }
             } catch (err) {
-                setClassError("Không thể tải danh sách lớp học.");
+                console.error("Error fetching initial data", err);
+                setClassError("Không thể tải thông tin. Vui lòng thử lại.");
             } finally {
-                setLoadingClasses(false);
+                setLoadingData(false);
             }
         };
 
-        fetchClasses();
+        fetchInitialData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [isEditMode, quizIdFromQuery, classIdFromQuery]);
 
     const mapServerValidation = (errBody) => {
         const validationErrors = errBody?.error?.validationErrors;
@@ -167,22 +207,24 @@ export default function QuizCreation() {
         setSubmitting(true);
         try {
             const payload = buildPayload();
+            let res, data;
 
-            // CALL API UC_TEA_08
-            const res = await createQuiz({ classId: form.classId, payload });
-            const data = res.data; // The actual quiz object from the API response
+            if (isEditMode) {
+                // CALL API UPDATE QUIZ
+                res = await updateQuiz(form.classId, quizIdFromQuery, payload);
+                data = res.data || res;
+            } else {
+                // CALL API CREATE QUIZ
+                res = await createQuiz({ classId: form.classId, payload });
+                data = res.data || res;
+            }
             
-            // backend data: { id, type, status:'draft', classId, next }
-
-            // Postcondition: quiz created "Trống" (draft, chưa có câu hỏi)
-            // Normal flow step 9: chuyển sang UC_TEA_09 quản lý câu hỏi
+            // Postcondition: quiz created/updated
             if (goNext) {
-                // ưu tiên dùng "next" từ BE (đúng spec)
-                const next = data?.next || `/teacher/classes/${form.classId}/quizzes/${data.id}/questions`;
+                const next = data?.next || `/teacher/classes/${form.classId}/quizzes/${data.id || quizIdFromQuery}/questions`;
                 nav(next, { replace: true, state: { quiz: data } });
             } else {
-                // Save & Show (chưa có quiz detail thì đưa sang UC_TEA_09 luôn)
-                const next = data?.next || `/teacher/classes/${form.classId}/quizzes/${data.id}/questions`;
+                const next = data?.next || `/teacher/classes/${form.classId}/quizzes/${data.id || quizIdFromQuery}/questions`;
                 nav(next, { replace: true, state: { quiz: data } });
             }
         } catch (err) {
@@ -201,21 +243,20 @@ export default function QuizCreation() {
         }
     };
 
+    if (loadingData) {
+        return (
+            <div className="flex h-64 items-center justify-center">
+                <div className="text-slate-500 animate-pulse font-medium">Đang tải cấu hình Quiz...</div>
+            </div>
+        );
+    }
+
     return (
-        <div>
+        <div className="max-w-6xl mx-auto pb-12">
             <PageHeader
-                title="Tạo Quiz Online"
-                right={[
-                    <Button key="cancel" variant="outline" onClick={onCancel} disabled={submitting}>
-                        Hủy bỏ
-                    </Button>,
-                    <Button key="save" onClick={() => onSave({ goNext: false })} disabled={submitting}>
-                        Lưu & Hiển thị
-                    </Button>,
-                    <Button key="save2" variant="primary" onClick={() => onSave({ goNext: true })} disabled={submitting}>
-                        Lưu & Tiếp tục
-                    </Button>,
-                ]}
+                title={isEditMode ? "Chỉnh sửa Quiz" : "Tạo Quiz Mới"}
+                subtitle={isEditMode ? "Cập nhật thông tin cấu hình cho bài trắc nghiệm" : "Thiết lập các thông số cơ bản cho bài trắc nghiệm"}
+                icon={isEditMode ? <Edit3 className="text-blue-500" /> : <PlusCircle className="text-blue-500" />}
             />
 
             {globalError ? (
@@ -236,7 +277,7 @@ export default function QuizCreation() {
                                 <div className="mb-1 text-xs font-semibold text-slate-600">
                                     Lớp áp dụng <span className="text-red-600">*</span>
                                 </div>
-                                {loadingClasses ? (
+                                {loadingData ? (
                                     <div className="text-sm text-slate-500">Đang tải danh sách lớp...</div>
                                 ) : classError ? (
                                     <div className="text-sm text-red-500">{classError}</div>
@@ -417,51 +458,69 @@ export default function QuizCreation() {
 
                 {/* RIGHT: Preview / Summary */}
                 <div className="space-y-4">
-                    <Card>
-                        <CardContent className="space-y-3">
-                            <div className="text-sm font-bold text-slate-900">Tóm tắt cấu hình</div>
+                    <Card className="border-blue-100 shadow-sm sticky top-6">
+                        <div className="bg-blue-50 rounded-t-xl px-5 py-3 border-b border-blue-100 flex items-center gap-2 text-blue-800">
+                            <Settings2 size={18} />
+                            <span className="font-bold">Tóm tắt cấu hình</span>
+                        </div>
+                        <CardContent className="space-y-4 pt-4">
+                            {!isEditMode && (
+                                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 shadow-sm">
+                                    <div className="font-bold flex items-center gap-1.5"><Clock size={16} /> Lưu ý quan trọng:</div>
+                                    <div className="mt-1 opacity-90 leading-snug">Sau khi <b className="font-semibold">Lưu cấu hình</b>, hệ thống sẽ tạo một Quiz <b>trống (draft)</b> và tự động chuyển bạn sang giao diện Soạn Câu Hỏi (UC_TEA_09).</div>
+                                </div>
+                            )}
 
-                            <div className="space-y-2 text-sm">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-slate-600">Trạng thái</span>
-                                    <Badge tone="amber">Trống (draft)</Badge>
+                            <div className="space-y-3.5 text-sm">
+                                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                                    <span className="text-slate-500 font-medium">Trạng thái</span>
+                                    {isEditMode ? <Badge tone="green">Đang biên soạn</Badge> : <Badge tone="amber">Mới (Draft)</Badge>}
                                 </div>
 
-                                <div className="flex items-center justify-between">
-                                    <span className="text-slate-600">Time limit</span>
-                                    <span className="font-semibold text-slate-900">{form.timeLimitMinutes || "-"} phút</span>
+                                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                                    <span className="text-slate-500 font-medium">Thời gian mở</span>
+                                    <span className="font-bold text-slate-800">{form.openAtLocal ? new Date(form.openAtLocal).toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'}) : "Tự do chờ mở"}</span>
                                 </div>
 
-                                <div className="flex items-center justify-between">
-                                    <span className="text-slate-600">Attempts</span>
-                                    <span className="font-semibold text-slate-900">
-                                        {form.attemptLimit === "0" ? "Unlimited" : form.attemptLimit}
+                                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                                    <span className="text-slate-500 font-medium flex items-center gap-1.5"><Clock size={14}/> Giới hạn làm</span>
+                                    <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">{form.timeLimitMinutes || "-"} phút</span>
+                                </div>
+
+                                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                                    <span className="text-slate-500 font-medium flex items-center gap-1.5"><Users size={14}/> Số lần làm</span>
+                                    <span className="font-semibold text-slate-800">
+                                        {form.attemptLimit === "0" ? "Không giới hạn" : `${form.attemptLimit} lần`}
                                     </span>
                                 </div>
 
-                                <div className="flex items-center justify-between">
-                                    <span className="text-slate-600">Grade method</span>
-                                    <span className="font-semibold text-slate-900">{form.gradeMethod}</span>
+                                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                                    <span className="text-slate-500 font-medium">Lấy điểm</span>
+                                    <span className="font-semibold text-slate-800 text-right">
+                                        {form.gradeMethod === "highest" && "Cao nhất"}
+                                        {form.gradeMethod === "average" && "Trung bình"}
+                                        {form.gradeMethod === "last" && "Lần cuối"}
+                                    </span>
                                 </div>
-
-                                <div className="flex items-center justify-between">
-                                    <span className="text-slate-600">Shuffle</span>
-                                    <span className="font-semibold text-slate-900">{form.shuffleQuestions ? "Yes" : "No"}</span>
+                                
+                                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                                    <span className="text-slate-500 font-medium">Trộn câu hỏi</span>
+                                    <span className="font-semibold text-slate-800">{form.shuffleQuestions ? "Có" : "Không"}</span>
                                 </div>
-
-                                <div className="flex items-center justify-between">
-                                    <span className="text-slate-600">Review</span>
-                                    <span className="font-semibold text-slate-900">{form.reviewOption}</span>
-                                </div>
-                            </div>
-
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                                Sau khi “Lưu”, hệ thống sẽ tạo Quiz trạng thái <b>draft</b> (chưa có câu hỏi) và chuyển sang màn UC_TEA_09.
                             </div>
 
                             {submitting ? (
-                                <div className="text-sm font-semibold text-slate-700">Đang lưu...</div>
+                                <div className="text-center pt-2 text-sm font-semibold text-blue-600 animate-pulse">Đang lưu cấu hình...</div>
                             ) : null}
+
+                            <div className="pt-2 border-t border-slate-100 flex flex-col gap-3">
+                                <Button className="w-full justify-center bg-blue-600 hover:bg-blue-700 text-white py-2.5 shadow-md" onClick={() => onSave({ goNext: true })} disabled={submitting}>
+                                    {isEditMode ? "Lưu biên soạn đề" : "Lưu & Bắt đầu soạn đề"} <ArrowRight size={18} className="ml-1.5" />
+                                </Button>
+                                <Button variant="outline" className="w-full justify-center py-2.5 bg-white shadow-sm" onClick={onCancel} disabled={submitting}>
+                                    Hủy bỏ
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>

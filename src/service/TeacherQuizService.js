@@ -30,10 +30,9 @@ export const getQuizByClass = async (classId) => {
 // ===============================
 // GET QUIZ DETAIL
 // ===============================
-export const getQuizDetail = async (quizId) => {
+export const getQuizDetail = async (classId, quizId) => {
     try {
-        // Giả sử API lấy detail có thể nằm ở /api/teacher/quizzes/:quizId
-        const res = await request.get(`api/teacher/quizzes/${quizId}`);
+        const res = await request.get(`api/teacher/classes/${classId}/quizzes/${quizId}`);
         return res;
     } catch (error) {
         console.error("Error getQuizDetail:", error);
@@ -57,12 +56,13 @@ export const createQuiz = async ({ classId, payload }) => {
 // ===============================
 // UPDATE QUIZ
 // ===============================
-export const updateQuiz = async (quizId, data) => {
+export const updateQuiz = async (classId, quizId, payload) => {
     try {
-        const res = await request.patch("quizzes", data, quizId);
+        const res = await request.put(`api/teacher/classes/${classId}/quizzes/${quizId}`, payload);
         return res;
     } catch (error) {
         console.error("Error updateQuiz:", error);
+        throw error;
     }
 };
 

@@ -2,6 +2,15 @@ import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, PageHeader, Button } from "component/ui";
 
+function formatTime(secs) {
+    if (secs === null || secs === undefined) return "--:--:--";
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    if (h > 0) return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
 export default function StudentQuizResult() {
     const nav = useNavigate();
     const location = useLocation();
@@ -13,6 +22,7 @@ export default function StudentQuizResult() {
     const isPublished = result.isPublished;
     const message = result.message || "";
     const errorMsg = location.state?.errorMessage || "";
+    const timeTakenSeconds = result.timeTakenSeconds;
 
     // Calculate percentage for the progress ring
     const percentage = (isPublished && totalScore != null && maxScore)
@@ -85,6 +95,11 @@ export default function StudentQuizResult() {
                                             style={{ width: `${percentage}%` }}
                                         />
                                     </div>
+                                </div>
+                            )}
+                            {timeTakenSeconds != null && (
+                                <div className="text-sm font-bold text-slate-600 mt-4 border-t pt-4">
+                                    Thời gian làm bài: <span className="text-blue-600 font-black">{formatTime(timeTakenSeconds)}</span>
                                 </div>
                             )}
                         </div>
