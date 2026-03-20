@@ -4,6 +4,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { store } from "service/store";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
+import { NotificationProvider } from "context/NotificationContext";
 
 export default function DashboardLayout({ requiredRole }) {
   const user = store.getCurrentUser();
@@ -23,20 +24,22 @@ export default function DashboardLayout({ requiredRole }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 w-full">
-      <div className="flex w-full">
-        <Sidebar />
+    <NotificationProvider>
+      <div className="min-h-screen bg-slate-50 w-full">
+        <div className="flex w-full">
+          <Sidebar />
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <Navbar />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <Navbar />
 
-          <main className="p-4 sm:p-6 lg:p-8 w-full">
-            <div className="mx-auto max-w-6xl">
-              <Outlet />
-            </div>
-          </main>
+            <main className="p-4 sm:p-6 lg:p-8 w-full">
+              <div className="mx-auto max-w-6xl">
+                <Outlet />
+              </div>
+            </main>
+          </div>
         </div>
       </div>
-    </div>
+    </NotificationProvider>
   );
 }

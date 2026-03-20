@@ -43,12 +43,28 @@ export default function TeacherClassList() {
                                     Học kỳ: <span className="font-semibold">{c.semester}</span> <br/>
                                     Bắt đầu: {new Date(c.start_date).toLocaleDateString('vi-VN')}
                                 </p>
-                                <Button 
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                                    onClick={() => navigate(`/teacher/classes/${c.id}/assignments`)}
-                                >
-                                    Vào quản lý lớp
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button 
+                                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                                        onClick={() => navigate(`/teacher/classes/${c.id}/assignments`)}
+                                    >
+                                        Bài tập
+                                    </Button>
+                                    <Button 
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                        onClick={() => navigate(`/teacher/classes/${c.id}/quizzes`)}
+                                    >
+                                        Quizzes
+                                    </Button>
+                                    <Button 
+                                        variant="outline"
+                                        className="border-slate-300 text-slate-700 hover:bg-slate-50"
+                                        onClick={() => navigate(`/teacher/classes/${c.id}/gradebook`)}
+                                    >
+                                        Điểm
+                                    </Button>
+                                </div>
+
                             </CardContent>
                         </Card>
                     ))}

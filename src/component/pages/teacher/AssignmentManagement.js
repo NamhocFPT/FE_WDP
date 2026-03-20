@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom"; // Đã thêm useNavigate
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge, Input } from "component/ui";
+import { Eye, EyeOff } from "lucide-react";
+
 
 export default function AssignmentManagement() {
     const { classId } = useParams(); 
@@ -24,7 +26,7 @@ export default function AssignmentManagement() {
         max_score: 100,
         status: "published",
         settings: {
-            online_text: true,
+            online_text: false, // Chỉ nộp file đính kèm theo UC
             file_submission: true,
             max_files: 1,
             max_size_mb: 50,
@@ -101,7 +103,22 @@ export default function AssignmentManagement() {
         }
     };
 
-    const handleEditClick = (assignment) => {
+    const handleEditClick = async (assignment) => {
+        try {
+            const token = localStorage.getItem("smartedu_token");
+            const response = await fetch(`http://localhost:9999/api/teacher/assessments/${assignment.id}/submissions`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (data.success && data.data.submissions.length > 0) {
+                if (!window.confirm(`Bài tập này đã có ${data.data.submissions.length} bài nộp. Việc thay đổi yêu cầu có thể ảnh hưởng đến bài và điểm của sinh viên. Bạn có chắc chắn muốn sửa?`)) {
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error("Lỗi kiểm tra bài nộp:", error);
+        }
+
         setEditingId(assignment.id);
         setFormData({
             title: assignment.title,
@@ -111,7 +128,7 @@ export default function AssignmentManagement() {
             cutoff_at: assignment.cutoff_at ? assignment.cutoff_at.substring(0, 16) : "",
             max_score: assignment.max_score,
             status: assignment.status,
-            settings: assignment.settings_json || assignment.settings
+            settings: assignment.settings_json || assignment.settings || initialFormState.settings
         });
         setIsCreating(true);
     };
@@ -125,7 +142,7 @@ export default function AssignmentManagement() {
         const { name, value, type, checked } = e.target;
         setFormData(prev => ({
             ...prev,
-            settings: { ...prev.settings, [name]: type === 'checkbox' ? checked : value }
+            settings: { ...(prev.settings || initialFormState.settings), [name]: type === 'checkbox' ? checked : value }
         }));
     };
 
@@ -145,6 +162,28 @@ export default function AssignmentManagement() {
         if (e) e.preventDefault();
         setIsLoading(true);
         setMessage({ text: "", type: "" });
+
+        // --- Validate thời gian (Recommendations) ---
+        const allowFromDate = formData.allow_from ? new Date(formData.allow_from) : null;
+        const dueAtDate = formData.due_at ? new Date(formData.due_at) : null;
+        const cutoffAtDate = formData.cutoff_at ? new Date(formData.cutoff_at) : null;
+
+        if (allowFromDate && dueAtDate && allowFromDate > dueAtDate) {
+            setMessage({ text: "Thời gian bắt đầu nhận bài phải diễn ra trước Hạn nộp (Due Date).", type: "error" });
+            setIsLoading(false);
+            return;
+        }
+        if (dueAtDate && cutoffAtDate && dueAtDate > cutoffAtDate) {
+            setMessage({ text: "Hạn nộp (Due Date) phải diễn ra trước Thời gian đóng cổng (Cut-off Date).", type: "error" });
+            setIsLoading(false);
+            return;
+        }
+        if (allowFromDate && cutoffAtDate && allowFromDate > cutoffAtDate) {
+            setMessage({ text: "Thời gian bắt đầu nhận bài phải diễn ra trước Thời gian đóng cổng.", type: "error" });
+            setIsLoading(false);
+            return;
+        }
+        // -------------------------------------------
 
         try {
             const token = localStorage.getItem("smartedu_token");
@@ -171,12 +210,14 @@ export default function AssignmentManagement() {
                 due_at: formData.due_at ? new Date(formData.due_at).toISOString() : null,
                 cutoff_at: formData.cutoff_at ? new Date(formData.cutoff_at).toISOString() : null,
                 settings: {
-                    ...formData.settings,
-                    max_files: Number(formData.settings.max_files),
-                    max_size_mb: Number(formData.settings.max_size_mb),
-                    allowed_exts: typeof formData.settings.allowed_exts === 'string' 
+                    ...(formData.settings || initialFormState.settings),
+                    online_text: false, // Ép buộc false khi lưu/sửa
+                    file_submission: true, // Ép buộc true
+                    max_files: Number(formData.settings?.max_files || 1),
+                    max_size_mb: Number(formData.settings?.max_size_mb || 50),
+                    allowed_exts: typeof formData.settings?.allowed_exts === 'string' 
                         ? formData.settings.allowed_exts.split(',').map(ext => ext.trim())
-                        : formData.settings.allowed_exts
+                        : (formData.settings?.allowed_exts || [".pdf", ".docx", ".zip"])
                 },
                 files: uploadedFileUrls 
             };
@@ -277,34 +318,23 @@ export default function AssignmentManagement() {
                             </div>
 
                             <div className="space-y-4 rounded-xl border border-slate-200 p-4 bg-white shadow-sm">
-                                <h3 className="font-bold text-slate-800 border-b pb-2">3. Hình thức nộp bài</h3>
-                                <div className="flex gap-6">
-                                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
-                                        <input type="checkbox" name="online_text" checked={formData.settings.online_text} onChange={handleSettingChange} className="w-4 h-4 text-blue-600 rounded" />
-                                        Gõ văn bản trực tiếp
-                                    </label>
-                                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
-                                        <input type="checkbox" name="file_submission" checked={formData.settings.file_submission} onChange={handleSettingChange} className="w-4 h-4 text-blue-600 rounded" />
-                                        Nộp file đính kèm
-                                    </label>
-                                </div>
+                                <h3 className="font-bold text-slate-800 border-b pb-2">3. Cấu hình nộp file</h3>
 
-                                {formData.settings.file_submission && (
-                                    <div className="grid gap-4 md:grid-cols-3 mt-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                        <div>
-                                            <label className="mb-1 block text-xs font-semibold text-slate-600">Số file tối đa</label>
-                                            <Input type="number" name="max_files" value={formData.settings.max_files} onChange={handleSettingChange} min="1" max="20" />
-                                        </div>
-                                        <div>
-                                            <label className="mb-1 block text-xs font-semibold text-slate-600">Dung lượng tối đa (MB)</label>
-                                            <Input type="number" name="max_size_mb" value={formData.settings.max_size_mb} onChange={handleSettingChange} min="1" max="50" />
-                                        </div>
-                                        <div>
-                                            <label className="mb-1 block text-xs font-semibold text-slate-600">Định dạng file</label>
-                                            <Input type="text" name="allowed_exts" value={formData.settings.allowed_exts} onChange={handleSettingChange} />
-                                        </div>
+
+                                <div className="grid gap-4 md:grid-cols-3 mt-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                    <div>
+                                        <label className="mb-1 block text-xs font-semibold text-slate-600">Số file tối đa</label>
+                                        <Input type="number" name="max_files" value={formData.settings?.max_files || 1} onChange={handleSettingChange} min="1" max="20" />
                                     </div>
-                                )}
+                                    <div>
+                                        <label className="mb-1 block text-xs font-semibold text-slate-600">Dung lượng tối đa (MB)</label>
+                                        <Input type="number" name="max_size_mb" value={formData.settings?.max_size_mb || 50} onChange={handleSettingChange} min="1" max="50" />
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-xs font-semibold text-slate-600">Định dạng file</label>
+                                        <Input type="text" name="allowed_exts" value={formData.settings?.allowed_exts || ".pdf,.docx,.zip"} onChange={handleSettingChange} placeholder=".pdf,.docx,.zip" />
+                                    </div>
+                                </div>
                             </div>
 
                             {message.text && <div className={`p-3 rounded-lg text-sm font-semibold ${message.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>{message.text}</div>}
@@ -348,18 +378,37 @@ export default function AssignmentManagement() {
                                             {/* SỬA ĐỔI CHÍNH NẰM Ở CỘT NÀY */}
                                             <Td>
                                                 <div 
-                                                    className="font-semibold text-blue-600 cursor-pointer hover:underline"
-                                                    onClick={() => navigate(`/teacher/assessments/${a.id}/submissions`)}
+                                                    className="font-semibold text-blue-600 cursor-pointer hover:underline flex items-center gap-2"
+                                                    onClick={() => {
+                                                        if (a.type?.toUpperCase() === 'QUIZ') {
+                                                            navigate(`/teacher/assessments/${a.id}/quiz-attempts`);
+                                                        } else {
+                                                            navigate(`/teacher/assessments/${a.id}/submissions`);
+                                                        }
+                                                    }}
                                                 >
+                                                    {a.is_published ? <Eye className="h-3.5 w-3.5 text-emerald-500" /> : <EyeOff className="h-3.5 w-3.5 text-amber-500" />}
                                                     {a.title}
                                                 </div>
-                                                <div className="text-xs text-slate-400 mt-1">ID: {a.id.substring(0,8)}...</div>
+                                                <div className="text-xs text-slate-400 mt-1">ID: {a.id.substring(0,8)}... {a.type?.toUpperCase() === 'QUIZ' ? '(Quiz)' : '(Essay)'}</div>
                                             </Td>
                                             <Td>{a.due_at ? new Date(a.due_at).toLocaleString('vi-VN') : "Không có hạn"}</Td>
                                             <Td><Badge tone="amber">{a.max_score || 100}</Badge></Td>
-                                            <Td><Badge tone={a.status === 'published' ? 'green' : 'slate'}>{a.status}</Badge></Td>
+                                            <Td>
+                                                <Badge tone={a.is_published ? 'green' : 'slate'}>
+                                                    {a.is_published ? 'Published' : 'Draft/Hidden'}
+                                                </Badge>
+                                            </Td>
                                             <Td className="text-right">
                                                 <div className="flex justify-end gap-2">
+                                                    <Button 
+                                                        size="xs" 
+                                                        variant="outline"
+                                                        className={a.is_published ? "text-amber-600 border-amber-200" : "text-emerald-600 border-emerald-200"}
+                                                        onClick={() => navigate(`/teacher/classes/${classId}/gradebook`)}
+                                                    >
+                                                        {a.is_published ? 'Ẩn' : 'Công bố'}
+                                                    </Button>
                                                     {a.status === 'draft' && (
                                                         <Button 
                                                             size="xs" 
@@ -380,6 +429,23 @@ export default function AssignmentManagement() {
                                                     >
                                                         Xóa
                                                     </Button>
+                                                    {a.type?.toUpperCase() === 'QUIZ' && (
+                                                        <Button 
+                                                            size="xs" 
+                                                            className="bg-slate-800 text-white hover:bg-black"
+                                                            onClick={() => {
+                                                                const qId = a.id || a._id;
+                                                                console.log("Navigating to Quiz Manager with ID:", qId, a);
+                                                                if (!qId || qId === "undefined") {
+                                                                    alert("Không tìm thấy ID bài tập. Vui lòng tải lại trang.");
+                                                                    return;
+                                                                }
+                                                                navigate(`/teacher/classes/${classId}/quizzes/${qId}/questions`, { state: { quiz: a } });
+                                                            }}
+                                                        >
+                                                            Soạn đề
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </Td>
                                         </tr>
