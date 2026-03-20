@@ -8,6 +8,7 @@ import { store } from "service/store";
 import Login from "component/pages/auth/Login";
 
 // Common
+import ForceChangePassword from "component/pages/auth/ForceChangePassword";
 import ChangePassword from "component/pages/common/ChangePassword";
 import Profile from "component/pages/common/Profile";
 import NotFound from "component/pages/common/NotFound";
@@ -54,6 +55,22 @@ import StudentQuizResult from "component/pages/student/StudentQuizResult";
 function ProtectedRoute({ children }) {
   const currentUser = store.getCurrentUser();
   if (!currentUser) return <Navigate to="/login" replace />;
+  
+  if (currentUser.must_change_password) {
+    return <Navigate to="/force-change-password" replace />;
+  }
+
+  return children;
+}
+
+function ForceChangeRoute({ children }) {
+  const currentUser = store.getCurrentUser();
+  if (!currentUser) return <Navigate to="/login" replace />;
+  
+  if (!currentUser.must_change_password) {
+    return <Navigate to={`/${currentUser.role}`} replace />;
+  }
+
   return children;
 }
 
@@ -68,6 +85,15 @@ export const router = [
   { path: "/login", element: <Login /> },
   { path: "/", element: <RootRedirect /> },
   { path: "/forbidden", element: <Forbidden /> },
+  
+  {
+    path: "/force-change-password",
+    element: (
+      <ForceChangeRoute>
+        <ForceChangePassword />
+      </ForceChangeRoute>
+    ),
+  },
 
   {
     path: "/change-password",

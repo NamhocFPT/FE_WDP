@@ -25,7 +25,12 @@ export default function Login() {
 
             store.setAuth(data.data.token, data.data.user);
             const user = store.getCurrentUser();
-            navigate(`/${user.role}`, { replace: true });
+            
+            if (user.must_change_password) {
+                navigate("/force-change-password", { replace: true });
+            } else {
+                navigate(`/${user.role}`, { replace: true });
+            }
         } catch (err) {
             setError("Lỗi kết nối server.");
         } finally {
