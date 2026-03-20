@@ -45,4 +45,15 @@ export const adminApi = {
     getReportData: (semester, course, dateRange) => api.get('/reports/data', { params: { semester, course, dateRange } }),
     getReportFilters: () => api.get('/reports/filters'),
     getTeacherActivity: (semester, course, dateRange) => api.get('/reports/teacher-activity', { params: { semester, course, dateRange } }),
+
+    // --- UC_ADM_05 → UC_ADM_09: USER MANAGEMENT ---
+    getUsers: (params) => api.get('/users', { params }),
+    createUser: (data) => api.post('/users', data),
+    updateUser: (id, data) => api.put(`/users/${id}`, data),
+    toggleUserStatus: (id) => api.patch(`/users/${id}/status`),
+    resetUserPassword: (id) => api.patch(`/users/${id}/reset-password`),
+
+    // --- UC_ADM_15: IMPORT LỊCH HỌC ---
+    validateScheduleImport: (rows) => api.post('/schedule/import/validate', { rows }),
+    confirmScheduleImport: (validRows) => api.post('/schedule/import/confirm', { validRows }),
 };

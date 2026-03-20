@@ -6,14 +6,14 @@ import { store } from "service/store";
 
 // Auth
 import Login from "component/pages/auth/Login";
-import ForgotPassword from "component/pages/auth/ForgotPassword";
-import ResetPassword from "component/pages/auth/ResetPassword";
 
 // Common
+import ForceChangePassword from "component/pages/auth/ForceChangePassword";
 import ChangePassword from "component/pages/common/ChangePassword";
 import Profile from "component/pages/common/Profile";
 import NotFound from "component/pages/common/NotFound";
 import Forbidden from "component/pages/common/Forbidden";
+import Notifications from "component/pages/common/Notifications";
 
 // Admin
 import AdminDashboard from "component/pages/admin/AdminDashboard";
@@ -35,20 +35,43 @@ import QuizQuestionManager from "component/pages/teacher/QuizQuestionManager";
 import TeacherClassList from "../pages/teacher/TeacherClassList";
 import SubmissionList from "../pages/teacher/SubmissionList";
 import TeacherGradingWorkspace from '../pages/teacher/TeacherGradingWorkspace';
+import QuizAttempts from "component/pages/teacher/QuizAttempts";
+import QuizReviewAttempt from "component/pages/teacher/QuizReviewAttempt";
+import TeacherGradebook from "component/pages/teacher/TeacherGradebook";
+import QuizList from "component/pages/teacher/QuizList";
 
 // Student
 import StudentDashboard from "component/pages/student/StudentDashboard";
 import MyClasses from "component/pages/student/MyClasses";
 import ClassHome from "component/pages/student/ClassHome";
 import Grades from "component/pages/student/Grades";
+import MySchedule from "component/pages/student/MySchedule";
+import StudentClassGrades from "component/pages/student/StudentClassGrades";
 import StudentAssignmentDetail from "../pages/student/StudentAssignmentDetail";
 import StudentQuizStart from "component/pages/student/StudentQuizStart";
 import StudentQuizTake from "component/pages/student/StudentQuizTake";
 import StudentQuizSummary from "component/pages/student/StudentQuizSummary";
+import StudentQuizResult from "component/pages/student/StudentQuizResult";
 
 function ProtectedRoute({ children }) {
   const currentUser = store.getCurrentUser();
   if (!currentUser) return <Navigate to="/login" replace />;
+  
+  if (currentUser.must_change_password) {
+    return <Navigate to="/force-change-password" replace />;
+  }
+
+  return children;
+}
+
+function ForceChangeRoute({ children }) {
+  const currentUser = store.getCurrentUser();
+  if (!currentUser) return <Navigate to="/login" replace />;
+  
+  if (!currentUser.must_change_password) {
+    return <Navigate to={`/${currentUser.role}`} replace />;
+  }
+
   return children;
 }
 
@@ -61,10 +84,17 @@ function RootRedirect() {
 // ✅ export MẢNG routes để dùng với useRoutes()
 export const router = [
   { path: "/login", element: <Login /> },
-  { path: "/forgot-password", element: <ForgotPassword /> },
-  { path: "/reset-password", element: <ResetPassword /> },
   { path: "/", element: <RootRedirect /> },
   { path: "/forbidden", element: <Forbidden /> },
+  
+  {
+    path: "/force-change-password",
+    element: (
+      <ForceChangeRoute>
+        <ForceChangePassword />
+      </ForceChangeRoute>
+    ),
+  },
 
   {
     path: "/change-password",
@@ -83,6 +113,15 @@ export const router = [
       </ProtectedRoute>
     ),
     children: [{ index: true, element: <Profile /> }],
+  },
+  {
+    path: "/notifications",
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout />
+      </ProtectedRoute>
+    ),
+    children: [{ index: true, element: <Notifications /> }],
   },
 
   // Admin
@@ -118,13 +157,18 @@ export const router = [
       { path: "materials", element: <MaterialsManagement /> },
       { path: "classes/:classId/materials", element: <MaterialsManagement /> },
       { path: "classes", element: <TeacherClassList /> },
-      { path: "quizzes", element: <QuizCreation /> },
+      { path: "quizzes", element: <QuizList /> },
+      { path: "quizzes/create", element: <QuizCreation /> },
       { path: "classes/:classId/assignments", element: <AssignmentManagement /> },
       { path: "grading", element: <GradingPage /> },
       { path: "notifications", element: <TeacherDashboard /> },
       { path: "assessments/:assessmentId/submissions", element: <SubmissionList /> },
       { path: "grading/:submissionId", element: <TeacherGradingWorkspace /> },
       { path: "classes/:classId/quizzes/:quizId/questions", element: <QuizQuestionManager /> },
+      { path: "assessments/:assessmentId/quiz-attempts", element: <QuizAttempts /> },
+      { path: "quiz-attempts/:submissionId/review", element: <QuizReviewAttempt /> },
+      { path: "classes/:classId/quizzes", element: <QuizList /> },
+      { path: "classes/:classId/gradebook", element: <TeacherGradebook /> },
     ],
   },
 
@@ -140,15 +184,26 @@ export const router = [
       { index: true, element: <StudentDashboard /> },
       { path: "classes", element: <MyClasses /> },
       { path: "classes/:id", element: <ClassHome /> },
-      { path: "schedule", element: <StudentDashboard /> },
+      { path: "schedule", element: <MySchedule /> },
       { path: "materials", element: <StudentDashboard /> },
       { path: "quizzes", element: <StudentDashboard /> },
       { path: "quizzes/:quizId/start", element: <StudentQuizStart /> },
-      { path: "attempts/:submissionId/take", element: <StudentQuizTake /> },
       { path: "attempts/:submissionId/summary", element: <StudentQuizSummary /> },
+      { path: "quiz-result", element: <StudentQuizResult /> },
       { path: "grades", element: <Grades /> },
+      { path: "classes/:classId/grades", element: <StudentClassGrades /> },
       { path: "assessments/:assessmentId", element: <StudentAssignmentDetail /> },
     ],
+  },
+  
+  // Student Quiz Take - No Layout (Full screen Mode)
+  {
+    path: "/student/attempts/:submissionId/take",
+    element: (
+      <ProtectedRoute>
+        <StudentQuizTake />
+      </ProtectedRoute>
+    ),
   },
 
   { path: "*", element: <NotFound /> },

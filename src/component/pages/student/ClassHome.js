@@ -2,7 +2,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { studentApi } from "service/studentApi";
-import { PageHeader, Card, CardHeader, CardTitle, CardContent, Badge, Table, Th, Td } from "component/ui";
+import { PageHeader, Card, CardHeader, CardTitle, CardContent, Badge, Table, Th, Td, Button } from "component/ui";
+import { Lock, CheckCircle2, AlertCircle, HelpCircle, MessageSquare, BarChart3, BookOpen, GraduationCap } from "lucide-react";
+
 
 export default function ClassHome() {
     const { id } = useParams();
@@ -12,12 +14,13 @@ export default function ClassHome() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [tab, setTab] = useState("overview");
+    const [gradesData, setGradesData] = useState(null);
+    const [isGradesLoading, setIsGradesLoading] = useState(false);
 
     useEffect(() => {
         const fetchClassDetails = async () => {
             setIsLoading(true);
             try {
-                // Gọi API thông qua studentApi (chuẩn cấu trúc dự án)
                 const res = await studentApi.getClassDetails(id);
                 if (res.data?.success) {
                     setCl(res.data.data);
@@ -32,6 +35,35 @@ export default function ClassHome() {
         fetchClassDetails();
     }, [id]);
 
+    useEffect(() => {
+        if (tab === "grades" && !gradesData) {
+            const fetchGrades = async () => {
+                setIsGradesLoading(true);
+                try {
+                    const res = await studentApi.getClassGrades(id);
+                    if (res.data?.status === "success" || res.data?.success) {
+                        setGradesData(res.data.data);
+                    }
+                } catch (err) {
+                    console.error("Lỗi lấy bảng điểm:", err);
+                } finally {
+                    setIsGradesLoading(false);
+                }
+            };
+            fetchGrades();
+        }
+    }, [tab, id, gradesData]);
+
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case "published": return <Badge tone="green" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Published</Badge>;
+            case "hidden": return <Badge tone="slate" className="gap-1 opacity-70"><Lock className="h-3 w-3" /> Hidden</Badge>;
+            case "submitted": return <Badge tone="blue" className="gap-1"><HelpCircle className="h-3 w-3" /> Submitted</Badge>;
+            case "no_submission": return <Badge tone="amber" className="gap-1"><AlertCircle className="h-3 w-3" /> No Sub</Badge>;
+            default: return <Badge tone="slate">{status}</Badge>;
+        }
+    };
+
     // UI lúc đang Loading (Hiệu ứng Skeleton)
     if (isLoading) return (
         <div className="p-10 space-y-4 animate-pulse">
@@ -40,6 +72,7 @@ export default function ClassHome() {
             <div className="h-64 bg-slate-200 rounded-xl mt-8"></div>
         </div>
     );
+
 
     // UI lúc gọi API lỗi
     if (error) return (
@@ -75,22 +108,30 @@ export default function ClassHome() {
             <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-4">
                 <TabBtn v="overview" label="Overview" />
                 <TabBtn v="materials" label="Materials" />
+                <TabBtn v="quizzes" label="Quizzes" />
                 <TabBtn v="assignments" label="Assignments" />
                 <TabBtn v="announcements" label="Announcements" />
+                <TabBtn v="grades" label="Grades" />
             </div>
+
 
             {/* TAB: OVERVIEW */}
             {tab === "overview" && (
                 <div className="grid gap-4 lg:grid-cols-2 animate-in fade-in duration-300">
                     <Card>
                         <CardHeader><CardTitle>Schedule</CardTitle></CardHeader>
-                        <CardContent className="space-y-2">
-                            {cl.schedule?.length > 0 ? cl.schedule.map((s, idx) => (
-                                <div key={idx} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm hover:border-blue-300 transition-colors">
-                                    <div className="font-semibold text-slate-900">{s.day}</div>
-                                    <div className="text-slate-700 font-medium">{s.time}</div>
-                                </div>
-                            )) : <p className="text-sm text-slate-500 italic">Chưa có lịch học.</p>}
+                        <CardContent>
+                            <div className="flex flex-wrap gap-2">
+                                {cl.schedule?.length > 0 ? (
+                                    Array.from(new Set(cl.schedule.map((s) => `${s.day} ${s.time} • P.${s.room || 'TBA'}`))).map((timeStr, idx) => (
+                                        <div key={idx} className="bg-slate-50 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:border-blue-300 hover:bg-white transition-colors">
+                                            {timeStr}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-slate-500 italic w-full text-center py-4 bg-slate-50 rounded-lg">Chưa có lịch học.</p>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -132,6 +173,43 @@ export default function ClassHome() {
                 </Card>
             )}
 
+            {/* TAB: QUIZZES */}
+            {tab === "quizzes" && (
+                <Card className="animate-in fade-in duration-300">
+                    <CardHeader><CardTitle>Quizzes</CardTitle></CardHeader>
+                    <CardContent>
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <thead>
+                                    <tr>
+                                        <Th>Title</Th>
+                                        <Th>Due Date</Th>
+                                        <Th>Max Points</Th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {cl.assignments?.filter(a => a.type === 'QUIZ' || String(a.type).toUpperCase() === 'QUIZ').length > 0 ? 
+                                        cl.assignments.filter(a => a.type === 'QUIZ' || String(a.type).toUpperCase() === 'QUIZ').map((a) => (
+                                        <tr key={a.id} className="hover:bg-slate-50 transition-colors group">
+                                            <Td>
+                                                <div
+                                                    className="font-bold text-blue-600 cursor-pointer group-hover:underline"
+                                                    onClick={() => navigate(`/student/quizzes/${a.id}/start`)}
+                                                >
+                                                    {a.title}
+                                                </div>
+                                            </Td>
+                                            <Td className="text-slate-600 text-sm font-medium">{a.due}</Td>
+                                            <Td><Badge tone="amber">{a.points}</Badge></Td>
+                                        </tr>
+                                    )) : <tr><Td colSpan="3" className="text-center py-8 text-slate-500 italic">No quizzes available.</Td></tr>}
+                                </tbody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             {/* TAB: ASSIGNMENTS */}
             {tab === "assignments" && (
                 <Card className="animate-in fade-in duration-300">
@@ -147,10 +225,10 @@ export default function ClassHome() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {cl.assignments?.length > 0 ? cl.assignments.map((a) => (
+                                    {cl.assignments?.filter(a => a.type !== 'QUIZ' && String(a.type).toUpperCase() !== 'QUIZ').length > 0 ? 
+                                        cl.assignments.filter(a => a.type !== 'QUIZ' && String(a.type).toUpperCase() !== 'QUIZ').map((a) => (
                                         <tr key={a.id} className="hover:bg-slate-50 transition-colors group">
                                             <Td>
-                                                {/* LINK CHUYỂN TRANG ĐẾN BÀI TẬP CHI TIẾT */}
                                                 <div
                                                     className="font-bold text-blue-600 cursor-pointer group-hover:underline"
                                                     onClick={() => navigate(`/student/assessments/${a.id}`)}
@@ -187,6 +265,69 @@ export default function ClassHome() {
                     </CardContent>
                 </Card>
             )}
+
+            {/* TAB: GRADES */}
+            {tab === "grades" && (
+                <div className="space-y-4 animate-in fade-in duration-300">
+                    {isGradesLoading ? (
+                        <div className="flex flex-col items-center justify-center p-20 bg-white rounded-xl border border-slate-100">
+                            <div className="h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                            <p className="mt-3 text-sm text-slate-500">Đang tải bảng điểm...</p>
+                        </div>
+                    ) : gradesData ? (
+                        <div className="grid gap-4 lg:grid-cols-4">
+                            <div className="lg:col-span-1">
+                                <Card className="bg-slate-900 text-white border-none">
+                                    <CardContent className="p-6 text-center">
+                                        <p className="text-slate-400 text-xs font-bold uppercase mb-2">Course Total</p>
+                                        <div className="text-4xl font-black">{gradesData.course_total !== null ? Number(gradesData.course_total).toFixed(2) : "--"}</div>
+                                        <p className="text-[10px] text-slate-500 mt-2 italic">* Chỉ tính các bài đã công bố</p>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                            <Card className="lg:col-span-3">
+                                <CardContent className="p-0">
+                                    <Table>
+                                        <thead>
+                                            <tr>
+                                                <Th>Hạng mục</Th>
+                                                <Th>Trọng số</Th>
+                                                <Th>Điểm</Th>
+                                                <Th>Trạng thái</Th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {gradesData.grade_items?.map((item, idx) => (
+                                                <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                                    <Td>
+                                                        <div className="font-bold text-slate-800 text-sm">{item.title}</div>
+                                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{item.type}</div>
+                                                    </Td>
+                                                    <Td className="text-sm font-semibold text-slate-600">{item.weight}%</Td>
+                                                    <Td>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="font-bold text-blue-600">{item.status === 'published' ? item.score : '--'}</span>
+                                                            <span className="text-[10px] text-slate-400">/ {item.max_score}</span>
+                                                        </div>
+                                                    </Td>
+                                                    <Td>{getStatusBadge(item.status)}</Td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    ) : (
+                        <Card className="border-dashed border-2">
+                            <CardContent className="p-10 text-center text-slate-400 italic">
+                                Không thể tải dữ liệu bảng điểm.
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            )}
+
         </div>
     );
 }

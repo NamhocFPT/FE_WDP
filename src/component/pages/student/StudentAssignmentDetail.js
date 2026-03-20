@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge } from "component/ui";
+import { ClipboardList, Clock, Repeat, CheckCircle2, PlayCircle } from "lucide-react";
 
 export default function StudentAssignmentDetail() {
     const { assessmentId } = useParams();
@@ -74,7 +75,29 @@ export default function StudentAssignmentDetail() {
 
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
+        
+        // Front-end Validation (UC_STU_10)
+        const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+        const ALLOWED_EXTS = ['.pdf', '.docx', '.doc', '.zip', '.rar', '.jpg', '.jpeg', '.png'];
+        
+        for (const file of files) {
+            if (file.size > MAX_SIZE) {
+                setMessage({ type: "error", text: `File "${file.name}" vượt quá dung lượng cho phép (50MB).` });
+                e.target.value = ""; // clear input
+                setSelectedFiles([]);
+                return;
+            }
+            const ext = "." + file.name.split('.').pop().toLowerCase();
+            if (!ALLOWED_EXTS.includes(ext)) {
+                setMessage({ type: "error", text: `Định dạng File "${ext}" không hỗ trợ.` });
+                e.target.value = ""; // clear input
+                setSelectedFiles([]);
+                return;
+            }
+        }
+        
         setSelectedFiles(files);
+        setMessage(null);
     };
 
     const onSubmit = async (e) => {
@@ -133,6 +156,157 @@ export default function StudentAssignmentDetail() {
 
     const now = new Date();
     const isPastCutoff = assessment.cutoff_at && now > new Date(assessment.cutoff_at);
+    const isQuiz = assessment.type === 'QUIZ';
+
+    // ─── QUIZ TYPE: Redirect to quiz flow ───
+    if (isQuiz) {
+        const hasInProgress = submission?.status === 'in_progress';
+        const hasFinished = submission?.status === 'submitted' || submission?.status === 'graded';
+        const settings = (() => {
+            try {
+                const marker = '[quiz_settings]';
+                const idx = (assessment.instructions || '').lastIndexOf(marker);
+                if (idx === -1) return {};
+                return JSON.parse(assessment.instructions.slice(idx + marker.length).trim());
+            } catch { return {}; }
+        })();
+
+        return (
+            <div className="space-y-6">
+                <PageHeader
+                    title={assessment.title}
+                    subtitle={`Bài kiểm tra trắc nghiệm`}
+                    right={[<Button key="back" variant="outline" onClick={() => navigate(-1)}>Quay lại</Button>]}
+                />
+                <div className="grid gap-6 lg:grid-cols-3">
+                    {/* Left: Quiz Info */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <Card>
+                            <CardContent className="p-6">
+                                <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <ClipboardList className="h-5 w-5 text-blue-600" /> Thông tin bài kiểm tra
+                                </h3>
+                                <div className="grid sm:grid-cols-2 gap-4">
+                                    {assessment.time_limit_minutes && (
+                                        <div className="flex items-center gap-3 bg-blue-50 rounded-xl p-4">
+                                            <Clock className="h-6 w-6 text-blue-600 shrink-0" />
+                                            <div>
+                                                <div className="text-xs font-bold text-blue-500 uppercase">Thời gian</div>
+                                                <div className="font-bold text-slate-900">{assessment.time_limit_minutes} phút</div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {assessment.attempt_limit != null && (
+                                        <div className="flex items-center gap-3 bg-purple-50 rounded-xl p-4">
+                                            <Repeat className="h-6 w-6 text-purple-600 shrink-0" />
+                                            <div>
+                                                <div className="text-xs font-bold text-purple-500 uppercase">Số lần làm</div>
+                                                <div className="font-bold text-slate-900">{assessment.attempt_limit} lần</div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                {assessment.instructions && !assessment.instructions.includes('[quiz_settings]') && (
+                                    <div className="mt-4 text-sm text-slate-600 whitespace-pre-wrap leading-relaxed border-t pt-4">
+                                        {assessment.instructions}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Submission history */}
+                        {hasFinished && submission && (
+                            <Card className="border-green-200">
+                                <CardContent className="p-6">
+                                    <h3 className="font-bold text-green-700 mb-3 flex items-center gap-2">
+                                        <CheckCircle2 className="h-5 w-5" /> Kết quả bài làm
+                                    </h3>
+                                    <div className="text-sm text-slate-600 space-y-2">
+                                        <div>Lần làm: <b>#{submission.attempt_no || 1}</b></div>
+                                        {submission.submitted_at && (
+                                            <div>Nộp lúc: <b>{new Date(submission.submitted_at).toLocaleString('vi-VN')}</b></div>
+                                        )}
+                                        {submission.grade?.is_published && submission.grade?.final_score != null && (
+                                            <div className="text-lg font-black text-green-700">Điểm: {submission.grade.final_score} / {assessment.max_score}</div>
+                                        )}
+                                        {!submission.grade?.is_published && (
+                                            <div className="text-amber-600 font-semibold">Điểm chưa được công bố.</div>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+
+                    {/* Right: Action area */}
+                    <div className="space-y-4">
+                        <Card className="overflow-hidden">
+                            <div className="bg-slate-900 px-4 py-3 text-white font-bold text-sm">Trạng thái</div>
+                            <CardContent className="p-4 space-y-3 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Hạn nộp</span>
+                                    <span className="font-semibold">{assessment.due_at ? new Date(assessment.due_at).toLocaleString('vi-VN') : '---'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Trạng thái</span>
+                                    <span>
+                                        {hasInProgress ? <Badge tone="blue">Đang làm</Badge>
+                                            : hasFinished ? <Badge tone="green">Đã nộp</Badge>
+                                            : <Badge tone="slate">Chưa bắt đầu</Badge>}
+                                    </span>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* CTA */}
+                        {!isPastCutoff && (
+                            <>
+                                {hasInProgress && submission?.id ? (
+                                    <Button
+                                        className="w-full py-5 text-base font-bold"
+                                        variant="primary"
+                                        onClick={() => navigate(`/student/attempts/${submission.id}/take`)}
+                                    >
+                                        <PlayCircle className="h-5 w-5 mr-2" /> Tiếp tục làm bài
+                                    </Button>
+                                ) : (hasFinished && assessment.attempt_limit != null && submission?.attempt_no >= assessment.attempt_limit) ? (
+                                    <div className="mt-4 rounded-xl border-2 border-green-200 bg-green-50 p-5 text-center">
+                                        <div className="text-3xl mb-2">🏆</div>
+                                        <div className="text-lg font-black text-green-700">HOÀN THÀNH</div>
+                                        <div className="text-sm font-semibold text-green-600 mt-1">
+                                            Bạn đã hết số lần làm bài.
+                                        </div>
+                                        {submission.grade?.is_published && submission.grade?.final_score != null && (
+                                            <div className="mt-4 flex flex-col items-center">
+                                                <div className="inline-block px-5 py-2 bg-white rounded-xl border border-green-100 shadow-sm">
+                                                    <span className="text-xs text-slate-500 font-bold uppercase mr-2 block text-left mb-1">Điểm của bạn:</span>
+                                                    <span className="text-2xl font-black text-green-700">{submission.grade.final_score} / {assessment.max_score}</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <Button
+                                        className="w-full py-5 text-base font-bold mt-4"
+                                        variant="primary"
+                                        onClick={() => navigate(`/student/quizzes/${assessmentId}/start`)}
+                                    >
+                                        <PlayCircle className="h-5 w-5 mr-2" />
+                                        {hasFinished ? 'Làm lại bài' : 'Bắt đầu làm bài'}
+                                    </Button>
+                                )}
+                            </>
+                        )}
+                        {isPastCutoff && (
+                            <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-600 font-semibold text-center">
+                                Đã hết hạn nộp bài.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -267,10 +441,16 @@ export default function StudentAssignmentDetail() {
 </Td>
                                     </tr>
                                     <tr className="border-b">
-                                        <Th className="bg-slate-50 text-slate-600 text-xs uppercase">Điểm số</Th>
+                                         <Th className="bg-slate-50 text-slate-600 text-xs uppercase">Thang điểm</Th>
+                                         <Td className="font-bold text-slate-800">
+                                             {Number(assessment.max_score || 100)} điểm
+                                         </Td>
+                                     </tr>
+                                     <tr className="border-b">
+                                         <Th className="bg-slate-50 text-slate-600 text-xs uppercase">Điểm số</Th>
                                         <Td className="font-bold text-blue-700">
                                             {submission?.grade?.final_score !== undefined && submission?.grade?.final_score !== null
-                                                ? `${submission.grade.final_score} / ${assessment.max_score}` 
+                                                ? `${Number(submission.grade.final_score)} / ${Number(assessment.max_score)}` 
                                                 : "Chưa có điểm"}
                                         </Td>
                                     </tr>
@@ -303,7 +483,7 @@ export default function StudentAssignmentDetail() {
                             className="w-full bg-blue-600 text-white py-6 text-lg font-bold rounded-2xl shadow-blue-200 shadow-xl hover:bg-blue-700 transition-all hover:-translate-y-1"
                             onClick={() => setIsEditing(true)}
                         >
-                            {submission ? "Chỉnh sửa bài nộp" : "Nộp bài ngay"}
+                            {submission ? "Chỉnh sửa bài nộp" : "Thêm bài nộp"}
                         </Button>
                     )}
 

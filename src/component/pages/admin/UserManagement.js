@@ -1,81 +1,372 @@
 // src/component/pages/admin/UserManagement.js
-import React, { useMemo, useState } from "react";
-import { mock } from "service/mockData";
+// UC_ADM_05 → UC_ADM_09: Full User Management with real API
+import React, { useState, useEffect, useCallback } from "react";
 import { PageHeader, Card, CardContent, Input, Button, Badge, Table, Th, Td, Modal } from "component/ui";
+import { adminApi } from "service/adminApi";
+import { Search, UserPlus, Edit2, Lock, Unlock, KeyRound, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function UserManagement() {
-    const [q, setQ] = useState("");
-    const [role, setRole] = useState("all");
-    const [open, setOpen] = useState(false);
+    // ── State ──
+    const [users, setUsers] = useState([]);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [search, setSearch] = useState("");
+    const [roleFilter, setRoleFilter] = useState("all");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [loading, setLoading] = useState(true);
+    const [message, setMessage] = useState({ text: "", type: "" });
 
-    const rows = useMemo(() => {
-        return mock.users.filter((u) => {
-            const okQ =
-                !q ||
-                u.name.toLowerCase().includes(q.toLowerCase()) ||
-                u.email.toLowerCase().includes(q.toLowerCase());
-            const okRole = role === "all" || u.role === role;
-            return okQ && okRole;
-        });
-    }, [q, role]);
+    // Modals
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+    // Form data
+    const [createForm, setCreateForm] = useState({ email: "", full_name: "", role_code: "STUDENT" });
+    const [editForm, setEditForm] = useState({ id: "", full_name: "", phone: "" });
+    const [confirmAction, setConfirmAction] = useState({ type: "", user: null });
+    const [generatedPassword, setGeneratedPassword] = useState("");
+    const [actionLoading, setActionLoading] = useState(false);
+
+    // ── Fetch users ──
+    const fetchUsers = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await adminApi.getUsers({ search, role: roleFilter, status: statusFilter, page, limit: 15 });
+            const result = res.data;
+            if (result.success) {
+                setUsers(result.data.users || []);
+                setTotal(result.data.total || 0);
+                setTotalPages(result.data.totalPages || 1);
+            }
+        } catch (err) {
+            console.error("Lỗi tải danh sách user:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [search, roleFilter, statusFilter, page]);
+
+    useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+    // Debounce search
+    const [searchInput, setSearchInput] = useState("");
+    useEffect(() => {
+        const timer = setTimeout(() => { setSearch(searchInput); setPage(1); }, 400);
+        return () => clearTimeout(timer);
+    }, [searchInput]);
+
+    const flash = (text, type = "success") => {
+        setMessage({ text, type });
+        setTimeout(() => setMessage({ text: "", type: "" }), 4000);
+    };
+
+    // ── UC_ADM_05: Tạo tài khoản ──
+    const handleCreate = async () => {
+        if (!createForm.email || !createForm.full_name) return flash("Vui lòng nhập đầy đủ Email và Họ tên.", "error");
+        setActionLoading(true);
+        try {
+            const res = await adminApi.createUser(createForm);
+            const result = res.data;
+            if (result.success) {
+                setShowCreateModal(false);
+                setCreateForm({ email: "", full_name: "", role_code: "STUDENT" });
+                setGeneratedPassword(result.data.generated_password);
+                setShowPasswordModal(true);
+                fetchUsers();
+            } else {
+                flash(result.message || "Lỗi khi tạo tài khoản.", "error");
+            }
+        } catch (err) {
+            flash(err.response?.data?.message || "Lỗi kết nối.", "error");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    // ── UC_ADM_07: Sửa thông tin ──
+    const handleEdit = async () => {
+        setActionLoading(true);
+        try {
+            const res = await adminApi.updateUser(editForm.id, { full_name: editForm.full_name, phone: editForm.phone });
+            if (res.data.success) {
+                flash("Cập nhật thông tin thành công!");
+                setShowEditModal(false);
+                fetchUsers();
+            } else {
+                flash(res.data.message || "Lỗi cập nhật.", "error");
+            }
+        } catch (err) {
+            flash(err.response?.data?.message || "Lỗi kết nối.", "error");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    // ── UC_ADM_08: Khóa / Mở khóa ──
+    const handleToggleStatus = async () => {
+        setActionLoading(true);
+        try {
+            const res = await adminApi.toggleUserStatus(confirmAction.user.id);
+            if (res.data.success) {
+                flash(res.data.message);
+                setShowConfirmModal(false);
+                fetchUsers();
+            }
+        } catch (err) {
+            flash(err.response?.data?.message || "Lỗi.", "error");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    // ── UC_ADM_09: Cấp lại mật khẩu ──
+    const handleResetPassword = async () => {
+        setActionLoading(true);
+        try {
+            const res = await adminApi.resetUserPassword(confirmAction.user.id);
+            if (res.data.success) {
+                setShowConfirmModal(false);
+                setGeneratedPassword(res.data.data.generated_password);
+                setShowPasswordModal(true);
+                fetchUsers();
+            }
+        } catch (err) {
+            flash(err.response?.data?.message || "Lỗi.", "error");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const openConfirm = (type, user) => {
+        setConfirmAction({ type, user });
+        setShowConfirmModal(true);
+    };
+
+    const getRoleBadge = (user) => {
+        const code = user.role?.code || "";
+        const toneMap = { ADMIN: "red", TEACHER: "blue", STUDENT: "green" };
+        return <Badge tone={toneMap[code] || "slate"}>{code}</Badge>;
+    };
 
     return (
-        <div>
+        <div className="space-y-4">
             <PageHeader
-                title="User Management"
-                subtitle="Search, filter and manage user accounts."
+                title="Quản lý User"
+                subtitle={`Tổng cộng ${total} tài khoản trong hệ thống.`}
                 right={[
-                    <Button key="add" onClick={() => setOpen(true)}>Add User</Button>,
+                    <Button key="add" onClick={() => setShowCreateModal(true)}>
+                        <UserPlus className="h-4 w-4 mr-2" /> Thêm mới
+                    </Button>,
                 ]}
             />
 
+            {/* Flash message */}
+            {message.text && (
+                <div className={`p-3 rounded-xl text-sm font-semibold ${message.type === "error" ? "bg-red-50 text-red-600 border border-red-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100"}`}>
+                    {message.text}
+                </div>
+            )}
+
+            {/* Filters */}
             <Card>
                 <CardContent>
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                        <div className="flex-1">
-                            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or email..." />
+                        <div className="flex-1 relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <Input
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
+                                placeholder="Tìm kiếm theo tên hoặc email..."
+                                className="pl-10"
+                            />
                         </div>
-                        <select
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                            value={role}
-                            onChange={(e) => setRole(e.target.value)}
-                        >
-                            <option value="all">All roles</option>
-                            <option value="admin">Admin</option>
-                            <option value="teacher">Teacher</option>
-                            <option value="student">Student</option>
+                        <select className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}>
+                            <option value="all">Tất cả Role</option>
+                            <option value="ADMIN">Admin</option>
+                            <option value="TEACHER">Giảng viên</option>
+                            <option value="STUDENT">Học viên</option>
                         </select>
-                    </div>
-
-                    <div className="mt-3 overflow-x-auto">
-                        <Table>
-                            <thead>
-                                <tr>
-                                    <Th>Name</Th>
-                                    <Th>Email</Th>
-                                    <Th>Role</Th>
-                                    <Th>Status</Th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rows.map((u) => (
-                                    <tr key={u.id}>
-                                        <Td className="font-semibold text-slate-900">{u.name}</Td>
-                                        <Td>{u.email}</Td>
-                                        <Td><Badge tone="blue">{u.role}</Badge></Td>
-                                        <Td><Badge tone={u.status === "active" ? "green" : "amber"}>{u.status}</Badge></Td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </Table>
+                        <select className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
+                            <option value="all">Tất cả Status</option>
+                            <option value="active">Active</option>
+                            <option value="blocked">Blocked</option>
+                        </select>
                     </div>
                 </CardContent>
             </Card>
 
-            <Modal open={open} title="Add User (demo)" onClose={() => setOpen(false)}>
-                <div className="grid gap-3">
-                    <div className="text-sm text-slate-600">Màn demo UI. Bạn có thể nối API sau.</div>
-                    <Button onClick={() => setOpen(false)}>Done</Button>
+            {/* Table */}
+            <Card>
+                <CardContent>
+                    {loading ? (
+                        <div className="flex justify-center items-center p-16">
+                            <div className="h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    ) : users.length === 0 ? (
+                        <div className="text-center p-16 text-slate-400">
+                            <p className="text-lg font-bold">Không có dữ liệu</p>
+                            <p className="text-sm mt-1">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <thead>
+                                        <tr>
+                                            <Th>Họ tên</Th>
+                                            <Th>Email</Th>
+                                            <Th>SĐT</Th>
+                                            <Th>Role</Th>
+                                            <Th>Status</Th>
+                                            <Th className="text-right">Thao tác</Th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {users.map((u) => (
+                                            <tr key={u.id} className="hover:bg-slate-50/80 group">
+                                                <Td className="font-semibold text-slate-900">{u.full_name}</Td>
+                                                <Td className="text-slate-600">{u.email}</Td>
+                                                <Td className="text-slate-500">{u.phone || "—"}</Td>
+                                                <Td>{getRoleBadge(u)}</Td>
+                                                <Td>
+                                                    <Badge tone={u.status === "active" ? "green" : "red"}>
+                                                        {u.status === "active" ? "Active" : "Blocked"}
+                                                    </Badge>
+                                                </Td>
+                                                <Td className="text-right">
+                                                    <div className="flex justify-end gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                        <Button size="xs" variant="outline" title="Sửa thông tin" onClick={() => { setEditForm({ id: u.id, full_name: u.full_name, phone: u.phone || "" }); setShowEditModal(true); }}>
+                                                            <Edit2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                        <Button
+                                                            size="xs"
+                                                            variant="outline"
+                                                            title={u.status === "active" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+                                                            className={u.status === "active" ? "text-amber-600 border-amber-200 hover:bg-amber-50" : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"}
+                                                            onClick={() => openConfirm("toggle", u)}
+                                                        >
+                                                            {u.status === "active" ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+                                                        </Button>
+                                                        <Button size="xs" variant="outline" title="Cấp lại mật khẩu" className="text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => openConfirm("reset", u)}>
+                                                            <KeyRound className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </Td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </Table>
+                            </div>
+
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-100">
+                                    <span className="text-xs text-slate-500">Trang {page} / {totalPages} — {total} kết quả</span>
+                                    <div className="flex gap-2">
+                                        <Button size="xs" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                                            <ChevronLeft className="h-4 w-4" />
+                                        </Button>
+                                        <Button size="xs" variant="outline" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                                            <ChevronRight className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* ── Modal: Tạo tài khoản (UC_ADM_05) ── */}
+            <Modal open={showCreateModal} title="Tạo tài khoản mới" onClose={() => setShowCreateModal(false)}>
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1">Email <span className="text-red-500">*</span></label>
+                        <Input placeholder="user@example.com" value={createForm.email} onChange={(e) => setCreateForm(f => ({ ...f, email: e.target.value }))} />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1">Họ tên <span className="text-red-500">*</span></label>
+                        <Input placeholder="Nguyễn Văn A" value={createForm.full_name} onChange={(e) => setCreateForm(f => ({ ...f, full_name: e.target.value }))} />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1">Role</label>
+                        <select className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" value={createForm.role_code} onChange={(e) => setCreateForm(f => ({ ...f, role_code: e.target.value }))}>
+                            <option value="TEACHER">Giảng viên</option>
+                            <option value="STUDENT">Học viên</option>
+                        </select>
+                    </div>
+                    <div className="p-3 bg-blue-50 rounded-lg text-xs text-blue-700 border border-blue-100">
+                        Hệ thống sẽ tự sinh mật khẩu ngẫu nhiên và hiển thị sau khi tạo.
+                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button variant="outline" onClick={() => setShowCreateModal(false)}>Hủy</Button>
+                        <Button onClick={handleCreate} disabled={actionLoading}>
+                            {actionLoading ? "Đang tạo..." : "Tạo tài khoản"}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* ── Modal: Sửa thông tin (UC_ADM_07) ── */}
+            <Modal open={showEditModal} title="Sửa thông tin User" onClose={() => setShowEditModal(false)}>
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1">Họ tên</label>
+                        <Input value={editForm.full_name} onChange={(e) => setEditForm(f => ({ ...f, full_name: e.target.value }))} />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1">Số điện thoại</label>
+                        <Input value={editForm.phone} onChange={(e) => setEditForm(f => ({ ...f, phone: e.target.value }))} placeholder="0912345678" />
+                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button variant="outline" onClick={() => setShowEditModal(false)}>Hủy</Button>
+                        <Button onClick={handleEdit} disabled={actionLoading}>
+                            {actionLoading ? "Đang lưu..." : "Lưu"}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* ── Modal: Xác nhận (UC_ADM_08 / UC_ADM_09) ── */}
+            <Modal open={showConfirmModal} title="Xác nhận thao tác" onClose={() => setShowConfirmModal(false)}>
+                <div className="space-y-4">
+                    {confirmAction.type === "toggle" && (
+                        <p className="text-sm text-slate-600">
+                            Bạn có chắc muốn <strong>{confirmAction.user?.status === "active" ? "khóa" : "mở khóa"}</strong> tài khoản <strong>{confirmAction.user?.full_name}</strong> ({confirmAction.user?.email})?
+                            {confirmAction.user?.status === "active" && <span className="block mt-2 text-amber-600 font-semibold">⚠ User sẽ không thể đăng nhập sau khi bị khóa.</span>}
+                        </p>
+                    )}
+                    {confirmAction.type === "reset" && (
+                        <p className="text-sm text-slate-600">
+                            Bạn có chắc muốn cấp lại mật khẩu mới cho <strong>{confirmAction.user?.full_name}</strong> ({confirmAction.user?.email})?
+                        </p>
+                    )}
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button variant="outline" onClick={() => setShowConfirmModal(false)}>Hủy</Button>
+                        <Button
+                            className={confirmAction.type === "toggle" && confirmAction.user?.status === "active" ? "bg-amber-600 text-white hover:bg-amber-700" : ""}
+                            onClick={confirmAction.type === "toggle" ? handleToggleStatus : handleResetPassword}
+                            disabled={actionLoading}
+                        >
+                            {actionLoading ? "Đang xử lý..." : "Đồng ý"}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* ── Modal: Hiển thị mật khẩu mới ── */}
+            <Modal open={showPasswordModal} title="Mật khẩu đã được tạo" onClose={() => setShowPasswordModal(false)}>
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-600">Mật khẩu đã được sinh và gán cho tài khoản. Hãy ghi lại và gửi cho user:</p>
+                    <div className="p-4 bg-slate-900 rounded-xl text-center">
+                        <code className="text-lg font-bold text-emerald-400 select-all">{generatedPassword}</code>
+                    </div>
+                    <p className="text-xs text-slate-400 italic">User sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu.</p>
+                    <div className="flex justify-end">
+                        <Button onClick={() => setShowPasswordModal(false)}>Đóng</Button>
+                    </div>
                 </div>
             </Modal>
         </div>
