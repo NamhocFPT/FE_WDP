@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { PageHeader, Card, CardContent, Button, Input, Badge, Modal } from "component/ui";
-import { 
-    Plus, Trash2, Edit2, Save, X, Sparkles, 
-    ChevronDown, ChevronUp, CheckCircle2, AlertCircle, 
+import {
+    Plus, Trash2, Edit2, Save, X, Sparkles,
+    ChevronDown, ChevronUp, CheckCircle2, AlertCircle,
     FileText, HelpCircle, LayoutList
 } from "lucide-react";
 import * as TeacherQuizService from "service/TeacherQuizService";
@@ -36,7 +36,8 @@ export default function QuizQuestionManager() {
         try {
             const res = await TeacherQuizService.getQuizQuestions(quizId);
             if (res.success || res.code === 200) {
-                setQuestions(res.data || []);
+                const fetchedQuestions = res.data?.questions || (Array.isArray(res.data) ? res.data : []);
+                setQuestions(fetchedQuestions);
             }
         } catch (error) {
             console.error("Error fetching questions:", error);
@@ -89,25 +90,38 @@ export default function QuizQuestionManager() {
         if (!editingQuestion.options.some(o => o.is_correct)) {
             return toast.error("Phải có ít nhất 1 đáp án đúng");
         }
+        if (editingQuestion.options.some(o => !o.option_text.trim())) {
+            return toast.error("Nội dung phương án không được để trống");
+        }
 
         try {
             let res;
+            const payloadToSend = {
+                ...editingQuestion,
+                options: editingQuestion.options.map((opt, idx) => ({
+                    ...opt,
+                    display_order: idx + 1
+                }))
+            };
+
             if (typeof editingQuestion.id === 'string' && editingQuestion.id.startsWith('temp-')) {
                 // Create
-                const { id, ...payload } = editingQuestion;
+                const { id, ...payload } = payloadToSend;
                 res = await TeacherQuizService.createQuestion(quizId, payload);
             } else {
                 // Update
-                res = await TeacherQuizService.updateQuestion(editingQuestion.id, editingQuestion);
+                res = await TeacherQuizService.updateQuestion(editingQuestion.id, payloadToSend);
             }
 
-            if (res.success) {
+            if (res && res.success) {
                 toast.success("Đã lưu câu hỏi");
                 setEditingQuestion(null);
                 fetchQuestions();
+            } else {
+                toast.error(res?.message || "Lỗi khi lưu câu hỏi");
             }
         } catch (error) {
-            toast.error("Lỗi khi lưu câu hỏi");
+            toast.error(error?.response?.data?.message || "Lỗi khi lưu câu hỏi. Vui lòng thử lại.");
         }
     };
 
@@ -139,7 +153,7 @@ export default function QuizQuestionManager() {
         try {
             const res = await TeacherQuizService.generateAIQuestions(quizId, { prompt: aiPrompt });
             if (res.success) {
-                const aiQuestions = res.data; 
+                const aiQuestions = res.data;
                 if (window.confirm(`AI đã tạo ${aiQuestions.length} câu hỏi. Bạn có muốn lưu tất cả vào Quiz không?`)) {
                     await TeacherQuizService.bulkSaveQuestions(quizId, aiQuestions);
                     toast.success("Đã lưu các câu hỏi từ AI");
@@ -158,6 +172,41 @@ export default function QuizQuestionManager() {
         }
     };
 
+    const handlePublishQuiz = async () => {
+        if (questions.length === 0) {
+            return toast.error("Đề thi chưa có câu hỏi nào!");
+        }
+        if (!window.confirm("Bạn có chắc chắn muốn Lưu lại và Hoàn tất đề thi này?")) return;
+        
+        try {
+            const res = await TeacherQuizService.updateQuizStatus(classId, quizId, "published");
+            if (res && res.success) {
+                toast.success("Đã hoàn tất đề thi!");
+                navigate(`/teacher/classes/${classId}/assignments`);
+            } else {
+                toast.error(res?.message || "Không thể hoàn tất đề thi");
+            }
+        } catch (error) {
+            toast.error(error?.response?.data?.message || "Lỗi khi lưu đề thi");
+        }
+    };
+
+    const handleCancelQuiz = async () => {
+        if (!window.confirm("Bạn có chắc chắn muốn HỦY đề thi này? Mọi dữ liệu (bao gồm câu hỏi) sẽ bị XÓA vĩnh viễn.")) return;
+        
+        try {
+            const res = await TeacherQuizService.deleteQuiz(classId, quizId);
+            if (res && res.success) {
+                toast.success("Đã hủy đề thi");
+                navigate(`/teacher/classes/${classId}/assignments`);
+            } else {
+                toast.error(res?.message || "Không thể hủy đề thi");
+            }
+        } catch (error) {
+            toast.error(error?.response?.data?.message || "Lỗi khi hủy đề thi");
+        }
+    };
+
     return (
         <div className="space-y-6">
             <PageHeader 
@@ -165,10 +214,16 @@ export default function QuizQuestionManager() {
                 subtitle={`Lớp: ${classId} • Đề: ${quizInfo?.title || quizId}`}
                 right={[
                     <Button key="back" variant="outline" onClick={() => navigate(-1)}>Quay lại</Button>,
-                    <Button key="ai" className="bg-gradient-to-r from-purple-600 to-blue-600 text-white border-none" onClick={() => setShowAIModal(true)}>
+                    <Button key="cancel" variant="danger" className="text-red-600 border-red-100 hover:bg-red-50" onClick={handleCancelQuiz}>
+                        Hủy đề
+                    </Button>,
+                    <Button key="save" onClick={handlePublishQuiz} className="bg-blue-600 text-white hover:bg-blue-700 shadow-sm border-blue-700">
+                        <Save className="h-4 w-4 mr-2" /> Lưu đề
+                    </Button>,
+                    <Button key="ai" className="bg-gradient-to-r from-purple-600 to-blue-600 text-white border-none ml-2 shadow-sm" onClick={() => setShowAIModal(true)}>
                         <Sparkles className="h-4 w-4 mr-2" /> Soạn bằng AI (Gemini)
                     </Button>,
-                    <Button key="add" onClick={handleAddQuestion} disabled={!!editingQuestion}>
+                    <Button key="add" onClick={handleAddQuestion} disabled={!!editingQuestion} className="ml-2">
                         <Plus className="h-4 w-4 mr-2" /> Thêm câu hỏi
                     </Button>
                 ]}
@@ -244,21 +299,21 @@ export default function QuizQuestionManager() {
                                     <div className="space-y-4">
                                         <div>
                                             <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Nội dung câu hỏi</label>
-                                            <textarea 
+                                            <textarea
                                                 className="w-full p-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
                                                 placeholder="Nhập câu hỏi tại đây..."
                                                 value={editingQuestion.question_text}
-                                                onChange={(e) => setEditingQuestion({...editingQuestion, question_text: e.target.value})}
+                                                onChange={(e) => setEditingQuestion({ ...editingQuestion, question_text: e.target.value })}
                                             />
                                         </div>
 
                                         <div className="w-1/2">
                                             <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Điểm số</label>
-                                            <Input 
-                                                type="number" 
+                                            <Input
+                                                type="number"
                                                 min="0"
                                                 value={editingQuestion.points}
-                                                onChange={(e) => setEditingQuestion({...editingQuestion, points: Number(e.target.value)})}
+                                                onChange={(e) => setEditingQuestion({ ...editingQuestion, points: Number(e.target.value) })}
                                             />
                                         </div>
 
@@ -269,17 +324,17 @@ export default function QuizQuestionManager() {
                                                     + Thêm
                                                 </Button>
                                             </div>
-                                            
+
                                             {(Array.isArray(editingQuestion?.options) ? editingQuestion.options : []).map((opt, idx) => (
                                                 <div key={idx} className="space-y-2 p-3 rounded-xl bg-slate-50 border border-slate-200">
                                                     <div className="flex items-center gap-2">
-                                                        <input 
-                                                            type="checkbox" 
+                                                        <input
+                                                            type="checkbox"
                                                             className="h-4 w-4 border-slate-300 text-blue-600 rounded"
                                                             checked={opt.is_correct}
                                                             onChange={(e) => handleOptionChange(idx, 'is_correct', e.target.checked)}
                                                         />
-                                                        <Input 
+                                                        <Input
                                                             placeholder={`Lựa chọn ${idx + 1}`}
                                                             value={opt.option_text}
                                                             onChange={(e) => handleOptionChange(idx, 'option_text', e.target.value)}
@@ -338,7 +393,7 @@ export default function QuizQuestionManager() {
 
                     <div>
                         <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Yêu cầu của bạn</label>
-                        <textarea 
+                        <textarea
                             className="w-full p-4 rounded-2xl border border-slate-200 text-sm focus:ring-2 focus:ring-purple-500 outline-none min-h-[120px] shadow-inner"
                             placeholder="VD: Tạo 5 câu hỏi về React Hooks..."
                             value={aiPrompt}
@@ -348,7 +403,7 @@ export default function QuizQuestionManager() {
 
                     <div className="flex justify-end gap-3">
                         <Button variant="outline" onClick={() => setShowAIModal(false)} disabled={isGenerating}>Hủy</Button>
-                        <Button 
+                        <Button
                             className="bg-purple-600 text-white hover:bg-purple-700 min-w-[140px]"
                             onClick={handleAIGenerate}
                             disabled={isGenerating}

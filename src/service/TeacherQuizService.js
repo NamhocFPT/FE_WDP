@@ -67,14 +67,28 @@ export const updateQuiz = async (quizId, data) => {
 };
 
 // ===============================
-// DELETE QUIZ
+// UPDATE QUIZ STATUS (Lưu đề / Hoàn tất đề thi)
 // ===============================
-export const deleteQuiz = async (quizId) => {
+export const updateQuizStatus = async (classId, quizId, status) => {
     try {
-        const res = await request.dele("quizzes", quizId);
+        const res = await request.patch(`api/teacher/classes/${classId}/quizzes/${quizId}/status`, { status });
+        return res;
+    } catch (error) {
+        console.error("Error updateQuizStatus:", error);
+        throw error;
+    }
+};
+
+// ===============================
+// DELETE QUIZ (Hủy đề thi)
+// ===============================
+export const deleteQuiz = async (classId, quizId) => {
+    try {
+        const res = await request.dele(`api/teacher/classes/${classId}/assessments`, quizId);
         return res;
     } catch (error) {
         console.error("Error deleteQuiz:", error);
+        throw error;
     }
 };
 

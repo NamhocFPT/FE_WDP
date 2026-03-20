@@ -37,7 +37,8 @@ export const patch = async(path,option,id) =>{
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const response = await fetch(API_DOMAIN + path+'/'+ id, {
+    const url = id ? `${API_DOMAIN}${path}/${id}` : `${API_DOMAIN}${path}`;
+    const response = await fetch(url, {
         method: 'PATCH',
         headers,
         body: JSON.stringify(option)
@@ -45,7 +46,7 @@ export const patch = async(path,option,id) =>{
     const result = response.json();
     return result
 }
-export const put = async(path,option) =>{
+export const put = async(path,option,id) =>{
     const token = store.getToken();
     const headers = {
         Accept: 'application/json',
@@ -53,7 +54,8 @@ export const put = async(path,option) =>{
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const response = await fetch(API_DOMAIN + path, {
+    const url = id ? `${API_DOMAIN}${path}/${id}` : `${API_DOMAIN}${path}`;
+    const response = await fetch(url, {
         method: 'PUT',
         headers,
         body: JSON.stringify(option)
@@ -66,7 +68,8 @@ export const dele = async(path,id) => {
     const headers = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const response = await fetch(API_DOMAIN + path+'/'+ id, {
+    const url = id ? `${API_DOMAIN}${path}/${id}` : `${API_DOMAIN}${path}`;
+    const response = await fetch(url, {
         method: 'DELETE',
         headers
     })
