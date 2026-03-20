@@ -14,6 +14,7 @@ import ChangePassword from "component/pages/common/ChangePassword";
 import Profile from "component/pages/common/Profile";
 import NotFound from "component/pages/common/NotFound";
 import Forbidden from "component/pages/common/Forbidden";
+import Notifications from "component/pages/common/Notifications";
 
 // Admin
 import AdminDashboard from "component/pages/admin/AdminDashboard";
@@ -88,6 +89,15 @@ export const router = [
       </ProtectedRoute>
     ),
     children: [{ index: true, element: <Profile /> }],
+  },
+  {
+    path: "/notifications",
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout />
+      </ProtectedRoute>
+    ),
+    children: [{ index: true, element: <Notifications /> }],
   },
 
   // Admin

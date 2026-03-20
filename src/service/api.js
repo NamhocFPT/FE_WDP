@@ -1,5 +1,6 @@
 // src/service/api.js
 import { store } from "./store";
+import { toast } from "sonner";
 
 const BASE_URL = "http://localhost:9999/api";
 
@@ -27,6 +28,11 @@ async function fetchWithAuth(url, options = {}) {
     });
 
     const data = await response.json();
+
+    if (response.status === 404 && (!options.method || options.method === "GET")) {
+        toast.error("Nội dung này không còn tồn tại hoặc đã bị gỡ bởi Giảng viên.");
+    }
+
     return { ok: response.ok, status: response.status, data };
 }
 
@@ -90,5 +96,21 @@ export const api = {
             method: "PUT",
             body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
         });
+    },
+
+    notifications: {
+        async getUnreadCount() {
+            return fetchWithAuth("/notifications/unread-count", { method: "GET" });
+        },
+        async getNotifications(params = {}) {
+            const query = new URLSearchParams(params).toString();
+            return fetchWithAuth(`/notifications?${query}`, { method: "GET" });
+        },
+        async readNotification(id) {
+            return fetchWithAuth(`/notifications/${id}/read`, { method: "PATCH" });
+        },
+        async readAllNotifications() {
+            return fetchWithAuth("/notifications/read-all", { method: "PATCH" });
+        }
     }
 };

@@ -1,8 +1,8 @@
-// src/component/layout/Navbar.js
 import React from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { store } from "service/store";
 import { Button, Input } from "component/ui";
+import NotificationBell from "./NotificationBell";
 
 export default function Navbar() {
     const user = store.getCurrentUser();
@@ -23,6 +23,8 @@ export default function Navbar() {
                 </div>
 
                 <div className="ml-auto flex items-center gap-4">
+                    <NotificationBell />
+
                     <div className="flex flex-col items-end hidden sm:flex">
                         <span className="text-sm font-bold text-slate-900">{user?.full_name || user?.fullName}</span>
                         <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">{user?.role}</span>
