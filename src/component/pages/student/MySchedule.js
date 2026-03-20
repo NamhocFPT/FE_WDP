@@ -20,7 +20,11 @@ export default function MySchedule() {
 
     // States for Calendar control
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [viewMode, setViewMode] = useState("week"); // week / month
+    const [viewMode, setViewMode] = useState("week"); // week / month / custom
+
+    // Custom view states
+    const [customStart, setCustomStart] = useState("");
+    const [customEnd, setCustomEnd] = useState("");
 
     useEffect(() => {
         const fetchClasses = async () => {
@@ -43,11 +47,11 @@ export default function MySchedule() {
     // Nav Helpers
     const handlePrev = () => {
         if (viewMode === 'week') setCurrentDate(subDays(currentDate, 7));
-        else setCurrentDate(subMonths(currentDate, 1));
+        else if (viewMode === 'month') setCurrentDate(subMonths(currentDate, 1));
     };
     const handleNext = () => {
         if (viewMode === 'week') setCurrentDate(addDays(currentDate, 7));
-        else setCurrentDate(addMonths(currentDate, 1));
+        else if (viewMode === 'month') setCurrentDate(addMonths(currentDate, 1));
     };
     const handleToday = () => setCurrentDate(new Date());
 
@@ -101,22 +105,44 @@ export default function MySchedule() {
         return list.sort((a,b) => String(a.time).localeCompare(String(b.time)));
     };
 
+    const getSessionsForCustom = () => {
+        if (!customStart || !customEnd) return [];
+        const dStart = new Date(customStart);
+        const dEnd = new Date(customEnd);
+        dEnd.setHours(23, 59, 59, 999); // include entire end day
+
+        const list = [];
+        classes.forEach(c => {
+            (c.schedule || []).forEach(s => {
+                if (s.rawDate) {
+                    const sDate = new Date(s.rawDate);
+                    if (sDate >= dStart && sDate <= dEnd) {
+                        list.push({ ...s, className: c.name, classId: c.id });
+                    }
+                }
+            });
+        });
+        return list.sort((a,b) => new Date(a.rawDate) - new Date(b.rawDate));
+    };
+
     return (
         <div className="space-y-6">
             {/* TOOLBAR NAV BAR */}
             <div className="flex items-center justify-between flex-wrap gap-4 border-b pb-4 border-slate-100">
                 <PageHeader 
                     title="Lịch học của tôi" 
-                    subtitle={viewMode === 'week' ? `Tuần: ${format(weekDates[0], 'dd/MM')} - ${format(weekDates[6], 'dd/MM')}` : `Tháng ${format(currentDate, 'MM/yyyy')}`} 
+                    subtitle={viewMode === 'week' ? `Tuần: ${format(weekDates[0], 'dd/MM')} - ${format(weekDates[6], 'dd/MM')}` : viewMode === 'month' ? `Tháng ${format(currentDate, 'MM/yyyy')}` : "Tùy chỉnh khoảng thời gian"} 
                 />
                 
                 <div className="flex items-center gap-3">
                     {/* Prev/Next Buttons */}
-                    <div className="flex items-center bg-slate-100 rounded-xl p-0.5 shadow-inner-sm">
-                        <button onClick={handlePrev} className="p-2 hover:bg-white rounded-lg transition-all text-slate-600 font-bold">◀</button>
-                        <button onClick={handleToday} className="px-3 py-1.5 hover:bg-white rounded-lg transition-all text-xs font-bold text-slate-700">Hôm nay</button>
-                        <button onClick={handleNext} className="p-2 hover:bg-white rounded-lg transition-all text-slate-600 font-bold">▶</button>
-                    </div>
+                    {viewMode !== 'custom' && (
+                        <div className="flex items-center bg-slate-100 rounded-xl p-0.5 shadow-inner-sm">
+                            <button onClick={handlePrev} className="p-2 hover:bg-white rounded-lg transition-all text-slate-600 font-bold">◀</button>
+                            <button onClick={handleToday} className="px-3 py-1.5 hover:bg-white rounded-lg transition-all text-xs font-bold text-slate-700">Hôm nay</button>
+                            <button onClick={handleNext} className="p-2 hover:bg-white rounded-lg transition-all text-slate-600 font-bold">▶</button>
+                        </div>
+                    )}
 
                     {/* View Switch */}
                     <div className="flex bg-slate-100 p-1 rounded-xl shadow-inner-sm">
@@ -131,6 +157,12 @@ export default function MySchedule() {
                             onClick={() => setViewMode('month')}
                         >
                             Tháng
+                        </button>
+                        <button 
+                            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${viewMode === 'custom' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`} 
+                            onClick={() => setViewMode('custom')}
+                        >
+                            Tùy chỉnh
                         </button>
                     </div>
                 </div>
@@ -178,7 +210,7 @@ export default function MySchedule() {
                         ))}
                     </div>
                 </div>
-            ) : (
+            ) : viewMode === 'month' ? (
                 /* ---------------- MONTH VIEW ---------------- */
                 <div className="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
                     <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 min-w-[750px]">
@@ -215,6 +247,44 @@ export default function MySchedule() {
                                 </div>
                             );
                         })}
+                    </div>
+                </div>
+            ) : (
+                /* ---------------- CUSTOM VIEW ---------------- */
+                <div className="space-y-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="flex gap-2 items-center flex-wrap">
+                        <span className="text-sm font-bold text-slate-700">Từ:</span>
+                        <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="border border-slate-200 p-2 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <span className="text-sm font-bold text-slate-700">Đến:</span>
+                        <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="border border-slate-200 p-2 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none" />
+                    </div>
+
+                    <div className="space-y-3 mt-4">
+                        {customStart && customEnd ? (
+                            getSessionsForCustom().length > 0 ? (
+                                getSessionsForCustom().map((s, idx) => (
+                                    <div 
+                                        key={idx} 
+                                        onClick={() => nav(`/student/classes/${s.classId}`)} 
+                                        className="bg-slate-50 hover:bg-slate-100 p-3 rounded-xl border border-slate-200 transition-all cursor-pointer flex items-center justify-between"
+                                    >
+                                        <div>
+                                            <div className="text-sm font-black text-slate-800">{s.className}</div>
+                                            <div className="text-xs text-slate-500 font-bold mt-1">
+                                                🗓️ {format(new Date(s.rawDate), 'dd/MM/yyyy')} | ⏰ {s.time}
+                                            </div>
+                                        </div>
+                                        <div className="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded-md">
+                                             Phòng {s.room}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-10 text-slate-400 italic">Không có lịch học trong khoảng thời gian này.</div>
+                            )
+                        ) : (
+                            <div className="text-center py-10 text-slate-400 italic">Chọn khoảng thời gian để xem lịch học.</div>
+                        )}
                     </div>
                 </div>
             )}
