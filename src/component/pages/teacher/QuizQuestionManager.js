@@ -177,7 +177,7 @@ export default function QuizQuestionManager() {
             return toast.error("Đề thi chưa có câu hỏi nào!");
         }
         if (!window.confirm("Bạn có chắc chắn muốn Lưu lại và Hoàn tất đề thi này?")) return;
-        
+
         try {
             const res = await TeacherQuizService.updateQuizStatus(classId, quizId, "published");
             if (res && res.success) {
@@ -193,7 +193,7 @@ export default function QuizQuestionManager() {
 
     const handleCancelQuiz = async () => {
         if (!window.confirm("Bạn có chắc chắn muốn HỦY đề thi này? Mọi dữ liệu (bao gồm câu hỏi) sẽ bị XÓA vĩnh viễn.")) return;
-        
+
         try {
             const res = await TeacherQuizService.deleteQuiz(classId, quizId);
             if (res && res.success) {
@@ -209,8 +209,8 @@ export default function QuizQuestionManager() {
 
     return (
         <div className="space-y-6">
-            <PageHeader 
-                title="Cấu trúc đề Quiz" 
+            <PageHeader
+                title="Cấu trúc đề Quiz"
                 subtitle={`Lớp: ${classId} • Đề: ${quizInfo?.title || quizId}`}
                 right={[
                     <Button key="back" variant="outline" onClick={() => navigate(-1)}>Quay lại</Button>,
