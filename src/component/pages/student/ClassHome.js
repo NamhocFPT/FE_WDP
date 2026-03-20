@@ -1,19 +1,22 @@
 // src/component/pages/student/ClassHome.js
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { studentApi } from "service/studentApi";
-import { PageHeader, Card, CardHeader, CardTitle, CardContent, Badge, Table, Th, Td, Button } from "component/ui";
-import { Lock, CheckCircle2, AlertCircle, HelpCircle, MessageSquare, BarChart3, BookOpen, GraduationCap } from "lucide-react";
+import { PageHeader, Card, CardHeader, CardTitle, CardContent, Badge, Table, Th, Td } from "component/ui";
+import { Lock, CheckCircle2, AlertCircle, HelpCircle } from "lucide-react";
 
 
 export default function ClassHome() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    
+    // Đồng bộ tab từ URL query param, mặc định là overview
+    const currentTab = searchParams.get("tab") || "overview";
 
     const [cl, setCl] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [tab, setTab] = useState("overview");
     const [gradesData, setGradesData] = useState(null);
     const [isGradesLoading, setIsGradesLoading] = useState(false);
 
@@ -36,7 +39,7 @@ export default function ClassHome() {
     }, [id]);
 
     useEffect(() => {
-        if (tab === "grades" && !gradesData) {
+        if (currentTab === "grades" && !gradesData) {
             const fetchGrades = async () => {
                 setIsGradesLoading(true);
                 try {
@@ -52,19 +55,18 @@ export default function ClassHome() {
             };
             fetchGrades();
         }
-    }, [tab, id, gradesData]);
+    }, [currentTab, id, gradesData]);
 
     const getStatusBadge = (status) => {
         switch (status) {
-            case "published": return <Badge tone="green" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Published</Badge>;
-            case "hidden": return <Badge tone="slate" className="gap-1 opacity-70"><Lock className="h-3 w-3" /> Hidden</Badge>;
-            case "submitted": return <Badge tone="blue" className="gap-1"><HelpCircle className="h-3 w-3" /> Submitted</Badge>;
-            case "no_submission": return <Badge tone="amber" className="gap-1"><AlertCircle className="h-3 w-3" /> No Sub</Badge>;
+            case "published": return <Badge tone="green" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Đã công bố</Badge>;
+            case "hidden": return <Badge tone="slate" className="gap-1 opacity-70"><Lock className="h-3 w-3" /> Đã ẩn</Badge>;
+            case "submitted": return <Badge tone="blue" className="gap-1"><HelpCircle className="h-3 w-3" /> Đã nộp bài</Badge>;
+            case "no_submission": return <Badge tone="amber" className="gap-1"><AlertCircle className="h-3 w-3" /> Chưa nộp</Badge>;
             default: return <Badge tone="slate">{status}</Badge>;
         }
     };
 
-    // UI lúc đang Loading (Hiệu ứng Skeleton)
     if (isLoading) return (
         <div className="p-10 space-y-4 animate-pulse">
             <div className="h-12 w-1/3 bg-slate-200 rounded-lg"></div>
@@ -73,53 +75,26 @@ export default function ClassHome() {
         </div>
     );
 
-
-    // UI lúc gọi API lỗi
     if (error) return (
         <div className="p-10 text-center text-red-500 font-semibold bg-red-50 rounded-xl border border-red-200 mt-6">
             {error}
         </div>
     );
 
-    // UI lúc không có data
     if (!cl) return <div className="p-10 text-center text-slate-500">Không có dữ liệu lớp học.</div>;
-
-    // Component Nút Tab
-    const TabBtn = ({ v, label }) => (
-        <button
-            onClick={() => setTab(v)}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all ${tab === v
-                ? "bg-slate-900 text-white shadow-md"
-                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-                }`}
-        >
-            {label}
-        </button>
-    );
 
     return (
         <div className="space-y-6">
             <PageHeader
                 title={cl.name}
-                subtitle={`Teacher: ${cl.teacher || "Chưa phân công"} • Room: ${cl.room || "N/A"}`}
+                subtitle={`Giảng viên: ${cl.teacher || "Chưa phân công"} • Phòng: ${cl.room || "TBA"}`}
             />
 
-            {/* Thanh điều hướng Tabs */}
-            <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-4">
-                <TabBtn v="overview" label="Overview" />
-                <TabBtn v="materials" label="Materials" />
-                <TabBtn v="quizzes" label="Quizzes" />
-                <TabBtn v="assignments" label="Assignments" />
-                <TabBtn v="announcements" label="Announcements" />
-                <TabBtn v="grades" label="Grades" />
-            </div>
-
-
             {/* TAB: OVERVIEW */}
-            {tab === "overview" && (
+            {currentTab === "overview" && (
                 <div className="grid gap-4 lg:grid-cols-2 animate-in fade-in duration-300">
                     <Card>
-                        <CardHeader><CardTitle>Schedule</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Lịch học</CardTitle></CardHeader>
                         <CardContent>
                             <div className="flex flex-wrap gap-2">
                                 {cl.schedule?.length > 0 ? (
@@ -136,16 +111,16 @@ export default function ClassHome() {
                     </Card>
 
                     <Card>
-                        <CardHeader><CardTitle>Quick Info</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Thông tin nhanh</CardTitle></CardHeader>
                         <CardContent className="space-y-3 text-sm">
                             <div className="flex items-center justify-between border-b pb-2">
-                                <span>Students</span><Badge tone="slate">{cl.studentsCount || 0}</Badge>
+                                <span>Sĩ số</span><Badge tone="slate">{cl.studentsCount || 0}</Badge>
                             </div>
                             <div className="flex items-center justify-between border-b pb-2">
-                                <span>Materials</span><Badge tone="blue">{cl.materials?.length || 0}</Badge>
+                                <span>Số tài liệu</span><Badge tone="blue">{cl.materials?.length || 0}</Badge>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span>Assignments</span><Badge tone="amber">{cl.assignments?.length || 0}</Badge>
+                                <span>Bài tập & Trắc nghiệm</span><Badge tone="amber">{cl.assignments?.length || 0}</Badge>
                             </div>
                         </CardContent>
                     </Card>
@@ -153,9 +128,9 @@ export default function ClassHome() {
             )}
 
             {/* TAB: MATERIALS */}
-            {tab === "materials" && (
+            {currentTab === "materials" && (
                 <Card className="animate-in fade-in duration-300">
-                    <CardHeader><CardTitle>Materials</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Tài liệu học tập</CardTitle></CardHeader>
                     <CardContent className="space-y-3">
                         {cl.materials?.length > 0 ? cl.materials.map((m) => (
                             <div key={m.id} className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 bg-white hover:bg-slate-50 transition-colors">
@@ -163,28 +138,28 @@ export default function ClassHome() {
                                     <div className="text-2xl">📚</div>
                                     <div>
                                         <div className="text-sm font-bold text-slate-900">{m.title}</div>
-                                        <div className="text-xs text-slate-500 mt-1">Updated: {m.updatedAt}</div>
+                                        <div className="text-xs text-slate-500 mt-1">Cập nhật: {m.updatedAt}</div>
                                     </div>
                                 </div>
                                 <Badge tone="blue">{m.type}</Badge>
                             </div>
-                        )) : <p className="text-sm text-slate-500 italic text-center py-6">No materials posted yet.</p>}
+                        )) : <p className="text-sm text-slate-500 italic text-center py-6">Chưa có tài liệu nào được đăng.</p>}
                     </CardContent>
                 </Card>
             )}
 
             {/* TAB: QUIZZES */}
-            {tab === "quizzes" && (
+            {currentTab === "quizzes" && (
                 <Card className="animate-in fade-in duration-300">
-                    <CardHeader><CardTitle>Quizzes</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Bài tập trắc nghiệm</CardTitle></CardHeader>
                     <CardContent>
                         <div className="overflow-x-auto">
                             <Table>
                                 <thead>
                                     <tr>
-                                        <Th>Title</Th>
-                                        <Th>Due Date</Th>
-                                        <Th>Max Points</Th>
+                                        <Th>Tiêu đề</Th>
+                                        <Th>Hạn nộp</Th>
+                                        <Th>Điểm tối đa</Th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -202,7 +177,7 @@ export default function ClassHome() {
                                             <Td className="text-slate-600 text-sm font-medium">{a.due}</Td>
                                             <Td><Badge tone="amber">{a.points}</Badge></Td>
                                         </tr>
-                                    )) : <tr><Td colSpan="3" className="text-center py-8 text-slate-500 italic">No quizzes available.</Td></tr>}
+                                    )) : <tr><Td colSpan="3" className="text-center py-8 text-slate-500 italic">Không có bài trắc nghiệm nào.</Td></tr>}
                                 </tbody>
                             </Table>
                         </div>
@@ -211,17 +186,17 @@ export default function ClassHome() {
             )}
 
             {/* TAB: ASSIGNMENTS */}
-            {tab === "assignments" && (
+            {currentTab === "assignments" && (
                 <Card className="animate-in fade-in duration-300">
-                    <CardHeader><CardTitle>Assignments</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Bài tập tự luận</CardTitle></CardHeader>
                     <CardContent>
                         <div className="overflow-x-auto">
                             <Table>
                                 <thead>
                                     <tr>
-                                        <Th>Title</Th>
-                                        <Th>Due Date</Th>
-                                        <Th>Max Points</Th>
+                                        <Th>Tiêu đề</Th>
+                                        <Th>Hạn nộp</Th>
+                                        <Th>Điểm tối đa</Th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -239,7 +214,7 @@ export default function ClassHome() {
                                             <Td className="text-slate-600 text-sm font-medium">{a.due}</Td>
                                             <Td><Badge tone="amber">{a.points}</Badge></Td>
                                         </tr>
-                                    )) : <tr><Td colSpan="3" className="text-center py-8 text-slate-500 italic">No assignments available.</Td></tr>}
+                                    )) : <tr><Td colSpan="3" className="text-center py-8 text-slate-500 italic">Không có bài tự luận nào.</Td></tr>}
                                 </tbody>
                             </Table>
                         </div>
@@ -248,9 +223,9 @@ export default function ClassHome() {
             )}
 
             {/* TAB: ANNOUNCEMENTS */}
-            {tab === "announcements" && (
+            {currentTab === "announcements" && (
                 <Card className="animate-in fade-in duration-300">
-                    <CardHeader><CardTitle>Announcements</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Thông báo lớp học</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                         {cl.announcements?.length > 0 ? cl.announcements.map((a) => (
                             <div key={a.id} className="rounded-xl border border-blue-100 bg-blue-50/40 p-5 hover:shadow-sm transition-shadow">
@@ -267,7 +242,7 @@ export default function ClassHome() {
             )}
 
             {/* TAB: GRADES */}
-            {tab === "grades" && (
+            {currentTab === "grades" && (
                 <div className="space-y-4 animate-in fade-in duration-300">
                     {isGradesLoading ? (
                         <div className="flex flex-col items-center justify-center p-20 bg-white rounded-xl border border-slate-100">
@@ -279,7 +254,7 @@ export default function ClassHome() {
                             <div className="lg:col-span-1">
                                 <Card className="bg-slate-900 text-white border-none">
                                     <CardContent className="p-6 text-center">
-                                        <p className="text-slate-400 text-xs font-bold uppercase mb-2">Course Total</p>
+                                        <p className="text-slate-400 text-xs font-bold uppercase mb-2">Tổng kết môn học</p>
                                         <div className="text-4xl font-black">{gradesData.course_total !== null ? Number(gradesData.course_total).toFixed(2) : "--"}</div>
                                         <p className="text-[10px] text-slate-500 mt-2 italic">* Chỉ tính các bài đã công bố</p>
                                     </CardContent>
@@ -327,7 +302,6 @@ export default function ClassHome() {
                     )}
                 </div>
             )}
-
         </div>
     );
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge } from "component/ui";
 import { studentApi } from "service/studentApi";
-import { ChevronLeft, Lock, CheckCircle2, AlertCircle, HelpCircle, MessageSquare } from "lucide-react";
+import { ChevronLeft, Lock, CheckCircle2, AlertCircle, MessageSquare } from "lucide-react";
 
 export default function StudentClassGrades() {
     const { classId } = useParams();
@@ -35,7 +35,7 @@ export default function StudentClassGrades() {
             case "hidden":
                 return <Badge tone="slate" className="gap-1 opacity-70"><Lock className="h-3 w-3" /> Chờ công bố</Badge>;
             case "submitted":
-                return <Badge tone="blue" className="gap-1"><HelpCircle className="h-3 w-3" /> Đã nộp bài</Badge>;
+                return <Badge tone="blue" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Đã nộp bài</Badge>;
             case "no_submission":
                 return <Badge tone="amber" className="gap-1"><AlertCircle className="h-3 w-3" /> Chưa nộp bài</Badge>;
             default:
@@ -93,15 +93,15 @@ export default function StudentClassGrades() {
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2 text-xs text-slate-600">
                                     <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
-                                    <span><b>Published</b>: Bạn đã xem được kết quả và feedback.</span>
+                                    <span><b>Đã công bố</b>: Bạn đã xem được kết quả và nhận xét.</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-slate-600">
                                     <div className="h-2 w-2 rounded-full bg-slate-400"></div>
-                                    <span><b>Hidden</b>: Điểm đang được GV cân nhắc/chỉnh sửa.</span>
+                                    <span><b>Chờ công bố</b>: Điểm đang được GV cân nhắc/chỉnh sửa.</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-slate-600">
                                     <div className="h-2 w-2 rounded-full bg-amber-500"></div>
-                                    <span><b>No Submission</b>: Chưa ghi nhận bài làm từ bạn.</span>
+                                    <span><b>Chưa nộp</b>: Chưa ghi nhận bài làm từ bạn.</span>
                                 </div>
                             </div>
                         </CardContent>
@@ -127,7 +127,7 @@ export default function StudentClassGrades() {
                                         <Td className="py-4">
                                             <div className="font-bold text-slate-900">{item.title}</div>
                                             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-                                                {item.type} • {item.submitted_at ? new Date(item.submitted_at).toLocaleDateString('vi-VN') : "Chưa nộp"}
+                                                {item.type === 'QUIZ' ? 'Trắc nghiệm' : item.type === 'ESSAY' ? 'Tự luận' : item.type} • {item.submitted_at ? new Date(item.submitted_at).toLocaleDateString('vi-VN') : "Chưa nộp"}
                                             </div>
                                         </Td>
                                         <Td>

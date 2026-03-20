@@ -1,13 +1,15 @@
 // src/component/pages/teacher/AssignmentManagement.js
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom"; // Đã thêm useNavigate
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge, Input } from "component/ui";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, FileText, HelpCircle } from "lucide-react";
 
 
 export default function AssignmentManagement() {
     const { classId } = useParams(); 
-    const navigate = useNavigate(); // Khởi tạo hook điều hướng
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const typeFilter = searchParams.get("type"); // 'quiz' or 'essay'
 
     const [assignments, setAssignments] = useState([]);
     const [isCreating, setIsCreating] = useState(false);
@@ -26,7 +28,7 @@ export default function AssignmentManagement() {
         max_score: 100,
         status: "published",
         settings: {
-            online_text: false, // Chỉ nộp file đính kèm theo UC
+            online_text: false,
             file_submission: true,
             max_files: 1,
             max_size_mb: 50,
@@ -55,7 +57,6 @@ export default function AssignmentManagement() {
         if (classId) fetchAssignments();
     }, [classId]);
 
-    // UC_TEA_13: Xóa bài tập
     const onDelete = async (assessmentId) => {
         if (!window.confirm("Bạn có chắc chắn muốn xóa bài tập này không? Hành động này không thể hoàn tác.")) return;
         
@@ -77,7 +78,6 @@ export default function AssignmentManagement() {
         }
     };
 
-    // Tính năng: Xuất bản nhanh bài tập đang ở trạng thái Draft
     const onQuickPublish = async (assignment) => {
         try {
             const token = localStorage.getItem("smartedu_token");
@@ -89,17 +89,17 @@ export default function AssignmentManagement() {
                 },
                 body: JSON.stringify({ 
                     ...assignment, 
-                    settings: assignment.settings_json, // Đảm bảo key khớp với BE
+                    settings: assignment.settings_json,
                     status: 'published' 
                 })
             });
             const data = await response.json();
             if (data.success) {
-                setMessage({ text: "Bài tập đã được xuất bản!", type: "success" });
+                setMessage({ text: "Bài tập đã được công bố!", type: "success" });
                 fetchAssignments();
             }
         } catch (error) {
-            console.error("Lỗi xuất bản nhanh:", error);
+            console.error("Lỗi công bố nhanh:", error);
         }
     };
 
@@ -163,27 +163,20 @@ export default function AssignmentManagement() {
         setIsLoading(true);
         setMessage({ text: "", type: "" });
 
-        // --- Validate thời gian (Recommendations) ---
         const allowFromDate = formData.allow_from ? new Date(formData.allow_from) : null;
         const dueAtDate = formData.due_at ? new Date(formData.due_at) : null;
         const cutoffAtDate = formData.cutoff_at ? new Date(formData.cutoff_at) : null;
 
         if (allowFromDate && dueAtDate && allowFromDate > dueAtDate) {
-            setMessage({ text: "Thời gian bắt đầu nhận bài phải diễn ra trước Hạn nộp (Due Date).", type: "error" });
+            setMessage({ text: "Thời gian bắt đầu nhận bài phải diễn ra trước Hạn nộp.", type: "error" });
             setIsLoading(false);
             return;
         }
         if (dueAtDate && cutoffAtDate && dueAtDate > cutoffAtDate) {
-            setMessage({ text: "Hạn nộp (Due Date) phải diễn ra trước Thời gian đóng cổng (Cut-off Date).", type: "error" });
+            setMessage({ text: "Hạn nộp phải diễn ra trước Thời gian đóng cổng.", type: "error" });
             setIsLoading(false);
             return;
         }
-        if (allowFromDate && cutoffAtDate && allowFromDate > cutoffAtDate) {
-            setMessage({ text: "Thời gian bắt đầu nhận bài phải diễn ra trước Thời gian đóng cổng.", type: "error" });
-            setIsLoading(false);
-            return;
-        }
-        // -------------------------------------------
 
         try {
             const token = localStorage.getItem("smartedu_token");
@@ -211,8 +204,8 @@ export default function AssignmentManagement() {
                 cutoff_at: formData.cutoff_at ? new Date(formData.cutoff_at).toISOString() : null,
                 settings: {
                     ...(formData.settings || initialFormState.settings),
-                    online_text: false, // Ép buộc false khi lưu/sửa
-                    file_submission: true, // Ép buộc true
+                    online_text: false,
+                    file_submission: true,
                     max_files: Number(formData.settings?.max_files || 1),
                     max_size_mb: Number(formData.settings?.max_size_mb || 50),
                     allowed_exts: typeof formData.settings?.allowed_exts === 'string' 
@@ -274,7 +267,7 @@ export default function AssignmentManagement() {
                                 <h3 className="font-bold text-slate-800 border-b pb-2">1. Thông tin chung</h3>
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold text-slate-700">Tiêu đề bài tập <span className="text-red-500">*</span></label>
-                                    <Input name="title" value={formData.title} onChange={handleInputChange} placeholder="VD: Assignment 1" required />
+                                    <Input name="title" value={formData.title} onChange={handleInputChange} placeholder="VD: Bài tập về nhà tuần 1" required />
                                 </div>
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold text-slate-700">Hướng dẫn / Yêu cầu đề bài</label>
@@ -319,8 +312,6 @@ export default function AssignmentManagement() {
 
                             <div className="space-y-4 rounded-xl border border-slate-200 p-4 bg-white shadow-sm">
                                 <h3 className="font-bold text-slate-800 border-b pb-2">3. Cấu hình nộp file</h3>
-
-
                                 <div className="grid gap-4 md:grid-cols-3 mt-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
                                     <div>
                                         <label className="mb-1 block text-xs font-semibold text-slate-600">Số file tối đa</label>
@@ -340,7 +331,7 @@ export default function AssignmentManagement() {
                             {message.text && <div className={`p-3 rounded-lg text-sm font-semibold ${message.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>{message.text}</div>}
                             <div className="flex gap-3">
                                 <Button type="submit" disabled={isLoading} className="bg-blue-600 text-white min-w-[140px]">
-                                    {isLoading ? "Đang lưu..." : (editingId ? "Cập nhật" : "Lưu & Xuất bản")}
+                                    {isLoading ? "Đang lưu..." : (editingId ? "Cập nhật" : "Lưu & Công bố")}
                                 </Button>
                                 {!editingId && (
                                     <Button type="button" variant="outline" disabled={isLoading} onClick={(e) => onSubmit(e, "draft")}>
@@ -355,9 +346,36 @@ export default function AssignmentManagement() {
         );
     }
 
+    const filteredAssignments = assignments.filter(a => {
+        if (!typeFilter) return true;
+        if (typeFilter === 'quiz') return a.type?.toUpperCase() === 'QUIZ';
+        if (typeFilter === 'essay') return a.type?.toUpperCase() === 'ESSAY';
+        return true;
+    });
+
+    const pageTitle = typeFilter === 'quiz' ? "Quản lý Trắc nghiệm" : (typeFilter === 'essay' ? "Quản lý Tự luận" : "Quản lý Bài tập");
+    const pageIcon = typeFilter === 'quiz' ? <HelpCircle className="text-blue-600" /> : <FileText className="text-blue-600" />;
+
     return (
         <div className="space-y-4">
-            <PageHeader title="Quản lý Bài tập" subtitle={`Lớp ID: ${classId}`} right={[<Button key="n" onClick={() => {setEditingId(null); setFormData(initialFormState); setIsCreating(true);}}>+ Tạo Bài Tập Mới</Button>]} />
+            <PageHeader 
+                title={pageTitle} 
+                subtitle={`Lớp: ${classId}`} 
+                icon={pageIcon}
+                right={[
+                    <Button key="n" onClick={() => {
+                        if (typeFilter === 'quiz') {
+                            navigate(`/teacher/classes/${classId}/quizzes/create`);
+                        } else {
+                            setEditingId(null); 
+                            setFormData(initialFormState); 
+                            setIsCreating(true);
+                        }
+                    }}>
+                        + {typeFilter === 'quiz' ? 'Tạo Trắc nghiệm mới' : (typeFilter === 'essay' ? 'Tạo Tự luận mới' : 'Tạo mới')}
+                    </Button>
+                ]} 
+            />
             <Card>
                 <CardContent>
                     {isFetching ? <p className="p-10 text-center text-slate-500">Đang tải dữ liệu...</p> : (
@@ -373,9 +391,8 @@ export default function AssignmentManagement() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {assignments.length > 0 ? assignments.map((a) => (
+                                    {filteredAssignments.length > 0 ? filteredAssignments.map((a) => (
                                         <tr key={a.id} className="hover:bg-slate-50 group">
-                                            {/* SỬA ĐỔI CHÍNH NẰM Ở CỘT NÀY */}
                                             <Td>
                                                 <div 
                                                     className="font-semibold text-blue-600 cursor-pointer hover:underline flex items-center gap-2"
@@ -390,13 +407,13 @@ export default function AssignmentManagement() {
                                                     {a.is_published ? <Eye className="h-3.5 w-3.5 text-emerald-500" /> : <EyeOff className="h-3.5 w-3.5 text-amber-500" />}
                                                     {a.title}
                                                 </div>
-                                                <div className="text-xs text-slate-400 mt-1">ID: {a.id.substring(0,8)}... {a.type?.toUpperCase() === 'QUIZ' ? '(Quiz)' : '(Essay)'}</div>
+                                                <div className="text-xs text-slate-400 mt-1">{a.type?.toUpperCase() === 'QUIZ' ? '(Trắc nghiệm)' : '(Tự luận)'}</div>
                                             </Td>
                                             <Td>{a.due_at ? new Date(a.due_at).toLocaleString('vi-VN') : "Không có hạn"}</Td>
                                             <Td><Badge tone="amber">{a.max_score || 100}</Badge></Td>
                                             <Td>
                                                 <Badge tone={a.is_published ? 'green' : 'slate'}>
-                                                    {a.is_published ? 'Published' : 'Draft/Hidden'}
+                                                    {a.is_published ? 'Đã công bố' : 'Bản nháp / Ẩn'}
                                                 </Badge>
                                             </Td>
                                             <Td className="text-right">
@@ -415,7 +432,7 @@ export default function AssignmentManagement() {
                                                             className="bg-green-600 text-white hover:bg-green-700" 
                                                             onClick={() => onQuickPublish(a)}
                                                         >
-                                                            Public
+                                                            Công bố ngay
                                                         </Button>
                                                     )}
                                                     <Button size="xs" variant="outline" onClick={() => handleEditClick(a)}>
@@ -435,7 +452,6 @@ export default function AssignmentManagement() {
                                                             className="bg-slate-800 text-white hover:bg-black"
                                                             onClick={() => {
                                                                 const qId = a.id || a._id;
-                                                                console.log("Navigating to Quiz Manager with ID:", qId, a);
                                                                 if (!qId || qId === "undefined") {
                                                                     alert("Không tìm thấy ID bài tập. Vui lòng tải lại trang.");
                                                                     return;

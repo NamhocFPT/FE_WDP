@@ -53,13 +53,13 @@ export default function GradingPage() {
                     className={`px-6 py-3 font-bold text-sm border-b-2 transition-all ${activeTab === 'needs_grading' ? 'border-b-blue-600 text-blue-600 bg-white' : 'border-b-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
                     onClick={() => setActiveTab('needs_grading')}
                 >
-                    Chờ chấm {assessments.some(a => a.needsGradingCount > 0)}
+                    Chờ chấm bài ({assessments.reduce((acc, a) => acc + (a.needsGradingCount || 0), 0)})
                 </button>
                 <button
                     className={`px-6 py-3 font-bold text-sm border-b-2 transition-all ${activeTab === 'graded' ? 'border-b-blue-600 text-blue-600 bg-white' : 'border-b-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
                     onClick={() => setActiveTab('graded')}
                 >
-                    Đã chấm Điểm
+                    Đã chấm điểm ({assessments.reduce((acc, a) => acc + (a.gradedCount || 0), 0)})
                 </button>
             </div>
 

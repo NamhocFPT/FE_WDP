@@ -46,22 +46,22 @@ export default function TeacherClassList() {
                                 <div className="flex gap-2">
                                     <Button 
                                         className="bg-blue-600 hover:bg-blue-700 text-white"
-                                        onClick={() => navigate(`/teacher/classes/${c.id}/assignments`)}
+                                        onClick={() => navigate(`/teacher/classes/${c.id}/assignments?type=essay`)}
                                     >
-                                        Bài tập
+                                        Tự luận
                                     </Button>
                                     <Button 
                                         className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                        onClick={() => navigate(`/teacher/classes/${c.id}/quizzes`)}
+                                        onClick={() => navigate(`/teacher/classes/${c.id}/assignments?type=quiz`)}
                                     >
-                                        Quizzes
+                                        Trắc nghiệm
                                     </Button>
                                     <Button 
                                         variant="outline"
                                         className="border-slate-300 text-slate-700 hover:bg-slate-50"
                                         onClick={() => navigate(`/teacher/classes/${c.id}/gradebook`)}
                                     >
-                                        Điểm
+                                        Bảng điểm
                                     </Button>
                                 </div>
 

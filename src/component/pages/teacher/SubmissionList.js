@@ -91,13 +91,13 @@ const fetchSubmissions = async () => {
                                 <p className="font-medium">{assessment.Course?.name || '---'}</p>
                             </div>
                             <div>
-                                <p className="text-slate-500 font-semibold mb-1">Hạn nộp (Due Date)</p>
+                                <p className="text-slate-500 font-semibold mb-1">Hạn nộp bài</p>
                                 <p className="font-medium text-red-600">
                                     {assessment.due_at ? new Date(assessment.due_at).toLocaleString('vi-VN') : 'Không giới hạn'}
                                 </p>
                             </div>
                             <div>
-                                <p className="text-slate-500 font-semibold mb-1">Đóng cổng (Cut-off)</p>
+                                <p className="text-slate-500 font-semibold mb-1">Hạn chót đóng cổng</p>
                                 <p className="font-medium">
                                     {assessment.cutoff_at ? new Date(assessment.cutoff_at).toLocaleString('vi-VN') : 'Không có'}
                                 </p>

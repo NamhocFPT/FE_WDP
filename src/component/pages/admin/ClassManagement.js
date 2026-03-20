@@ -29,7 +29,7 @@ export default function ClassManagement() {
             setClasses(activeClasses); 
             setLoading(false);
         } catch (err) {
-            console.error("Error fetching classes:", err);
+            console.error("Lỗi khi tải danh sách lớp học:", err);
             setLoading(false);
         }
     };
@@ -44,20 +44,20 @@ export default function ClassManagement() {
         );
     }, [q, classes]);
 
-    if (loading) return <div className="p-8 text-center text-slate-500 italic">Loading classes...</div>;
+    if (loading) return <div className="p-8 text-center text-slate-500 italic">Đang tải danh sách lớp học...</div>;
 
     return (
         <div className="flex flex-col h-full w-full bg-[#f8fafc] p-8 space-y-6">
             <PageHeader 
-                title="Class Management" 
-                subtitle="View and manage real-time classes." 
+                title="Quản lý Lớp học" 
+                subtitle="Xem và quản lý danh sách lớp học thời gian thực." 
                 right={[
                     <Button 
                         key="add" 
                         className="bg-[#0f172a] text-white px-5" 
                         onClick={() => setIsCreateModalOpen(true)}
                     >
-                        Create Class
+                        + Tạo Lớp học
                     </Button>
                 ]} 
             />
@@ -69,7 +69,7 @@ export default function ClassManagement() {
                     type="text" 
                     value={q} 
                     onChange={(e) => setQ(e.target.value)}
-                    placeholder="Search by class code or name..." 
+                    placeholder="Tìm kiếm theo mã hoặc tên lớp..." 
                     className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 transition-all"
                 />
             </div>
@@ -81,13 +81,13 @@ export default function ClassManagement() {
                         <Table className="w-full">
                             <thead>
                                 <tr className="bg-slate-50/50 border-b border-slate-100">
-                                    <Th className="py-5 px-6">Class</Th>
-                                    <Th>Course</Th>
-                                    <Th>Semester</Th>
-                                    <Th>Teacher</Th>
-                                    <Th>Enrollment</Th>
-                                    <Th>Status</Th>
-                                    <Th className="text-center">Actions</Th>
+                                    <Th className="py-5 px-6">Lớp học</Th>
+                                    <Th>Khóa học</Th>
+                                    <Th>Học kỳ</Th>
+                                    <Th>Giảng viên</Th>
+                                    <Th>Sĩ số</Th>
+                                    <Th>Trạng thái</Th>
+                                    <Th className="text-center">Thao tác</Th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
@@ -95,8 +95,8 @@ export default function ClassManagement() {
                                     <tr key={cl.id} className="hover:bg-slate-50 transition-colors">
                                         <Td className="py-5 px-6 font-bold">{cl.name}</Td>
                                         <Td>{cl.course?.name || "N/A"}</Td>
-                                        <Td className="italic">{cl.semester || "Spring 2026"}</Td>
-                                        <Td>{cl.teacher?.full_name || "Unassigned"}</Td>
+                                        <Td className="italic">{cl.semester || "Kỳ học 2026"}</Td>
+                                        <Td>{cl.teacher?.full_name || "Chưa phân công"}</Td>
                                         <Td>
                                             <div className="flex items-center gap-2">
                                                 <Users size={14} />
@@ -105,18 +105,18 @@ export default function ClassManagement() {
                                         </Td>
                                         <Td>
                                             <Badge tone={cl.status === "active" ? "green" : (cl.status === "upcoming" ? "blue" : (cl.status === "cancelled" ? "red" : "slate"))}>
-                                                {cl.status || "active"}
+                                                {cl.status === "active" ? "Đang diễn ra" : (cl.status === "upcoming" ? "Sắp tới" : (cl.status === "cancelled" ? "Đã hủy" : "Đã đóng"))}
                                             </Badge>
                                         </Td>
                                         <Td className="flex justify-center gap-4 py-5">
                                             <button onClick={() => nav(`/admin/classes/${cl.id}`)}>
-                                                <ChevronRight size={18} className="text-blue-600 hover:text-blue-800" />
+                                                <ChevronRight size={18} className="text-blue-600 hover:text-blue-800" title="Xem chi tiết" />
                                             </button>
                                             <button onClick={() => setEditClass(cl)}>
-                                                <Pencil size={18} className="text-slate-400 hover:text-slate-700" />
+                                                <Pencil size={18} className="text-slate-400 hover:text-slate-700" title="Sửa" />
                                             </button>
                                             <button onClick={() => { setStatusModalClass(cl); setStatusAction(cl.status); }}>
-                                                <ToggleLeft size={18} className="text-slate-400 hover:text-indigo-600" title="Change Class Status" />
+                                                <ToggleLeft size={18} className="text-slate-400 hover:text-indigo-600" title="Đổi trạng thái" />
                                             </button>
                                         </Td>
                                     </tr>
@@ -160,17 +160,17 @@ export default function ClassManagement() {
                         <div>
                             <h3 className="text-xl font-bold text-slate-900">Chi tiết thay đổi trạng thái</h3>
                             <p className="text-sm text-slate-500 mt-2">
-                                Bạn đang chuyển lớp <span className="font-bold text-slate-800">"{statusModalClass?.name}"</span> sang trạng thái <span className="font-bold text-indigo-600 uppercase">{statusAction}</span>. Thao tác này có thể ảnh hưởng đến sinh viên.
+                                Bạn đang chuyển lớp <span className="font-bold text-slate-800">"{statusModalClass?.name}"</span> sang trạng thái mới. Thao tác này có thể ảnh hưởng đến sinh viên.
                             </p>
                             <select 
-                                className="w-full mt-4 p-3 border border-slate-200 rounded-lg text-sm bg-slate-50"
+                                className="w-full mt-4 p-3 border border-slate-200 rounded-lg text-sm bg-slate-50 outline-none focus:border-indigo-500"
                                 value={statusAction}
                                 onChange={(e) => setStatusAction(e.target.value)}
                             >
-                                <option value="active">Active (Đang diễn ra)</option>
-                                <option value="upcoming">Upcoming (Sắp tới)</option>
-                                <option value="closed">Closed (Đã đóng)</option>
-                                <option value="cancelled">Cancelled (Đã hủy)</option>
+                                <option value="active">Đang diễn ra (Active)</option>
+                                <option value="upcoming">Sắp tới (Upcoming)</option>
+                                <option value="closed">Đã đóng (Closed)</option>
+                                <option value="cancelled">Đã hủy (Cancelled)</option>
                             </select>
                         </div>
                         

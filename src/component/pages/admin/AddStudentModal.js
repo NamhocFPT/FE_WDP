@@ -26,7 +26,7 @@ export default function AddStudentModal({ isOpen, onClose, classId, enrolledStud
             })
             .catch(err => {
                 console.error("Error fetching students:", err);
-                toast.error("Failed to load students.");
+                toast.error("Lỗi tải danh sách sinh viên.");
             })
             .finally(() => setFetching(false));
     }, [isOpen, enrolledStudentIds]);
@@ -51,18 +51,18 @@ export default function AddStudentModal({ isOpen, onClose, classId, enrolledStud
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (selectedIds.length === 0) {
-            toast.error("Please select at least one student.");
+            toast.error("Vui lòng chọn ít nhất một sinh viên.");
             return;
         }
 
         setLoading(true);
         try {
             await adminApi.enrollStudents(classId, selectedIds);
-            toast.success("Students enrolled successfully!");
+            toast.success("Đăng ký sinh viên vào lớp thành công!");
             onSuccess();
             onClose();
         } catch (error) {
-            toast.error(error.response?.data?.message || "An error occurred");
+            toast.error(error.response?.data?.message || "Đã xảy ra lỗi");
         } finally {
             setLoading(false);
         }
@@ -74,8 +74,8 @@ export default function AddStudentModal({ isOpen, onClose, classId, enrolledStud
                 {/* Header */}
                 <div className="flex justify-between items-start p-6 pb-4 shrink-0">
                     <div>
-                        <h3 className="text-xl font-bold text-slate-900">Add Students</h3>
-                        <p className="text-sm text-slate-500 mt-1">Search and select students to enroll in this class</p>
+                        <h3 className="text-xl font-bold text-slate-900">Thêm sinh viên</h3>
+                        <p className="text-sm text-slate-500 mt-1">Tìm kiếm và chọn sinh viên để đăng ký vào lớp học này</p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition-colors">
                         <X size={20} />
@@ -88,7 +88,7 @@ export default function AddStudentModal({ isOpen, onClose, classId, enrolledStud
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input
                             type="text"
-                            placeholder="Search by name, email, or student ID"
+                            placeholder="Tìm kiếm theo tên, email, hoặc MSSV..."
                             className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -101,7 +101,7 @@ export default function AddStudentModal({ isOpen, onClose, classId, enrolledStud
                     {fetching ? (
                         <div className="flex flex-col items-center justify-center py-12 text-slate-400">
                             <Loader2 className="animate-spin mb-2" size={24} />
-                            <p className="text-sm">Loading students...</p>
+                            <p className="text-sm">Đang tải danh sách sinh viên...</p>
                         </div>
                     ) : filteredStudents.length > 0 ? (
                         <div className="space-y-1">
@@ -117,7 +117,7 @@ export default function AddStudentModal({ isOpen, onClose, classId, enrolledStud
                                         onChange={() => toggleStudentSelection(student.id)}
                                     />
                                     <div>
-                                        <div className="font-bold text-slate-900">{student.full_name || "Unknown"}</div>
+                                        <div className="font-bold text-slate-900">{student.full_name || "Chưa rõ"}</div>
                                         <div className="text-xs text-slate-500">{student.email}</div>
                                     </div>
                                 </label>
@@ -125,7 +125,7 @@ export default function AddStudentModal({ isOpen, onClose, classId, enrolledStud
                         </div>
                     ) : (
                         <div className="text-center py-8 text-slate-500 text-sm">
-                            {searchQuery ? "No students matching your search criteria." : "All active students are already enrolled in this class."}
+                            {searchQuery ? "Không tìm thấy sinh viên nào khớp với tìm kiếm." : "Tất cả sinh viên đã được đăng ký vào lớp này."}
                         </div>
                     )}
                 </div>
@@ -138,7 +138,7 @@ export default function AddStudentModal({ isOpen, onClose, classId, enrolledStud
                         className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition-colors"
                         disabled={loading}
                     >
-                        Cancel
+                        Hủy bỏ
                     </button>
                     <button
                         onClick={handleSubmit}
@@ -146,7 +146,7 @@ export default function AddStudentModal({ isOpen, onClose, classId, enrolledStud
                         className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {loading && <Loader2 className="animate-spin" size={16} />}
-                        Add Selected
+                        Thêm sinh viên đã chọn
                     </button>
                 </div>
             </div>

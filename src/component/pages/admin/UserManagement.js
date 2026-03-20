@@ -1,5 +1,4 @@
 // src/component/pages/admin/UserManagement.js
-// UC_ADM_05 → UC_ADM_09: Full User Management with real API
 import React, { useState, useEffect, useCallback } from "react";
 import { PageHeader, Card, CardContent, Input, Button, Badge, Table, Th, Td, Modal } from "component/ui";
 import { adminApi } from "service/adminApi";
@@ -42,7 +41,7 @@ export default function UserManagement() {
                 setTotalPages(result.data.totalPages || 1);
             }
         } catch (err) {
-            console.error("Lỗi tải danh sách user:", err);
+            console.error("Lỗi tải danh sách người dùng:", err);
         } finally {
             setLoading(false);
         }
@@ -146,14 +145,15 @@ export default function UserManagement() {
 
     const getRoleBadge = (user) => {
         const code = user.role?.code || "";
+        const roleNameMap = { ADMIN: "Quản trị viên", TEACHER: "Giảng viên", STUDENT: "Học viên" };
         const toneMap = { ADMIN: "red", TEACHER: "blue", STUDENT: "green" };
-        return <Badge tone={toneMap[code] || "slate"}>{code}</Badge>;
+        return <Badge tone={toneMap[code] || "slate"}>{roleNameMap[code] || code}</Badge>;
     };
 
     return (
         <div className="space-y-4">
             <PageHeader
-                title="Quản lý User"
+                title="Quản lý Người dùng"
                 subtitle={`Tổng cộng ${total} tài khoản trong hệ thống.`}
                 right={[
                     <Button key="add" onClick={() => setShowCreateModal(true)}>
@@ -183,15 +183,15 @@ export default function UserManagement() {
                             />
                         </div>
                         <select className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}>
-                            <option value="all">Tất cả Role</option>
-                            <option value="ADMIN">Admin</option>
+                            <option value="all">Tất cả Vai trò</option>
+                            <option value="ADMIN">Quản trị viên</option>
                             <option value="TEACHER">Giảng viên</option>
                             <option value="STUDENT">Học viên</option>
                         </select>
                         <select className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
-                            <option value="all">Tất cả Status</option>
-                            <option value="active">Active</option>
-                            <option value="blocked">Blocked</option>
+                            <option value="all">Tất cả Trạng thái</option>
+                            <option value="active">Đang hoạt động</option>
+                            <option value="blocked">Đã bị khóa</option>
                         </select>
                     </div>
                 </CardContent>
@@ -217,9 +217,9 @@ export default function UserManagement() {
                                         <tr>
                                             <Th>Họ tên</Th>
                                             <Th>Email</Th>
-                                            <Th>SĐT</Th>
-                                            <Th>Role</Th>
-                                            <Th>Status</Th>
+                                            <Th>Số điện thoại</Th>
+                                            <Th>Vai trò</Th>
+                                            <Th>Trạng thái</Th>
                                             <Th className="text-right">Thao tác</Th>
                                         </tr>
                                     </thead>
@@ -232,7 +232,7 @@ export default function UserManagement() {
                                                 <Td>{getRoleBadge(u)}</Td>
                                                 <Td>
                                                     <Badge tone={u.status === "active" ? "green" : "red"}>
-                                                        {u.status === "active" ? "Active" : "Blocked"}
+                                                        {u.status === "active" ? "Đang hoạt động" : "Đã khóa"}
                                                     </Badge>
                                                 </Td>
                                                 <Td className="text-right">
@@ -291,7 +291,7 @@ export default function UserManagement() {
                         <Input placeholder="Nguyễn Văn A" value={createForm.full_name} onChange={(e) => setCreateForm(f => ({ ...f, full_name: e.target.value }))} />
                     </div>
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1">Role</label>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1">Vai trò</label>
                         <select className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" value={createForm.role_code} onChange={(e) => setCreateForm(f => ({ ...f, role_code: e.target.value }))}>
                             <option value="TEACHER">Giảng viên</option>
                             <option value="STUDENT">Học viên</option>
@@ -310,7 +310,7 @@ export default function UserManagement() {
             </Modal>
 
             {/* ── Modal: Sửa thông tin (UC_ADM_07) ── */}
-            <Modal open={showEditModal} title="Sửa thông tin User" onClose={() => setShowEditModal(false)}>
+            <Modal open={showEditModal} title="Sửa thông tin người dùng" onClose={() => setShowEditModal(false)}>
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-1">Họ tên</label>
@@ -323,7 +323,7 @@ export default function UserManagement() {
                     <div className="flex justify-end gap-3 pt-2">
                         <Button variant="outline" onClick={() => setShowEditModal(false)}>Hủy</Button>
                         <Button onClick={handleEdit} disabled={actionLoading}>
-                            {actionLoading ? "Đang lưu..." : "Lưu"}
+                            {actionLoading ? "Đang lưu..." : "Lưu thay đổi"}
                         </Button>
                     </div>
                 </div>
@@ -335,7 +335,7 @@ export default function UserManagement() {
                     {confirmAction.type === "toggle" && (
                         <p className="text-sm text-slate-600">
                             Bạn có chắc muốn <strong>{confirmAction.user?.status === "active" ? "khóa" : "mở khóa"}</strong> tài khoản <strong>{confirmAction.user?.full_name}</strong> ({confirmAction.user?.email})?
-                            {confirmAction.user?.status === "active" && <span className="block mt-2 text-amber-600 font-semibold">⚠ User sẽ không thể đăng nhập sau khi bị khóa.</span>}
+                            {confirmAction.user?.status === "active" && <span className="block mt-2 text-amber-600 font-semibold">⚠ Người dùng sẽ không thể đăng nhập sau khi bị khóa.</span>}
                         </p>
                     )}
                     {confirmAction.type === "reset" && (
@@ -359,11 +359,11 @@ export default function UserManagement() {
             {/* ── Modal: Hiển thị mật khẩu mới ── */}
             <Modal open={showPasswordModal} title="Mật khẩu đã được tạo" onClose={() => setShowPasswordModal(false)}>
                 <div className="space-y-4">
-                    <p className="text-sm text-slate-600">Mật khẩu đã được sinh và gán cho tài khoản. Hãy ghi lại và gửi cho user:</p>
+                    <p className="text-sm text-slate-600">Mật khẩu đã được sinh và gán cho tài khoản. Hãy ghi lại và gửi cho người dùng:</p>
                     <div className="p-4 bg-slate-900 rounded-xl text-center">
                         <code className="text-lg font-bold text-emerald-400 select-all">{generatedPassword}</code>
                     </div>
-                    <p className="text-xs text-slate-400 italic">User sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu.</p>
+                    <p className="text-xs text-slate-400 italic">Người dùng sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu.</p>
                     <div className="flex justify-end">
                         <Button onClick={() => setShowPasswordModal(false)}>Đóng</Button>
                     </div>

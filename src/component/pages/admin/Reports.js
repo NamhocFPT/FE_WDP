@@ -19,10 +19,10 @@ export default function Reports() {
     const [activeTab, setActiveTab] = useState('grade'); // 'grade' | 'teacher'
     const [teacherData, setTeacherData] = useState({
         activityChartData: [
-            { name: 'Week 1', quizzesCreated: 0, materialsUploaded: 0, assignmentsGraded: 0 },
-            { name: 'Week 2', quizzesCreated: 0, materialsUploaded: 0, assignmentsGraded: 0 },
-            { name: 'Week 3', quizzesCreated: 0, materialsUploaded: 0, assignmentsGraded: 0 },
-            { name: 'Week 4', quizzesCreated: 0, materialsUploaded: 0, assignmentsGraded: 0 },
+            { name: 'Tuần 1', quizzesCreated: 0, materialsUploaded: 0, assignmentsGraded: 0 },
+            { name: 'Tuần 2', quizzesCreated: 0, materialsUploaded: 0, assignmentsGraded: 0 },
+            { name: 'Tuần 3', quizzesCreated: 0, materialsUploaded: 0, assignmentsGraded: 0 },
+            { name: 'Tuần 4', quizzesCreated: 0, materialsUploaded: 0, assignmentsGraded: 0 },
         ],
         totals: { quizzesCreated: 0, materialsUploaded: 0, assignmentsGraded: 0 }
     });
@@ -99,10 +99,10 @@ export default function Reports() {
         if (active && payload && payload.length) {
             return (
                 <div className="bg-white p-3 border border-slate-200 rounded-lg shadow-sm">
-                    <p className="font-semibold text-slate-800 mb-1">{`Grade ${label}`}</p>
+                    <p className="font-semibold text-slate-800 mb-1">{`Điểm ${label}`}</p>
                     <p className="text-slate-600 flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full" style={{ backgroundColor: payload[0].fill }}></span>
-                        {`${payload[0].value} Students`}
+                        {`${payload[0].value} Học viên`}
                     </p>
                 </div>
             );
@@ -113,7 +113,11 @@ export default function Reports() {
     // Build a common data structure for all export formats
     const buildReportSections = () => {
         const now = new Date();
-        const filtersLabel = `Semester: ${semester || 'All'} | Course: ${course || 'All'} | Range: ${dateRange}`;
+        const filtersLabel = `Học kỳ: ${semester || 'Tất cả'} | Khóa học: ${course || 'Tất cả'} | Khoảng thời gian: ${
+            dateRange === 'This Week' ? 'Tuần này' : 
+            dateRange === 'This Month' ? 'Tháng này' : 
+            dateRange === 'This Semester' ? 'Học kỳ này' : 'Tùy chỉnh'
+        }`;
         return { now, filtersLabel };
     };
 
@@ -121,26 +125,26 @@ export default function Reports() {
         const { now, filtersLabel } = buildReportSections();
         const dateStr = now.toLocaleDateString('vi-VN').replace(/\//g, '-');
         const rows = [
-            [`Reports & Analytics Export`],
-            [`Generated: ${now.toLocaleString('vi-VN')}`],
-            [`Filters: ${filtersLabel}`],
+            [`Xuất Báo cáo & Phân tích`],
+            [`Ngày tạo: ${now.toLocaleString('vi-VN')}`],
+            [`Bộ lọc: ${filtersLabel}`],
             [],
-            [`GRADE DISTRIBUTION`],
-            [`Grade`, `Students`],
+            [`PHÂN BỐ ĐIỂM SỐ`],
+            [`Điểm`, `Số lượng học viên`],
             ...data.gradeDistributionData.map(r => [r.name, r.students]),
             [],
-            [`GRADE PERCENTAGE`],
-            [`Grade`, `Percentage (%)`],
+            [`TỶ LỆ PHẦN TRĂM ĐIỂM`],
+            [`Loại điểm`, `Phần trăm (%)`],
             ...(data.gradePercentageData.length === 0
-                ? [[`No graded data`, ``]]
+                ? [[`Không có dữ liệu điểm`, ``]]
                 : data.gradePercentageData.map(r => [r.name, r.value])),
             [],
-            [`COURSE ENROLLMENT STATISTICS`],
-            [`Course`, `Students`],
+            [`THỐNG KÊ GHI DANH KHÓA HỌC`],
+            [`Khóa học`, `Số lượng học viên`],
             ...data.courseEnrollmentData.map(r => [r.name, r.students]),
         ];
         const csv = rows.map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-        triggerDownload(`\uFEFF` + csv, `report_${dateStr}.csv`, 'text/csv;charset=utf-8;');
+        triggerDownload(`\uFEFF` + csv, `baocao_${dateStr}.csv`, 'text/csv;charset=utf-8;');
         toast.success('Đã xuất CSV thành công!');
     };
 
@@ -150,31 +154,31 @@ export default function Reports() {
         const sep = '='.repeat(50);
         const lines = [
             sep,
-            `  REPORTS & ANALYTICS EXPORT`,
+            `  XUẤT BÁO CÁO & PHÂN TÍCH`,
             sep,
-            `Generated : ${now.toLocaleString('vi-VN')}`,
-            `Filters   : ${filtersLabel}`,
+            `Ngày tạo : ${now.toLocaleString('vi-VN')}`,
+            `Bộ lọc   : ${filtersLabel}`,
             '',
-            `--- GRADE DISTRIBUTION ---`,
-            `${'Grade'.padEnd(10)} ${'Students'.padStart(8)}`,
-            '-'.repeat(20),
-            ...data.gradeDistributionData.map(r => `${r.name.padEnd(10)} ${String(r.students).padStart(8)}`),
+            `--- PHÂN BỐ ĐIỂM SỐ ---`,
+            `${'Điểm'.padEnd(10)} ${'Số lượng'.padStart(10)}`,
+            '-'.repeat(25),
+            ...data.gradeDistributionData.map(r => `${r.name.padEnd(10)} ${String(r.students).padStart(10)}`),
             '',
-            `--- GRADE PERCENTAGE ---`,
-            `${'Grade'.padEnd(20)} ${'Percentage'.padStart(10)}`,
+            `--- TỶ LỆ PHẦN TRĂM ĐIỂM ---`,
+            `${'Loại điểm'.padEnd(20)} ${'Phần trăm'.padStart(10)}`,
             '-'.repeat(32),
             ...(data.gradePercentageData.length === 0
-                ? ['  No graded data available']
+                ? ['  Chưa có dữ liệu điểm']
                 : data.gradePercentageData.map(r => `${r.name.padEnd(20)} ${String(r.value + '%').padStart(10)}`)),
             '',
-            `--- COURSE ENROLLMENT ---`,
-            `${'Course'.padEnd(30)} ${'Students'.padStart(8)}`,
-            '-'.repeat(40),
-            ...data.courseEnrollmentData.map(r => `${r.name.padEnd(30)} ${String(r.students).padStart(8)}`),
+            `--- GHI DANH KHÓA HỌC ---`,
+            `${'Khóa học'.padEnd(30)} ${'Số lượng'.padStart(10)}`,
+            '-'.repeat(45),
+            ...data.courseEnrollmentData.map(r => `${r.name.padEnd(30)} ${String(r.students).padStart(10)}`),
             '',
             sep,
         ];
-        triggerDownload(lines.join('\n'), `report_${dateStr}.txt`, 'text/plain;charset=utf-8;');
+        triggerDownload(lines.join('\n'), `baocao_${dateStr}.txt`, 'text/plain;charset=utf-8;');
         toast.success('Đã xuất TXT thành công!');
     };
 
@@ -185,41 +189,41 @@ export default function Reports() {
 
         // Sheet 1: Grade Distribution
         const ws1Data = [
-            ['Reports & Analytics Export'],
-            [`Generated: ${now.toLocaleString('vi-VN')}`],
-            [`Filters: ${filtersLabel}`],
+            ['Xuất Báo cáo & Phân tích'],
+            [`Ngày tạo: ${now.toLocaleString('vi-VN')}`],
+            [`Bộ lọc: ${filtersLabel}`],
             [],
-            ['GRADE DISTRIBUTION'],
-            ['Grade', 'Students'],
+            ['PHÂN BỐ ĐIỂM SỐ'],
+            ['Điểm', 'Số lượng học viên'],
             ...data.gradeDistributionData.map(r => [r.name, r.students]),
         ];
         const ws1 = XLSX.utils.aoa_to_sheet(ws1Data);
-        ws1['!cols'] = [{ wch: 20 }, { wch: 15 }];
-        XLSX.utils.book_append_sheet(wb, ws1, 'Grade Distribution');
+        ws1['!cols'] = [{ wch: 20 }, { wch: 20 }];
+        XLSX.utils.book_append_sheet(wb, ws1, 'Phân bố điểm');
 
         // Sheet 2: Grade Percentage
         const ws2Data = [
-            ['GRADE PERCENTAGE'],
-            ['Grade', 'Percentage (%)'],
+            ['TỶ LỆ PHẦN TRĂM ĐIỂM'],
+            ['Loại điểm', 'Phần trăm (%)'],
             ...(data.gradePercentageData.length === 0
-                ? [['No graded data', '']]
+                ? [['Chưa có dữ liệu điểm', '']]
                 : data.gradePercentageData.map(r => [r.name, r.value])),
         ];
         const ws2 = XLSX.utils.aoa_to_sheet(ws2Data);
-        ws2['!cols'] = [{ wch: 20 }, { wch: 15 }];
-        XLSX.utils.book_append_sheet(wb, ws2, 'Grade Percentage');
+        ws2['!cols'] = [{ wch: 25 }, { wch: 20 }];
+        XLSX.utils.book_append_sheet(wb, ws2, 'Tỷ lệ điểm');
 
         // Sheet 3: Course Enrollment
         const ws3Data = [
-            ['COURSE ENROLLMENT STATISTICS'],
-            ['Course', 'Students'],
+            ['THỐNG KÊ GHI DANH KHÓA HỌC'],
+            ['Khóa học', 'Số lượng học viên'],
             ...data.courseEnrollmentData.map(r => [r.name, r.students]),
         ];
         const ws3 = XLSX.utils.aoa_to_sheet(ws3Data);
-        ws3['!cols'] = [{ wch: 40 }, { wch: 15 }];
-        XLSX.utils.book_append_sheet(wb, ws3, 'Course Enrollment');
+        ws3['!cols'] = [{ wch: 50 }, { wch: 20 }];
+        XLSX.utils.book_append_sheet(wb, ws3, 'Ghi danh khóa học');
 
-        XLSX.writeFile(wb, `report_${dateStr}.xlsx`);
+        XLSX.writeFile(wb, `baocao_${dateStr}.xlsx`);
         toast.success('Đã xuất Excel thành công!');
     };
 
@@ -240,8 +244,8 @@ export default function Reports() {
             {/* Header & Export Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <PageHeader 
-                    title="Reports & Analytics" 
-                    subtitle="View performance metrics and activity reports" 
+                    title="Báo cáo & Phân tích" 
+                    subtitle="Xem các chỉ số hiệu suất và báo cáo hoạt động" 
                 />
                 {/* Export Dropdown */}
                 <div className="relative" ref={exportMenuRef}>
@@ -251,7 +255,7 @@ export default function Reports() {
                         disabled={loading}
                     >
                         <Download size={16} />
-                        Export Report
+                        Xuất Báo cáo
                         <ChevronDown size={14} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
                     </Button>
                     {showExportMenu && (
@@ -261,21 +265,21 @@ export default function Reports() {
                                 onClick={() => { handleExportCSV(); setShowExportMenu(false); }}
                             >
                                 <Table2 size={16} className="text-green-500" />
-                                Export CSV (.csv)
+                                Xuất CSV (.csv)
                             </button>
                             <button
                                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
                                 onClick={() => { handleExportTXT(); setShowExportMenu(false); }}
                             >
                                 <FileText size={16} className="text-blue-500" />
-                                Export TXT (.txt)
+                                Xuất TXT (.txt)
                             </button>
                             <button
                                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
                                 onClick={() => { handleExportExcel(); setShowExportMenu(false); }}
                             >
                                 <Sheet size={16} className="text-emerald-600" />
-                                Export Excel (.xlsx)
+                                Xuất Excel (.xlsx)
                             </button>
                         </div>
                     )}
@@ -285,49 +289,49 @@ export default function Reports() {
             {/* Filters */}
             <Card className="shadow-sm border-slate-200">
                 <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-semibold">Filters</CardTitle>
+                    <CardTitle className="text-base font-semibold">Bộ lọc</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Semester</label>
+                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Học kỳ</label>
                             <select 
                                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors"
                                 value={semester}
                                 onChange={e => setSemester(e.target.value)}
                                 disabled={filtersLoading}
                             >
-                                <option value="">All Semesters</option>
+                                <option value="">Tất cả Học kỳ</option>
                                 {filters.semesters.map(s => (
                                     <option key={s} value={s}>{s}</option>
                                 ))}
                             </select>
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Course</label>
+                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Khóa học</label>
                             <select 
                                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors"
                                 value={course}
                                 onChange={e => setCourse(e.target.value)}
                                 disabled={filtersLoading}
                             >
-                                <option value="">All Courses</option>
+                                <option value="">Tất cả Khóa học</option>
                                 {filters.courses.map(c => (
                                     <option key={c.id} value={`${c.code} - ${c.name}`}>{c.code} - {c.name}</option>
                                 ))}
                             </select>
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date Range</label>
+                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Khoảng thời gian</label>
                             <select 
                                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors"
                                 value={dateRange}
                                 onChange={e => setDateRange(e.target.value)}
                             >
-                                <option>This Week</option>
-                                <option>This Month</option>
-                                <option>This Semester</option>
-                                <option>Custom Range</option>
+                                <option value="This Week">Tuần này</option>
+                                <option value="This Month">Tháng này</option>
+                                <option value="This Semester">Học kỳ này</option>
+                                <option value="Custom Range">Tùy chỉnh</option>
                             </select>
                         </div>
                     </div>
@@ -345,7 +349,7 @@ export default function Reports() {
                     }`}
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                    Grade Distribution
+                    Phân bố điểm số
                 </button>
                 <button
                     onClick={() => setActiveTab('teacher')}
@@ -356,7 +360,7 @@ export default function Reports() {
                     }`}
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                    Teacher Activity
+                    Hoạt động Giảng viên
                 </button>
             </div>
 
@@ -373,8 +377,8 @@ export default function Reports() {
                     {/* Grade Distribution Bar */}
                     <Card className="shadow-sm border-slate-200 flex flex-col min-h-[400px]">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-slate-800">Grade Distribution</CardTitle>
-                            <p className="text-sm text-slate-500">Overall grade breakdown for selected criteria</p>
+                            <CardTitle className="text-base text-slate-800">Phân bố điểm số</CardTitle>
+                            <p className="text-sm text-slate-500">Thống kê điểm số tổng quát theo tiêu chí đã chọn</p>
                         </CardHeader>
                         <CardContent className="flex-1 pt-4">
                             <ResponsiveContainer width="100%" height={300}>
@@ -405,8 +409,8 @@ export default function Reports() {
                     {/* Grade Percentage Donut */}
                     <Card className="shadow-sm border-slate-200 flex flex-col min-h-[400px]">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-slate-800">Grade Percentage</CardTitle>
-                            <p className="text-sm text-slate-500">Distribution by percentage</p>
+                            <CardTitle className="text-base text-slate-800">Phần trăm xếp loại</CardTitle>
+                            <p className="text-sm text-slate-500">Tỷ lệ phân phối theo phần trăm</p>
                         </CardHeader>
                         <CardContent className="flex-1 flex flex-col items-center justify-center p-4">
                             {data.gradePercentageData.length === 0 ? (
@@ -414,7 +418,7 @@ export default function Reports() {
                                     <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                     </svg>
-                                    <span className="text-sm font-medium">No graded data yet</span>
+                                    <span className="text-sm font-medium">Chưa có dữ liệu điểm</span>
                                 </div>
                             ) : (
                                 <>
@@ -459,8 +463,8 @@ export default function Reports() {
                 {/* Course Enrollment Statistics Bar */}
                 <Card className="shadow-sm border-slate-200 mb-8 mt-6">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-base text-slate-800">Course Enrollment Statistics</CardTitle>
-                        <p className="text-sm text-slate-500">Student enrollment by course</p>
+                        <CardTitle className="text-base text-slate-800">Thống kê Ghi danh Khóa học</CardTitle>
+                        <p className="text-sm text-slate-500">Số lượng học viên ghi danh theo từng khóa học</p>
                     </CardHeader>
                     <CardContent className="pt-6">
                         <ResponsiveContainer width="100%" height={350}>
@@ -482,7 +486,7 @@ export default function Reports() {
                                     allowDecimals={false}
                                 />
                                 <RechartsTooltip cursor={{ fill: '#f1f5f9' }} />
-                                <Bar dataKey="students" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={120} />
+                                <Bar dataKey="students" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={40} />
                             </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -492,33 +496,33 @@ export default function Reports() {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
                         {
-                            label: 'Average Grade',
+                            label: 'Điểm trung bình',
                             value: data.summaryStats.avgGrade,
                             sub: data.summaryStats.gradeTotal > 0
-                                ? `Based on ${data.summaryStats.gradeTotal} grades`
-                                : 'No graded data',
+                                ? `Dựa trên ${data.summaryStats.gradeTotal} đầu điểm`
+                                : 'Chưa có dữ liệu',
                             color: 'text-indigo-600'
                         },
                         {
-                            label: 'Pass Rate',
+                            label: 'Tỷ lệ đạt',
                             value: data.summaryStats.gradeTotal > 0 ? `${data.summaryStats.passRate}%` : 'N/A',
                             sub: data.summaryStats.gradeTotal > 0
-                                ? `${data.summaryStats.passRate >= 50 ? '+' : ''}${data.summaryStats.passRate - 50}% vs 50% target`
-                                : 'No graded data',
+                                ? `${data.summaryStats.passRate >= 50 ? '+' : ''}${data.summaryStats.passRate - 50}% so với mục tiêu 50%`
+                                : 'Chưa có dữ liệu',
                             color: data.summaryStats.passRate >= 70 ? 'text-green-600' : 'text-amber-500'
                         },
                         {
-                            label: 'Total Students',
+                            label: 'Tổng Học viên',
                             value: data.summaryStats.totalStudents,
-                            sub: 'Across all courses',
+                            sub: 'Trên tất cả khóa học',
                             color: 'text-purple-600'
                         },
                         {
-                            label: 'A Students',
+                            label: 'Học viên loại A',
                             value: data.summaryStats.gradeTotal > 0 ? `${data.summaryStats.aPercent}%` : 'N/A',
                             sub: data.summaryStats.gradeTotal > 0
-                                ? `${data.summaryStats.aStudents} out of ${data.summaryStats.gradeTotal} students`
-                                : 'No graded data',
+                                ? `${data.summaryStats.aStudents} trên tổng số ${data.summaryStats.gradeTotal} học viên`
+                                : 'Chưa có dữ liệu',
                             color: 'text-emerald-600'
                         }
                     ].map((stat, i) => (
@@ -544,9 +548,9 @@ export default function Reports() {
                     {/* Line Chart */}
                     <Card className="shadow-sm border-slate-200 mt-4">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-slate-800">Teacher Activity Over Time</CardTitle>
+                            <CardTitle className="text-base text-slate-800">Cường độ hoạt động Giảng viên</CardTitle>
                             <p className="text-sm text-slate-500">
-                                {dateRange === 'This Week' ? 'Daily' : 'Weekly'} activity metrics for selected filters
+                                Chỉ số hoạt động theo {dateRange === 'Tuần này' ? 'ngày' : 'tuần'} dựa trên bộ lọc
                             </p>
                         </CardHeader>
                         <CardContent className="pt-4">
@@ -555,11 +559,13 @@ export default function Reports() {
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13 }} dy={10} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13 }} dx={-10} allowDecimals={false} />
-                                    <RechartsTooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }} />
+                                    <RechartsTooltip 
+                                        contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+                                    />
                                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ paddingTop: '16px', fontSize: '13px' }} />
-                                    <Line type="monotone" dataKey="quizzesCreated" name="Quizzes Created" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                                    <Line type="monotone" dataKey="materialsUploaded" name="Materials Uploaded" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} strokeDasharray="5 5" />
-                                    <Line type="monotone" dataKey="assignmentsGraded" name="Assignments Graded" stroke="#ec4899" strokeWidth={2} dot={{ r: 4 }} strokeDasharray="3 3" />
+                                    <Line type="monotone" dataKey="quizzesCreated" name="Bài trắc nghiệm đã tạo" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                    <Line type="monotone" dataKey="materialsUploaded" name="Học liệu đã tải lên" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} strokeDasharray="5 5" />
+                                    <Line type="monotone" dataKey="assignmentsGraded" name="Bài tập đã chấm" stroke="#ec4899" strokeWidth={2} dot={{ r: 4 }} strokeDasharray="3 3" />
                                 </LineChart>
                             </ResponsiveContainer>
                         </CardContent>
@@ -568,9 +574,9 @@ export default function Reports() {
                     {/* 3 Summary Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {[
-                            { label: 'Quizzes Created', value: teacherData.totals.quizzesCreated, sub: dateRange || 'This Month', color: 'text-indigo-600' },
-                            { label: 'Materials Uploaded', value: teacherData.totals.materialsUploaded, sub: dateRange || 'This Month', color: 'text-purple-600' },
-                            { label: 'Assignments Graded', value: teacherData.totals.assignmentsGraded, sub: dateRange || 'This Month', color: 'text-pink-600' },
+                             { label: 'Bài trắc nghiệm đã tạo', value: teacherData.totals.quizzesCreated, sub: dateRange === 'This Month' ? 'Trong tháng này' : (dateRange === 'This Week' ? 'Trong tuần này' : (dateRange === 'This Semester' ? 'Trong học kỳ này' : 'Tùy chỉnh')), color: 'text-indigo-600' },
+                            { label: 'Học liệu đã tải lên', value: teacherData.totals.materialsUploaded, sub: dateRange === 'This Month' ? 'Trong tháng này' : (dateRange === 'This Week' ? 'Trong tuần này' : (dateRange === 'This Semester' ? 'Trong học kỳ này' : 'Tùy chỉnh')), color: 'text-purple-600' },
+                            { label: 'Bài tập đã chấm', value: teacherData.totals.assignmentsGraded, sub: dateRange === 'This Month' ? 'Trong tháng này' : (dateRange === 'This Week' ? 'Trong tuần này' : (dateRange === 'This Semester' ? 'Trong học kỳ này' : 'Tùy chỉnh')), color: 'text-pink-600' },
                         ].map((stat, i) => (
                             <Card key={i} className="shadow-sm border-slate-200">
                                 <CardContent className="pt-5 pb-5">
@@ -584,46 +590,6 @@ export default function Reports() {
                 </>
                 )
             )}
-
-            {/* Summary Stats Cards — shown only on grade tab */}
-            {/* {!loading && activeTab === 'grade' && (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[
-                        {
-                            label: 'Average Grade',
-                            value: data.summaryStats.avgGrade,
-                            sub: data.summaryStats.gradeTotal > 0 ? `Based on ${data.summaryStats.gradeTotal} grades` : 'No graded data',
-                            color: 'text-indigo-600'
-                        },
-                        {
-                            label: 'Pass Rate',
-                            value: data.summaryStats.gradeTotal > 0 ? `${data.summaryStats.passRate}%` : 'N/A',
-                            sub: data.summaryStats.gradeTotal > 0 ? `${data.summaryStats.passRate >= 50 ? '+' : ''}${data.summaryStats.passRate - 50}% vs 50% target` : 'No graded data',
-                            color: data.summaryStats.passRate >= 70 ? 'text-green-600' : 'text-amber-500'
-                        },
-                        {
-                            label: 'Total Students',
-                            value: data.summaryStats.totalStudents,
-                            sub: 'Across all courses',
-                            color: 'text-purple-600'
-                        },
-                        {
-                            label: 'A Students',
-                            value: data.summaryStats.gradeTotal > 0 ? `${data.summaryStats.aPercent}%` : 'N/A',
-                            sub: data.summaryStats.gradeTotal > 0 ? `${data.summaryStats.aStudents} out of ${data.summaryStats.gradeTotal} students` : 'No graded data',
-                            color: 'text-emerald-600'
-                        }
-                    ].map((stat, i) => (
-                        <Card key={i} className="shadow-sm border-slate-200">
-                            <CardContent className="pt-5 pb-5">
-                                <p className="text-sm text-slate-500 mb-2">{stat.label}</p>
-                                <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
-                                <p className="text-xs text-slate-400 mt-1">{stat.sub}</p>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            )} */}
         </div>
     );
 }

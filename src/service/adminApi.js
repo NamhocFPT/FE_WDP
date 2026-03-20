@@ -24,7 +24,7 @@ export const adminApi = {
     getCreateClassMetadata: () => api.get('/classes/create'),
     addClass: (data) => api.post('/classes', data),
     updateClass: (id, data) => api.put(`/classes/${id}`, data),
-    getClassDetail: (id) => api.get(`/classes/${id}`),
+    getClassDetail: (id) => api.get(`/classes/${id}?t=${Date.now()}`),
 
     // --- UC_ADM_12: TEACHERS ---
     getTeachers: () => api.get('/teachers'),

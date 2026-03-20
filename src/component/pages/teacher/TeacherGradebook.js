@@ -117,7 +117,7 @@ export default function TeacherGradebook() {
                                             </Td>
                                             <Td>
                                                 <Badge tone={a.type === 'quiz' ? 'blue' : 'indigo'}>
-                                                    {a.type === 'quiz' ? 'Quiz' : 'Tự luận'}
+                                                    {a.type === 'quiz' ? 'Trắc nghiệm' : 'Tự luận'}
                                                 </Badge>
                                             </Td>
                                             <Td className="text-xs text-slate-600">

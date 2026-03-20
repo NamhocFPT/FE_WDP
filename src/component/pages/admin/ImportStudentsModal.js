@@ -122,8 +122,8 @@ export default function ImportStudentsModal({ isOpen, onClose, classId, onSucces
                 {/* Header */}
                 <div className="flex justify-between items-start p-6 pb-4 shrink-0">
                     <div>
-                        <h3 className="text-xl font-bold text-slate-900">Import Students</h3>
-                        <p className="text-sm text-slate-500 mt-1">Upload a CSV or TXT file containing student emails</p>
+                        <h3 className="text-xl font-bold text-slate-900">Nhập sinh viên từ file</h3>
+                        <p className="text-sm text-slate-500 mt-1">Tải lên tệp Excel, CSV hoặc TXT chứa danh sách email sinh viên</p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition-colors">
                         <X size={20} />
@@ -152,7 +152,7 @@ export default function ImportStudentsModal({ isOpen, onClose, classId, onSucces
                                     <span className="font-semibold text-slate-900">{file.name}</span>
                                 ) : (
                                     <label htmlFor="file-upload" className="relative cursor-pointer rounded-md bg-white font-semibold text-blue-600 focus-within:outline-none hover:text-blue-500">
-                                        <span>Upload a file</span>
+                                        <span>Tải tệp lên</span>
                                         <input 
                                             id="file-upload" 
                                             name="file-upload" 
@@ -163,10 +163,10 @@ export default function ImportStudentsModal({ isOpen, onClose, classId, onSucces
                                         />
                                     </label>
                                 )}
-                                {!file && <p className="pl-1">or drag and drop</p>}
+                                {!file && <p className="pl-1">hoặc kéo thả vào đây</p>}
                             </div>
                             <p className="text-xs leading-5 text-slate-500 mt-1">
-                                {file ? `Found ${emails.length} unique valid emails` : "Excel, CSV or TXT files only"}
+                                {file ? `Tìm thấy ${emails.length} email hợp lệ duy nhất` : "Chỉ hỗ trợ tệp Excel, CSV hoặc TXT"}
                             </p>
                             
                             {file && (
@@ -174,14 +174,14 @@ export default function ImportStudentsModal({ isOpen, onClose, classId, onSucces
                                     onClick={() => { setFile(null); setEmails([]); }}
                                     className="mt-3 text-xs text-red-500 hover:text-red-700 font-medium"
                                 >
-                                    Select different file
+                                    Chọn tệp khác
                                 </button>
                             )}
                         </div>
                     </div>
 
                     <div className="mt-4 text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                        <span className="font-bold text-slate-700">How it works:</span> Thả file Excel, CSV hoặc TXT chứa danh sách học viên. Hệ thống sẽ tự động tìm kiếm (quét) mọi thông tin có định dạng là email nằm trong tất cả các ô trên file đó để import.
+                        <span className="font-bold text-slate-700">Cách thức hoạt động:</span> Thả file Excel, CSV hoặc TXT chứa danh sách học viên. Hệ thống sẽ tự động tìm kiếm (quét) mọi thông tin có định dạng là email nằm trong tất cả các ô trên file đó để import.
                     </div>
                 </div>
 
@@ -193,7 +193,7 @@ export default function ImportStudentsModal({ isOpen, onClose, classId, onSucces
                         className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition-colors"
                         disabled={loading}
                     >
-                        Cancel
+                        Hủy bỏ
                     </button>
                     <button
                         onClick={handleSubmit}
@@ -201,7 +201,7 @@ export default function ImportStudentsModal({ isOpen, onClose, classId, onSucces
                         className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {loading && <Loader2 className="animate-spin" size={16} />}
-                        Import {emails.length > 0 ? `${emails.length} Users` : ""}
+                        Nhập {emails.length > 0 ? `${emails.length} người dùng` : ""}
                     </button>
                 </div>
             </div>

@@ -143,13 +143,13 @@ export default function ScheduleManagement() {
     const pageActions = (
         <div className="flex gap-2">
             <Button variant="outline" className="gap-2" onClick={() => setIsImportModalOpen(true)}>
-                <Upload size={16} /> Import Schedule
+                <Upload size={16} /> Nhập Lịch học
             </Button>
             <Button variant="outline" className="gap-2" onClick={handleExport}>
-                <Download size={16} /> Export Schedule
+                <Download size={16} /> Xuất file Excel
             </Button>
             <Button variant="primary" className="gap-2 bg-blue-600 hover:bg-blue-700" onClick={() => setIsAddModalOpen(true)}>
-                <Plus size={16} /> Add Session
+                <Plus size={16} /> Thêm Buổi học
             </Button>
         </div>
     );
@@ -178,7 +178,7 @@ export default function ScheduleManagement() {
 
     const handleSubmit = async () => {
         if (!selectedClassId || !selectedDate || !startTime || !endTime || !room) {
-            alert("Please fill in all required fields!");
+            alert("Vui lòng điền đầy đủ các thông tin bắt buộc!");
             return;
         }
 
@@ -204,10 +204,10 @@ export default function ScheduleManagement() {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || "Failed to create session");
+                throw new Error(errorData.message || "Không thể tạo buổi học");
             }
 
-            alert("Session created successfully!");
+            alert("Tạo buổi học thành công!");
             
             // Reset form and close modal
             setIsAddModalOpen(false);
@@ -220,7 +220,7 @@ export default function ScheduleManagement() {
             
         } catch (error) {
             console.error("Error creating session:", error);
-            alert(`Error: ${error.message}`);
+            alert(`Lỗi: ${error.message}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -229,8 +229,8 @@ export default function ScheduleManagement() {
     return (
         <div>
             <PageHeader 
-                title="Schedule Management" 
-                subtitle="Manage class schedules and timetables"
+                title="Quản lý Lịch học" 
+                subtitle="Quản lý thời khóa biểu và lịch trình các lớp học"
                 right={pageActions}
             />
 
@@ -242,14 +242,14 @@ export default function ScheduleManagement() {
                             <Input 
                                 value={classIdFilter}
                                 onChange={(e) => setClassIdFilter(e.target.value)}
-                                placeholder="Filter by Class ID..."
+                                placeholder="Lọc theo mã Lớp học..."
                             />
                         </div>
                         <div className="flex-1">
                             <Input 
                                 value={courseCodeFilter}
                                 onChange={(e) => setCourseCodeFilter(e.target.value)}
-                                placeholder="Filter by Course Code..."
+                                placeholder="Lọc theo mã Khóa học..."
                             />
                         </div>
                         <div className="w-full sm:w-1/4">
@@ -258,9 +258,9 @@ export default function ScheduleManagement() {
                                 onChange={(e) => setGroupBy(e.target.value)}
                                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
                             >
-                                <option value="teacher">Group by Teacher</option>
-                                <option value="date">Group by Date</option>
-                                <option value="class">Group by Class</option>
+                                <option value="teacher">Gom nhóm theo Giảng viên</option>
+                                <option value="date">Gom nhóm theo Ngày</option>
+                                <option value="class">Gom nhóm theo Lớp</option>
                             </select>
                         </div>
                     </div>
@@ -302,7 +302,7 @@ export default function ScheduleManagement() {
                 {isLoadingSchedule ? (
                     <Card>
                         <CardContent className="text-center py-8 text-slate-500">
-                            Loading schedule...
+                            Đang tải lịch học...
                         </CardContent>
                     </Card>
                 ) : scheduleData.length > 0 ? (
@@ -312,7 +312,7 @@ export default function ScheduleManagement() {
                                 <Calendar size={18} className="text-blue-600" />
                                 <h3 className="font-semibold text-slate-800">
                                     {groupBy === "teacher" 
-                                        ? group.teacher?.full_name || "Unknown Teacher" 
+                                        ? group.teacher?.full_name || "Giảng viên chưa xác định" 
                                         : group.key}
                                 </h3>
                             </div>
@@ -324,26 +324,26 @@ export default function ScheduleManagement() {
                                                 <div className="text-sm font-medium text-slate-500 min-w-[140px] flex items-center gap-1.5 flex-wrap">
                                                     <span className="w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center text-[10px]">T</span>
                                                     <div>
-                                                        <div>{new Date(s.start_time).toLocaleDateString()}</div>
+                                                        <div>{new Date(s.start_time).toLocaleDateString("vi-VN")}</div>
                                                         <div className="text-xs text-slate-400">
-                                                            {new Date(s.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -  
-                                                            {new Date(s.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            {new Date(s.start_time).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })} -  
+                                                            {new Date(s.end_time).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div>
                                                     <div className="text-sm font-semibold text-slate-900">
-                                                        {s.class?.name} - {s.class?.course?.code}
+                                                        Lớp: {s.class?.name} - Môn: {s.class?.course?.code}
                                                     </div>
                                                     <div className="text-xs text-slate-500 mt-0.5">
-                                                        {s.topic || s.room} • {s.status}
+                                                        Phòng: {s.room} {s.topic ? `• Chủ đề: ${s.topic}` : ""}
                                                     </div>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                {s.status === "cancelled" && <Badge tone="red">Cancelled</Badge>}
-                                                {s.status === "scheduled" && <Badge tone="blue">Scheduled</Badge>}
-                                                {s.status === "completed" && <Badge tone="green">Completed</Badge>}
+                                                <Badge tone={s.status === "cancelled" ? "red" : (s.status === "completed" ? "green" : "blue")}>
+                                                    {s.status === "cancelled" ? "Đã hủy" : (s.status === "completed" ? "Hoàn thành" : "Đã lên lịch")}
+                                                </Badge>
                                             </div>
                                         </div>
                                     ))}
@@ -354,7 +354,7 @@ export default function ScheduleManagement() {
                 ) : (
                     <Card>
                         <CardContent className="text-center py-8 text-slate-500">
-                            No scheduled sessions found.
+                            Không tìm thấy dữ liệu lịch học.
                         </CardContent>
                     </Card>
                 )}
@@ -368,44 +368,46 @@ export default function ScheduleManagement() {
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                         disabled={page === 1 || isLoadingSchedule}
                     >
-                        Previous
+                        Trang trước
                     </Button>
                     <span className="text-sm text-slate-600">
-                        Page {page} of {totalPages}
+                        Trang {page} / {totalPages}
                     </span>
                     <Button 
                         variant="outline" 
                         onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                         disabled={page === totalPages || isLoadingSchedule}
                     >
-                        Next
+                        Trang sau
                     </Button>
                 </div>
             )}
 
-            <Modal open={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Schedule Session">
+            <Modal open={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Thêm buổi học mới">
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Class</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Lớp học</label>
                         <SearchableSelect 
                             options={classOptions}
                             value={selectedClassId}
                             onChange={setSelectedClassId}
-                            placeholder="Search and select class..."
+                            placeholder="Tìm kiếm và chọn lớp học..."
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Teacher</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Giảng viên</label>
                         <Input 
                             readOnly 
                             className="bg-slate-50 text-slate-500 cursor-not-allowed"
-                            value={selectedTeacher ? selectedTeacher.full_name : "Please select a class first"} 
+                            value={selectedTeacher ? selectedTeacher.full_name : "Vui lòng chọn lớp học trước"} 
                         />
                     </div>
 
+                    {/* Day Selection (New for recurring) or just use the existing Date picker */}
+                    {/* The existing code uses a specific date picker, which is fine for direct session creation */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Ngày học</label>
                         <Input 
                             type="date"
                             value={selectedDate}
@@ -417,14 +419,14 @@ export default function ScheduleManagement() {
                         />
                         {selectedClassId && displayDateLimits.min && displayDateLimits.max ? (
                             <p className="mt-1 text-xs text-slate-500">
-                                Valid range: {displayDateLimits.min} to {displayDateLimits.max}
+                                Phạm vi hợp lệ: {new Date(displayDateLimits.min).toLocaleDateString("vi-VN")} đến {new Date(displayDateLimits.max).toLocaleDateString("vi-VN")}
                             </p>
                         ) : null}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Start Time</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Giờ bắt đầu</label>
                             <Input 
                                 type="time" 
                                 value={startTime} 
@@ -432,7 +434,7 @@ export default function ScheduleManagement() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">End Time</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Giờ kết thúc</label>
                             <Input 
                                 type="time" 
                                 value={endTime} 
@@ -442,9 +444,9 @@ export default function ScheduleManagement() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Room</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Phòng học</label>
                         <Input 
-                            placeholder="Room 301" 
+                            placeholder="Ví dụ: P301, DE201..." 
                             value={room} 
                             onChange={(e) => setRoom(e.target.value)} 
                         />
@@ -452,11 +454,11 @@ export default function ScheduleManagement() {
 
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Note <span className="text-slate-400 font-normal">(Optional)</span>
+                            Ghi chú <span className="text-slate-400 font-normal">(Tùy chọn)</span>
                         </label>
                         <textarea 
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200 resize-none"
-                            placeholder="e.g. Học bù" 
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 resize-none"
+                            placeholder="Ví dụ: Học bù buổi ngày 10/10" 
                             rows="2"
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
@@ -465,7 +467,7 @@ export default function ScheduleManagement() {
 
                     <div className="flex justify-end gap-2 pt-2">
                         <Button variant="outline" onClick={() => setIsAddModalOpen(false)} disabled={isSubmitting}>
-                            Cancel
+                            Hủy bỏ
                         </Button>
                         <Button 
                             variant="primary" 
@@ -473,7 +475,7 @@ export default function ScheduleManagement() {
                             onClick={handleSubmit}
                             disabled={isSubmitting}
                         >
-                            {isSubmitting ? "Saving..." : "Save Session"}
+                            {isSubmitting ? "Đang lưu..." : "Lưu buổi học"}
                         </Button>
                     </div>
                 </div>

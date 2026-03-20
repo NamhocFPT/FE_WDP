@@ -1,71 +1,178 @@
-// src/component/layout/Sidebar.js
-import React from "react";
-import { NavLink } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { NavLink, useLocation, useParams } from "react-router-dom";
 import { store } from "service/store";
-import { cn, Badge } from "component/ui";
-
-const navByRole = {
-    admin: [
-        { to: "/admin", label: "Dashboard" },
-        { to: "/admin/users", label: "Users" },
-        { to: "/admin/courses", label: "Courses" },
-        { to: "/admin/classes", label: "Classes" },
-        { to: "/admin/schedule", label: "Schedule" },
-        { to: "/admin/reports", label: "Reports" },
-    ],
-    teacher: [
-        { to: "/teacher", label: "Dashboard" },
-        { to: "/teacher/schedule", label: "Schedule" },
-        { to: "/teacher/materials", label: "Materials" },
-        { to: "/teacher/classes", label: "Assignments" }, // Đổi tên từ Assignments -> My Classes
-        { to: "/teacher/quizzes", label: "Quizzes" },
-        { to: "/teacher/grading", label: "Grading" },
-    ],
-    student: [
-        { to: "/student", label: "Dashboard" },
-        { to: "/student/classes", label: "My Classes" },
-        { to: "/student/schedule", label: "My Schedule" },
-        { to: "/student/grades", label: "Grades" },
-    ],
-};
+import { cn } from "component/ui";
+import { navByRole } from "./navigation";
+import { LayoutGrid, Users, BookOpen, Calendar, PieChart, FileText, Bookmark, GraduationCap, Bell, ChevronDown, ChevronRight } from "lucide-react";
 
 export default function Sidebar() {
     const user = store.getCurrentUser();
-    // Đảm bảo roleKey luôn khớp (chuyển về chữ thường)
+    const location = useLocation();
+    const { id: classId } = useParams();
     const roleKey = user?.role?.toLowerCase();
-    const items = navByRole[roleKey] || [];
+    const navItems = navByRole[roleKey] || [];
+
+    const isAdminClassDetail = location.pathname.includes("/admin/classes/") && classId;
+    const isTeacherClassDetail = (location.pathname.includes("/teacher/classes/") || location.pathname.includes("/teacher/grading/")) && classId;
+    const isStudentClassDetail = location.pathname.includes("/student/classes/") && classId;
+
+    // State for collapsible menus
+    const [expandedItems, setExpandedItems] = useState({ "Bài tập": true });
+
+    const toggleExpand = (label) => {
+        setExpandedItems(prev => ({ ...prev, [label]: !prev[label] }));
+    };
+
+    let items = [];
+    let title = "";
+
+    const iconMap = {
+        "Tổng quan": <LayoutGrid size={18} />,
+        "Giảng viên": <Users size={18} />,
+        "Sinh viên": <Users size={18} />,
+        "Lịch học": <Calendar size={18} />,
+        "Bài tập / Dự án": <FileText size={18} />,
+        "Học liệu": <Bookmark size={18} />,
+        "Bảng điểm": <GraduationCap size={18} />,
+        "Điểm danh": <LayoutGrid size={18} />,
+        "Danh sách lớp": <BookOpen size={18} />,
+        "Tóm tắt": <PieChart size={18} />,
+        "Trắc nghiệm": <FileText size={18} />,
+        "Tự luận": <FileText size={18} />,
+        "Kết quả": <GraduationCap size={18} />,
+        "Tài liệu học tập": <Bookmark size={18} />,
+        "Thông báo": <Bell size={18} />
+    };
+
+    if (isAdminClassDetail) {
+        title = "Chi tiết lớp học";
+        items = [
+            { to: `/admin/classes/${classId}?tab=Overview`, label: "Tổng quan", id: "Overview" },
+            { to: `/admin/classes/${classId}?tab=Teachers`, label: "Giảng viên", id: "Teachers" },
+            { to: `/admin/classes/${classId}?tab=Students`, label: "Sinh viên", id: "Students" },
+            { to: `/admin/classes/${classId}?tab=Schedule`, label: "Lịch học", id: "Schedule" },
+        ];
+    } else if (isTeacherClassDetail) {
+        title = "Quản lý lớp học";
+        items = [
+            { 
+                label: "Bài tập", 
+                icon: <FileText size={18} />,
+                children: [
+                    { to: `/teacher/classes/${classId}/assignments?type=quiz`, label: "Trắc nghiệm" },
+                    { to: `/teacher/classes/${classId}/assignments?type=essay`, label: "Tự luận" },
+                ]
+            },
+            { to: `/teacher/classes/${classId}/materials`, label: "Học liệu" },
+            { to: `/teacher/classes/${classId}/gradebook`, label: "Bảng điểm" },
+        ];
+    } else if (isStudentClassDetail) {
+        title = "Chi tiết lớp học";
+        items = [
+            { to: `/student/classes/${classId}?tab=overview`, label: "Tổng quan", id: "overview" },
+            { to: `/student/classes/${classId}?tab=materials`, label: "Học liệu", id: "materials" },
+            { 
+                label: "Bài tập",
+                icon: <FileText size={18} />,
+                children: [
+                    { to: `/student/classes/${classId}?tab=quizzes`, label: "Trắc nghiệm", id: "quizzes" },
+                    { to: `/student/classes/${classId}?tab=assignments`, label: "Tự luận", id: "assignments" },
+                ]
+            },
+            { to: `/student/classes/${classId}?tab=announcements`, label: "Thông báo", id: "announcements" },
+            { to: `/student/classes/${classId}?tab=grades`, label: "Bảng điểm", id: "grades" },
+        ];
+    } else {
+        const activeMainTab = navItems.find(item => location.pathname.startsWith(item.to));
+        if (!activeMainTab || !activeMainTab.children || activeMainTab.children.length === 0) {
+            return null;
+        }
+        title = activeMainTab.label;
+        items = activeMainTab.children;
+    }
 
     return (
-        <aside className="sticky top-0 hidden h-screen w-64 border-r border-slate-200 bg-white p-4 md:block">
-            <div className="flex items-center justify-between mb-6">
-                <div className="text-xl font-extrabold tracking-tight text-slate-900">SmartEdu</div>
-                <Badge tone="blue" className="uppercase text-[10px]">{user?.role}</Badge>
+        <aside className="sticky top-0 hidden h-full w-64 border-r border-slate-100 bg-white p-6 md:block overflow-y-auto animate-in slide-in-from-left-4 duration-500">
+            <div className="mb-8">
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-3 py-1 bg-slate-50 rounded-md inline-block">
+                    {title}
+                </div>
             </div>
 
             <nav className="space-y-1">
-                {items.map((it) => (
-                    <NavLink
-                        key={it.to}
-                        to={it.to}
-                        // end=true để tránh active Dashboard khi vào các trang con
-                        end={it.to === "/admin" || it.to === "/teacher" || it.to === "/student"}
-                        className={({ isActive }) =>
-                            cn(
-                                "block rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors",
-                                isActive 
-                                    ? "bg-slate-900 text-white shadow-md" 
-                                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                            )
-                        }
-                    >
-                        {it.label}
-                    </NavLink>
-                ))}
-            </nav>
+                {items.map((it, idx) => {
+                    if (it.children) {
+                        const isAnyChildActive = it.children.some(child => 
+                            (isStudentClassDetail && child.id && location.search.includes(`tab=${child.id}`)) ||
+                            (!isStudentClassDetail && location.pathname + location.search === child.to)
+                        );
+                        const isExpanded = expandedItems[it.label];
 
-            <div className="absolute bottom-4 left-4 right-4 border-t border-slate-100 pt-4">
-                <p className="text-[10px] text-slate-400 font-medium">Hệ thống LMS thông minh v1.0</p>
-            </div>
+                        return (
+                            <div key={idx} className="space-y-1">
+                                <button 
+                                    onClick={() => toggleExpand(it.label)}
+                                    className={cn(
+                                        "w-full flex items-center justify-between px-4 py-3 text-sm font-bold transition-all duration-200 rounded-xl hover:bg-slate-50",
+                                        isAnyChildActive ? "text-blue-600" : "text-slate-400 hover:text-slate-900"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        {it.icon || iconMap[it.label] || <LayoutGrid size={18} />}
+                                        <span className="uppercase tracking-wider">{it.label}</span>
+                                    </div>
+                                    {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                </button>
+                                
+                                {isExpanded && (
+                                    <div className="ml-4 border-l-2 border-slate-100 pl-2 space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                                        {it.children.map((child, cidx) => (
+                                            <NavLink
+                                                key={cidx}
+                                                to={child.to}
+                                                className={({ isActive }) => {
+                                                    const isTabActive = (isAdminClassDetail || isStudentClassDetail)
+                                                        ? (child.id && location.search.includes(`tab=${child.id}`))
+                                                        : isActive;
+                                                    return cn(
+                                                        "flex items-center gap-3 rounded-xl px-4 py-2 text-sm font-bold transition-all duration-200",
+                                                        isTabActive 
+                                                            ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600 rounded-l-none translate-x-1" 
+                                                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 shadow-none border-none"
+                                                    );
+                                                }}
+                                            >
+                                                {child.label}
+                                            </NavLink>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    }
+
+                    return (
+                        <NavLink
+                            key={idx}
+                            to={it.to}
+                            className={({ isActive }) => {
+                                const isTabActive = (isAdminClassDetail || isStudentClassDetail)
+                                    ? (it.id && location.search.includes(`tab=${it.id}`))
+                                    : isActive;
+                                return cn(
+                                    "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200",
+                                    isTabActive 
+                                        ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600 rounded-l-none translate-x-1" 
+                                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 shadow-none border-none"
+                                );
+                            }}
+                        >
+                            {it.icon || iconMap[it.label] || <LayoutGrid size={18} />}
+                            {it.label}
+                        </NavLink>
+                    );
+                })}
+            </nav>
         </aside>
     );
 }

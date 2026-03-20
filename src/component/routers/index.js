@@ -157,10 +157,17 @@ export const router = [
       { path: "materials", element: <MaterialsManagement /> },
       { path: "classes/:classId/materials", element: <MaterialsManagement /> },
       { path: "classes", element: <TeacherClassList /> },
-      { path: "quizzes", element: <QuizList /> },
+      { 
+        path: "assignments",
+        children: [
+            { path: "quizzes", element: <QuizList /> },
+            { path: "essays", element: <GradingPage /> },
+        ]
+      },
+      { path: "quizzes", element: <QuizList /> }, // Keep for compatibility
       { path: "quizzes/create", element: <QuizCreation /> },
       { path: "classes/:classId/assignments", element: <AssignmentManagement /> },
-      { path: "grading", element: <GradingPage /> },
+      { path: "grading", element: <GradingPage /> }, // Keep for compatibility
       { path: "notifications", element: <TeacherDashboard /> },
       { path: "assessments/:assessmentId/submissions", element: <SubmissionList /> },
       { path: "grading/:submissionId", element: <TeacherGradingWorkspace /> },

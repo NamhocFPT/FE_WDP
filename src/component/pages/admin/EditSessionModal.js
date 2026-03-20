@@ -4,7 +4,7 @@ import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "service/adminApi";
 
-export default function EditSessionModal({ isOpen, onClose, classId, sessionGroup, onSuccess }) {
+export default function EditSessionModal({ isOpen, onClose, classId, sessionGroup, onSuccess, currentTeacherId }) {
     const [teachers, setTeachers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -24,38 +24,43 @@ export default function EditSessionModal({ isOpen, onClose, classId, sessionGrou
         if (sessionGroup) {
             // "09:00 - 10:30" format handling
             const [start, end] = sessionGroup.time.split(" - ");
+            
+            // Map Vietnamese day name from table back to English for the select value
+            const vnToEnDay = {
+                "Chủ Nhật": "Sunday", "Thứ Hai": "Monday", "Thứ Ba": "Tuesday", 
+                "Thứ Tư": "Wednesday", "Thứ Năm": "Thursday", "Thứ Sáu": "Friday", "Thứ Bảy": "Saturday"
+            };
+
             setFormData({
-                day_of_week: sessionGroup.day || "",
+                day_of_week: vnToEnDay[sessionGroup.day] || sessionGroup.day || "",
                 start_time: start || "",
                 end_time: end || "",
                 room: sessionGroup.room !== "N/A" ? sessionGroup.room : "",
-                teacher_id: "" // We don't edit teacher here as it affects whole class, but keep field if needed
+                teacher_id: currentTeacherId || ""
             });
         }
-    }, [isOpen, sessionGroup]);
+    }, [isOpen, sessionGroup, currentTeacherId]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
-            // TODO: adjust API method based on adminApi implementation for adding a session
-            // Example payload
             const payload = {
                 sessionIds: sessionGroup.sessionIds,
                 day_of_week: formData.day_of_week,
                 start_time: formData.start_time,
                 end_time: formData.end_time,
                 room: formData.room,
-                teacher_id: formData.teacher_id || null // Optional teacher
+                teacher_id: formData.teacher_id || null
             };
             
             await adminApi.editSessions(classId, payload);
-            toast.success("Schedule updated successfully!");
+            toast.success("Cập nhật lịch học thành công!");
             onSuccess();
             onClose();
         } catch (error) {
             console.error(error);
-            toast.error(error.response?.data?.message || "Error adding session.");
+            toast.error(error.response?.data?.message || "Lỗi khi cập nhật buổi học.");
         } finally {
             setLoading(false);
         }
@@ -69,8 +74,8 @@ export default function EditSessionModal({ isOpen, onClose, classId, sessionGrou
                 {/* Header */}
                 <div className="flex justify-between items-start p-6 pb-4">
                     <div>
-                        <h3 className="text-xl font-bold text-slate-900">Edit Schedule</h3>
-                        <p className="text-sm text-slate-500 mt-1">Update recurring class schedule</p>
+                        <h3 className="text-xl font-bold text-slate-900">Chỉnh sửa Lịch học</h3>
+                        <p className="text-sm text-slate-500 mt-1">Cập nhật lịch học định kỳ cho lớp</p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition-colors">
                         <X size={20} />
@@ -80,40 +85,40 @@ export default function EditSessionModal({ isOpen, onClose, classId, sessionGrou
                 <form onSubmit={handleSubmit} className="p-6 pt-0 space-y-5">
                     {/* Day of Week */}
                     <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-2">Day of Week</label>
+                        <label className="text-xs font-bold text-slate-700 block mb-2 uppercase tracking-wider">Thứ trong tuần</label>
                         <select 
                             required
-                            className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 bg-white"
+                            className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-all"
                             value={formData.day_of_week}
                             onChange={(e) => setFormData({...formData, day_of_week: e.target.value})}
                         >
-                            <option value="" disabled>Select day</option>
-                            <option value="Monday">Monday</option>
-                            <option value="Tuesday">Tuesday</option>
-                            <option value="Wednesday">Wednesday</option>
-                            <option value="Thursday">Thursday</option>
-                            <option value="Friday">Friday</option>
-                            <option value="Saturday">Saturday</option>
-                            <option value="Sunday">Sunday</option>
+                            <option value="" disabled>Chọn thứ</option>
+                            <option value="Monday">Thứ Hai</option>
+                            <option value="Tuesday">Thứ Ba</option>
+                            <option value="Wednesday">Thứ Tư</option>
+                            <option value="Thursday">Thứ Năm</option>
+                            <option value="Friday">Thứ Sáu</option>
+                            <option value="Saturday">Thứ Bảy</option>
+                            <option value="Sunday">Chủ Nhật</option>
                         </select>
                     </div>
 
                     {/* Time */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-2">Start Time</label>
+                            <label className="text-xs font-bold text-slate-700 block mb-2 uppercase tracking-wider">Giờ bắt đầu</label>
                             <input 
                                 type="time" required
-                                className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
+                                className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                                 value={formData.start_time}
                                 onChange={(e) => setFormData({...formData, start_time: e.target.value})}
                             />
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-slate-700 block mb-2">End Time</label>
+                            <label className="text-xs font-bold text-slate-700 block mb-2 uppercase tracking-wider">Giờ kết thúc</label>
                             <input 
                                 type="time" required
-                                className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
+                                className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                                 value={formData.end_time}
                                 onChange={(e) => setFormData({...formData, end_time: e.target.value})}
                             />
@@ -122,24 +127,24 @@ export default function EditSessionModal({ isOpen, onClose, classId, sessionGrou
 
                     {/* Room */}
                     <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-2">Room</label>
+                        <label className="text-xs font-bold text-slate-700 block mb-2 uppercase tracking-wider">Phòng học</label>
                         <input 
-                            type="text" required placeholder="e.g., Room 301"
-                            className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
+                            type="text" required placeholder="Ví dụ: P301, DE102..."
+                            className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                             value={formData.room}
                             onChange={(e) => setFormData({...formData, room: e.target.value})}
                         />
                     </div>
 
-                    {/* Teacher Optional */}
+                    {/* Teacher */}
                     <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-2">Teacher (Optional)</label>
+                        <label className="text-xs font-bold text-slate-700 block mb-2 uppercase tracking-wider">Giảng viên</label>
                         <select 
-                            className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 bg-white"
+                            className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-all"
                             value={formData.teacher_id}
                             onChange={(e) => setFormData({...formData, teacher_id: e.target.value})}
                         >
-                            <option value="">Use default teacher</option>
+                            <option value="">Chưa phân công</option>
                             {teachers.map(t => (
                                 <option key={t.id} value={t.id}>{t.full_name} ({t.email})</option>
                             ))}
@@ -150,19 +155,19 @@ export default function EditSessionModal({ isOpen, onClose, classId, sessionGrou
                     <div className="flex justify-end gap-3 pt-2">
                         <button 
                             type="button" 
-                            className="px-6 py-2.5 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 rounded-lg font-medium transition-colors"
+                            className="px-6 py-2.5 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 rounded-xl font-medium transition-all"
                             onClick={onClose}
                             disabled={loading}
                         >
-                            Cancel
+                            Hủy bỏ
                         </button>
                         <button 
                             type="submit" 
-                            className="px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-medium shadow-lg shadow-blue-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl font-medium shadow-lg shadow-blue-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             disabled={loading}
                         >
                             {loading && <Loader2 className="animate-spin" size={16} />}
-                            Save Changes
+                            Lưu thay đổi
                         </button>
                     </div>
                 </form>

@@ -25,19 +25,19 @@ export default function DashboardLayout({ requiredRole }) {
 
   return (
     <NotificationProvider>
-      <div className="min-h-screen bg-slate-50 w-full">
-        <div className="flex w-full">
+      <div className="min-h-screen bg-[#f8fafc] w-full flex flex-col overflow-hidden">
+        {/* Navbar on Top - Full Width */}
+        <Navbar />
+
+        <div className="flex flex-1 overflow-hidden h-[calc(100vh-64px)]">
+          {/* Sidebar below Navbar */}
           <Sidebar />
 
-          <div className="flex min-w-0 flex-1 flex-col">
-            <Navbar />
-
-            <main className="p-4 sm:p-6 lg:p-8 w-full">
-              <div className="mx-auto max-w-6xl">
-                <Outlet />
-              </div>
-            </main>
-          </div>
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 w-full animate-in fade-in duration-500">
+            <div className="mx-auto max-w-[1700px] w-full">
+              <Outlet />
+            </div>
+          </main>
         </div>
       </div>
     </NotificationProvider>
