@@ -76,11 +76,7 @@ export default function TeacherGradebook() {
             <PageHeader 
                 title="Bảng điểm lớp học" 
                 subtitle={`Quản lý trạng thái công bố điểm cho lớp ${classId}`}
-                right={
-                    <Button variant="outline" onClick={() => navigate(-1)}>
-                        <ChevronLeft className="mr-2 h-4 w-4" /> Quay lại
-                    </Button>
-                }
+                onBack={() => navigate("/teacher/classes")}
             />
 
             <Card className="overflow-hidden">
