@@ -23,3 +23,4 @@ yarn-debug.log*
 yarn-error.log*
 
 uc_tea_07_frontend_spec.md.resolved
+.tmp/
