@@ -1,6 +1,6 @@
-// src/component/ui/index.js
 import React from "react";
 import ReactDOM from "react-dom";
+import { ArrowLeft } from "lucide-react";
 
 export function cn(...xs) {
     return xs.filter(Boolean).join(" ");
@@ -68,14 +68,25 @@ export function Td({ className, ...props }) {
     return <td className={cn("border-b border-slate-100 px-3 py-2 text-slate-700", className)} {...props} />;
 }
 
-export function PageHeader({ title, subtitle, right, icon }) {
+export function PageHeader({ title, subtitle, right, icon, onBack }) {
     return (
-        <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex items-start gap-3">
-                {icon && <div className="mt-1">{icon}</div>}
-                <div>
-                    <div className="text-2xl font-black text-slate-900 tracking-tight">{title}</div>
-                    {subtitle ? <div className="mt-1 text-sm font-medium text-slate-500">{subtitle}</div> : null}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+                {onBack && (
+                    <button 
+                        onClick={onBack}
+                        className="p-1.5 -ml-1 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors"
+                        title="Quay lại"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+                )}
+                <div className="flex items-start gap-3">
+                    {icon && <div className="mt-1">{icon}</div>}
+                    <div>
+                        <div className="text-2xl font-black text-slate-900 tracking-tight leading-tight">{title}</div>
+                        {subtitle ? <div className="mt-1 text-sm font-medium text-slate-500">{subtitle}</div> : null}
+                    </div>
                 </div>
             </div>
             {right ? <div className="flex items-center gap-2">{right}</div> : null}

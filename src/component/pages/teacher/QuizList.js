@@ -80,6 +80,7 @@ export default function QuizList() {
             <PageHeader 
                 title="Quản lý Trắc nghiệm Online" 
                 subtitle="Danh sách bài tập trắc nghiệm của lớp"
+                onBack={() => navigate("/teacher/classes")}
                 right={[
                     <Button 
                         key="create" 

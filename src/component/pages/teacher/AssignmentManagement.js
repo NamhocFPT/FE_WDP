@@ -257,6 +257,7 @@ export default function AssignmentManagement() {
                 <PageHeader 
                     title={editingId ? "Chỉnh sửa bài tập" : "Tạo bài tập tự luận"} 
                     subtitle="Thiết lập đề bài, thời gian và cấu hình nộp bài." 
+                    onBack={() => {setIsCreating(false); setEditingId(null); setFormData(initialFormState);}}
                     right={[<Button key="c" variant="outline" onClick={() => {setIsCreating(false); setEditingId(null); setFormData(initialFormState);}}>Hủy</Button>]} 
                 />
 
@@ -362,6 +363,7 @@ export default function AssignmentManagement() {
                 title={pageTitle} 
                 subtitle={`Lớp: ${classId}`} 
                 icon={pageIcon}
+                onBack={() => navigate("/teacher/classes")}
                 right={[
                     <Button key="n" onClick={() => {
                         if (typeFilter === 'quiz') {
