@@ -49,6 +49,20 @@ class SocketService {
       this.socket.off(eventName, callback);
     }
   }
+
+  emit(eventName, data) {
+    if (this.socket) {
+      this.socket.emit(eventName, data);
+    }
+  }
+
+  joinClassStream(classId) {
+    this.emit("join_class_stream", classId);
+  }
+
+  leaveClassStream(classId) {
+    this.emit("leave_class_stream", classId);
+  }
 }
 
 export const socketService = new SocketService();

@@ -47,6 +47,11 @@ const getClassGrades = (classId) => {
     return api.get(`/classes/${classId}/grades`);
 };
 
+// Lấy danh sách tài liệu của lớp (chia theo general / by_session)
+const getClassMaterials = (classId) => {
+    return api.get(`/classes/${classId}/materials`);
+};
+
 // UC_STU_11: Tổng quan điểm tất cả các môn
 const getGradesOverview = () => {
     return api.get(`/grades/overview`);
@@ -57,5 +62,6 @@ export const studentApi = {
     getMyClasses,
     getClassDetails,
     getClassGrades,
+    getClassMaterials,
     getGradesOverview,
 };

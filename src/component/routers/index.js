@@ -1,6 +1,6 @@
 // src/routers/index.js
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import DashboardLayout from "component/layout/DashboardLayout";
 import { store } from "service/store";
 
@@ -33,12 +33,14 @@ import AssignmentManagement from "component/pages/teacher/AssignmentManagement";
 import GradingPage from "component/pages/teacher/GradingPage";
 import QuizQuestionManager from "component/pages/teacher/QuizQuestionManager";
 import TeacherClassList from "../pages/teacher/TeacherClassList";
+import TeacherClassHome from "component/pages/teacher/TeacherClassHome";
 import SubmissionList from "../pages/teacher/SubmissionList";
 import TeacherGradingWorkspace from '../pages/teacher/TeacherGradingWorkspace';
 import QuizAttempts from "component/pages/teacher/QuizAttempts";
 import QuizReviewAttempt from "component/pages/teacher/QuizReviewAttempt";
 import TeacherGradebook from "component/pages/teacher/TeacherGradebook";
 import QuizList from "component/pages/teacher/QuizList";
+import ClassStream from "component/pages/common/stream/ClassStream";
 
 // Student
 import StudentDashboard from "component/pages/student/StudentDashboard";
@@ -52,6 +54,12 @@ import StudentQuizStart from "component/pages/student/StudentQuizStart";
 import StudentQuizTake from "component/pages/student/StudentQuizTake";
 import StudentQuizSummary from "component/pages/student/StudentQuizSummary";
 import StudentQuizResult from "component/pages/student/StudentQuizResult";
+
+// Wrapper to pass classId from URL params to ClassStream
+function ClassStreamWrapper() {
+  const { classId } = useParams();
+  return <ClassStream classId={classId} />;
+}
 
 function ProtectedRoute({ children }) {
   const currentUser = store.getCurrentUser();
@@ -157,6 +165,7 @@ export const router = [
       { path: "materials", element: <MaterialsManagement /> },
       { path: "classes/:classId/materials", element: <MaterialsManagement /> },
       { path: "classes", element: <TeacherClassList /> },
+      { path: "classes/:classId", element: <TeacherClassHome /> },
       { 
         path: "assignments",
         children: [
@@ -176,6 +185,7 @@ export const router = [
       { path: "quiz-attempts/:submissionId/review", element: <QuizReviewAttempt /> },
       { path: "classes/:classId/quizzes", element: <QuizList /> },
       { path: "classes/:classId/gradebook", element: <TeacherGradebook /> },
+      { path: "classes/:classId/stream", element: <ClassStreamWrapper /> },
     ],
   },
 

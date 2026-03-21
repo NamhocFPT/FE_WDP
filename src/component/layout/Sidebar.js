@@ -3,12 +3,17 @@ import { NavLink, useLocation, useParams } from "react-router-dom";
 import { store } from "service/store";
 import { cn } from "component/ui";
 import { navByRole } from "./navigation";
-import { LayoutGrid, Users, BookOpen, Calendar, PieChart, FileText, Bookmark, GraduationCap, Bell, ChevronDown, ChevronRight } from "lucide-react";
+import { LayoutGrid, Users, BookOpen, Calendar, PieChart, FileText, Bookmark, GraduationCap, Bell, ChevronDown, ChevronRight, Newspaper } from "lucide-react";
 
 export default function Sidebar() {
     const user = store.getCurrentUser();
     const location = useLocation();
-    const { id: classId } = useParams();
+    const { id: paramId, classId: paramClassId } = useParams();
+    
+    const classIdMatch = location.pathname.match(/\/(?:teacher|student|admin)\/classes\/([a-zA-Z0-9_-]+)/);
+    const classIdFromPath = classIdMatch ? classIdMatch[1] : null;
+    
+    const classId = paramClassId || paramId || classIdFromPath;
     const roleKey = user?.role?.toLowerCase();
     const navItems = navByRole[roleKey] || [];
 
@@ -41,7 +46,8 @@ export default function Sidebar() {
         "Tự luận": <FileText size={18} />,
         "Kết quả": <GraduationCap size={18} />,
         "Tài liệu học tập": <Bookmark size={18} />,
-        "Thông báo": <Bell size={18} />
+        "Thông báo": <Bell size={18} />,
+        "Bảng tin": <Newspaper size={18} />
     };
 
     if (isAdminClassDetail) {
@@ -55,6 +61,8 @@ export default function Sidebar() {
     } else if (isTeacherClassDetail) {
         title = "Quản lý lớp học";
         items = [
+            { to: `/teacher/classes/${classId}`, label: "Tổng quan", end: true },
+            { to: `/teacher/classes/${classId}/stream`, label: "Bảng tin" },
             { 
                 label: "Bài tập", 
                 icon: <FileText size={18} />,
@@ -69,6 +77,7 @@ export default function Sidebar() {
     } else if (isStudentClassDetail) {
         title = "Chi tiết lớp học";
         items = [
+            { to: `/student/classes/${classId}?tab=stream`, label: "Bảng tin", id: "stream" },
             { to: `/student/classes/${classId}?tab=overview`, label: "Tổng quan", id: "overview" },
             { to: `/student/classes/${classId}?tab=materials`, label: "Học liệu", id: "materials" },
             { 
@@ -155,6 +164,7 @@ export default function Sidebar() {
                         <NavLink
                             key={idx}
                             to={it.to}
+                            end={it.end}
                             className={({ isActive }) => {
                                 const isTabActive = (isAdminClassDetail || isStudentClassDetail)
                                     ? (it.id && location.search.includes(`tab=${it.id}`))

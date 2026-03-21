@@ -2,9 +2,48 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { studentApi } from "service/studentApi";
-import { PageHeader, Card, CardHeader, CardTitle, CardContent, Badge, Table, Th, Td } from "component/ui";
-import { Lock, CheckCircle2, AlertCircle, HelpCircle } from "lucide-react";
+import { cn, Button, PageHeader, Card, CardHeader, CardTitle, CardContent, Badge, Table, Th, Td } from "component/ui";
+import { 
+    Lock, CheckCircle2, AlertCircle, HelpCircle,
+    FileText, File, MonitorPlay, Table as TableIcon,
+    Image, Film, Archive, Link as LinkIcon, Text as TextIcon,
+    ChevronDown, ChevronUp, FolderOpen, Download
+} from "lucide-react";
+import ClassStream from "component/pages/common/stream/ClassStream";
+import { format } from "date-fns";
 
+const getTypeIcon = (type) => {
+    switch (type) {
+        case 'pdf': return { icon: <FileText size={18} className="text-red-500" />, bg: 'bg-red-50' };
+        case 'doc': case 'docx': return { icon: <File size={18} className="text-blue-500" />, bg: 'bg-blue-50' };
+        case 'slide': case 'pptx': case 'ppt': return { icon: <MonitorPlay size={18} className="text-orange-500" />, bg: 'bg-orange-50' };
+        case 'spreadsheet': case 'xls': case 'xlsx': return { icon: <TableIcon size={18} className="text-green-500" />, bg: 'bg-green-50' };
+        case 'image': return { icon: <Image size={18} className="text-purple-500" />, bg: 'bg-purple-50' };
+        case 'video': return { icon: <Film size={18} className="text-cyan-500" />, bg: 'bg-cyan-50' };
+        case 'archive': case 'zip': case 'rar': return { icon: <Archive size={18} className="text-amber-700" />, bg: 'bg-amber-50' };
+        case 'link': return { icon: <LinkIcon size={18} className="text-slate-500" />, bg: 'bg-slate-100' };
+        case 'text': return { icon: <TextIcon size={18} className="text-slate-500" />, bg: 'bg-slate-50' };
+        default: return { icon: <File size={18} className="text-slate-500" />, bg: 'bg-slate-50' };
+    }
+};
+
+const formatBytes = (bytes) => {
+    if (bytes === null || bytes === undefined) return null;
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+const formatDateObj = (dateString) => {
+    if (!dateString) return "";
+    try {
+        return format(new Date(dateString), "dd/MM/yyyy");
+    } catch {
+        return dateString;
+    }
+};
 
 export default function ClassHome() {
     const { id } = useParams();
@@ -12,13 +51,22 @@ export default function ClassHome() {
     const [searchParams] = useSearchParams();
     
     // Đồng bộ tab từ URL query param, mặc định là overview
-    const currentTab = searchParams.get("tab") || "overview";
+    const currentTab = searchParams.get("tab") || "stream";
 
     const [cl, setCl] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [gradesData, setGradesData] = useState(null);
     const [isGradesLoading, setIsGradesLoading] = useState(false);
+
+    // Materials State
+    const [materialsData, setMaterialsData] = useState({ general: [], bySession: [] });
+    const [isMaterialsLoading, setIsMaterialsLoading] = useState(false);
+    const [expandedSections, setExpandedSections] = useState({ general: true });
+
+    const toggleSection = (sectionId) => {
+        setExpandedSections(prev => ({ ...prev, [sectionId]: !prev[sectionId] }));
+    };
 
     useEffect(() => {
         const fetchClassDetails = async () => {
@@ -57,6 +105,29 @@ export default function ClassHome() {
         }
     }, [currentTab, id, gradesData]);
 
+    useEffect(() => {
+        if (currentTab === "materials" && materialsData.general.length === 0 && materialsData.bySession.length === 0) {
+            const fetchMaterials = async () => {
+                setIsMaterialsLoading(true);
+                try {
+                    const res = await studentApi.getClassMaterials(id);
+                    if (res.data?.message === "OK" || res.data?.success) {
+                        setMaterialsData({
+                            general: res.data.data?.general || [],
+                            bySession: res.data.data?.by_session || []
+                        });
+                    }
+                } catch (err) {
+                    console.error("Lỗi lấy danh sách tài liệu:", err);
+                } finally {
+                    setIsMaterialsLoading(false);
+                }
+            };
+            fetchMaterials();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentTab, id]);
+
     const getStatusBadge = (status) => {
         switch (status) {
             case "published": return <Badge tone="green" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Đã công bố</Badge>;
@@ -83,12 +154,63 @@ export default function ClassHome() {
 
     if (!cl) return <div className="p-10 text-center text-slate-500">Không có dữ liệu lớp học.</div>;
 
+    const renderMaterialRow = (m) => {
+        const typeInfo = getTypeIcon(m.type);
+        const sizeStr = formatBytes(m.file_size);
+        const dateStr = formatDateObj(m.created_at);
+
+        return (
+            <div key={m.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-slate-100 last:border-b-0 group hover:bg-slate-50 transition-colors">
+                <div className="flex items-start gap-4 flex-1">
+                    <div className={cn("mt-1 p-2 rounded-lg flex-shrink-0", typeInfo.bg)}>
+                        {typeInfo.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                            <a href={m.file_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-slate-900 hover:text-blue-600 truncate underline-offset-2 hover:underline">
+                                {m.title}
+                            </a>
+                        </div>
+                        {m.description && (
+                            <div className="text-xs text-slate-500 italic mt-0.5 line-clamp-1">{m.description}</div>
+                        )}
+                        <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500 flex-wrap">
+                            {sizeStr && <span>{sizeStr}</span>}
+                            {sizeStr && <span className="w-1 h-1 rounded-full bg-slate-300"></span>}
+                            <span>{dateStr}</span>
+                            {m.type === 'link' && <span className="w-1 h-1 rounded-full bg-slate-300"></span>}
+                            {m.type === 'link' && <span className="truncate max-w-[200px] text-blue-500">{m.file_url}</span>}
+                        </div>
+                    </div>
+                </div>
+                <div className="flex items-center gap-1 mt-4 sm:mt-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <Button 
+                        variant="ghost" 
+                        title="Tải về"
+                        className="px-2 py-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        onClick={() => window.open(m.file_url, "_blank")}
+                    >
+                        {m.type === 'link' ? <LinkIcon size={16} /> : <Download size={16} />}
+                        <span className="ml-1.5 sm:hidden">{m.type === 'link' ? 'Mở link' : 'Tải về'}</span>
+                    </Button>
+                </div>
+            </div>
+        );
+    };
+
+    const isMaterialsEmpty = materialsData.general.length === 0 && materialsData.bySession.every(s => !s.materials || s.materials.length === 0);
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-500 pb-10">
             <PageHeader
                 title={cl.name}
                 subtitle={`Giảng viên: ${cl.teacher || "Chưa phân công"} • Phòng: ${cl.room || "TBA"}`}
             />
+
+            {/* TAB: STREAM */}
+            {currentTab === "stream" && (
+                <ClassStream classId={id} />
+            )}
 
             {/* TAB: OVERVIEW */}
             {currentTab === "overview" && (
@@ -129,23 +251,91 @@ export default function ClassHome() {
 
             {/* TAB: MATERIALS */}
             {currentTab === "materials" && (
-                <Card className="animate-in fade-in duration-300">
-                    <CardHeader><CardTitle>Tài liệu học tập</CardTitle></CardHeader>
-                    <CardContent className="space-y-3">
-                        {cl.materials?.length > 0 ? cl.materials.map((m) => (
-                            <div key={m.id} className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 bg-white hover:bg-slate-50 transition-colors">
-                                <div className="flex items-center gap-3">
-                                    <div className="text-2xl">📚</div>
-                                    <div>
-                                        <div className="text-sm font-bold text-slate-900">{m.title}</div>
-                                        <div className="text-xs text-slate-500 mt-1">Cập nhật: {m.updatedAt}</div>
-                                    </div>
-                                </div>
-                                <Badge tone="blue">{m.type}</Badge>
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <LinkIcon className="text-slate-400" /> Tài liệu môn học
+                    </h3>
+                    
+                    {isMaterialsLoading ? (
+                        <div className="p-8 text-center text-slate-500 animate-pulse bg-white rounded-xl shadow-sm border border-slate-200">
+                            Đang tải danh sách tài liệu...
+                        </div>
+                    ) : isMaterialsEmpty ? (
+                        <Card className="p-10 text-center border-dashed bg-slate-50/50">
+                            <div className="flex flex-col items-center justify-center text-slate-500">
+                                <FolderOpen className="text-slate-300 mb-3" size={48} />
+                                <h3 className="text-lg font-medium text-slate-700">Chưa có tài liệu nào</h3>
+                                <p className="text-sm">Giảng viên chưa đăng tải tài liệu cho môn học này.</p>
                             </div>
-                        )) : <p className="text-sm text-slate-500 italic text-center py-6">Chưa có tài liệu nào được đăng.</p>}
-                    </CardContent>
-                </Card>
+                        </Card>
+                    ) : (
+                        <div className="space-y-6">
+                            {/* GENERAL MATERIALS */}
+                            {materialsData.general.length > 0 && (
+                                <section>
+                                    <div 
+                                        className="flex items-center justify-between px-3 py-3 cursor-pointer bg-white rounded-xl mb-3 shadow-sm border border-slate-200 hover:border-slate-300 transition-all"
+                                        onClick={() => toggleSection('general')}
+                                    >
+                                        <div className="font-semibold text-slate-800 flex items-center gap-2">
+                                            <Archive size={18} className="text-slate-500" />
+                                            TÀI LIỆU CHUNG
+                                        </div>
+                                        <Button variant="ghost" className="p-1 h-auto text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg">
+                                            {expandedSections['general'] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                        </Button>
+                                    </div>
+                                    
+                                    {expandedSections['general'] && (
+                                        <Card className="border shadow-none">
+                                            <div className="divide-y divide-slate-100">
+                                                {materialsData.general.map(m => renderMaterialRow(m))}
+                                            </div>
+                                        </Card>
+                                    )}
+                                </section>
+                            )}
+
+                            {/* BY SESSION MATERIALS */}
+                            {materialsData.bySession.map((sessionGroup) => {
+                                const { session, materials } = sessionGroup;
+                                const sectionId = `session_${session.id}`;
+                                const isExpanded = expandedSections[sectionId] !== false; // Default expanded
+
+                                return (
+                                    <section key={session.id}>
+                                        <div 
+                                            className="flex items-center justify-between px-3 py-3 cursor-pointer bg-white rounded-xl mb-3 shadow-sm border border-slate-200 hover:border-slate-300 transition-all"
+                                            onClick={() => toggleSection(sectionId)}
+                                        >
+                                            <div className="font-semibold text-slate-800 flex items-center gap-2">
+                                                <span className="text-slate-500">📅</span>
+                                                BUỔI {session.index} — {formatDateObj(session.start_time)} — {session.topic || "Chưa có chủ đề"}
+                                            </div>
+                                            <Button variant="ghost" className="p-1 h-auto text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg">
+                                                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                            </Button>
+                                        </div>
+                                        
+                                        {isExpanded && (
+                                            <Card className="border shadow-none">
+                                                {materials && materials.length > 0 ? (
+                                                    <div className="divide-y divide-slate-100">
+                                                        {materials.map(m => renderMaterialRow(m))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="p-4 text-center text-sm text-slate-500 italic py-6 bg-slate-50/50">
+                                                        Chưa có tài liệu cho buổi này.
+                                                    </div>
+                                                )}
+                                            </Card>
+                                        )}
+                                    </section>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
             )}
 
             {/* TAB: QUIZZES */}
