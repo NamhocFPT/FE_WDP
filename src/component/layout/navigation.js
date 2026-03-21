@@ -29,7 +29,7 @@ export const navByRole = {
         { to: "/teacher/materials", label: "Học liệu" },
         { 
             to: "/teacher/assignments", 
-            label: "Bài tập",
+            label: "",
             children: [
                 { to: "/teacher/assignments/quizzes", label: "Trắc nghiệm" },
                 { to: "/teacher/assignments/essays", label: "Tự luận" },

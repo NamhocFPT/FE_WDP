@@ -85,18 +85,21 @@ export default function TeacherClassHome() {
                                     <h4 className="flex items-center gap-2 text-sm font-black text-slate-900 uppercase tracking-wider">
                                         <Clock className="w-4 h-4 text-blue-600" /> Thời gian học
                                     </h4>
-                                    <div className="space-y-3">
-                                        {selectedClass.schedule && selectedClass.schedule.length > 0 ? (
-                                            Array.from(new Set(selectedClass.schedule.map(s => `${s.day} ${s.time}`))).map((timeStr, idx) => (
-                                                <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                                                    <span className="text-sm font-bold text-slate-700">{timeStr}</span>
+                                    <div className="max-h-[145px] overflow-y-auto pr-2 custom-scrollbar">
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedClass.schedule && selectedClass.schedule.length > 0 ? (
+                                                Array.from(new Set(selectedClass.schedule.map(s => `${s.day} ${s.time}`))).map((timeStr, idx) => (
+                                                    <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl shadow-sm hover:border-blue-200 transition-all duration-200 group">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 group-hover:scale-125 transition-transform" />
+                                                        <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">{timeStr}</span>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="text-sm text-slate-400 italic p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 w-full">
+                                                    Chưa có lịch học cụ thể cho lớp này.
                                                 </div>
-                                            ))
-                                        ) : (
-                                            <div className="text-sm text-slate-400 italic p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                                Chưa có lịch học cụ thể cho lớp này.
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
