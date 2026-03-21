@@ -84,9 +84,13 @@ export default function TeacherDashboard() {
                         <CardHeader><CardTitle>Lớp học của tôi</CardTitle></CardHeader>
                         <CardContent className="p-4 grid gap-4 grid-cols-1 md:grid-cols-2">
                             {classes.map((c) => (
-                                <div key={c.id} className="rounded-xl border border-slate-100 p-4 bg-white hover:border-blue-200 transition-all shadow-sm">
+                                <div 
+                                    key={c.id} 
+                                    onClick={() => navigate(`/teacher/classes/${c.id}`)}
+                                    className="rounded-xl border border-slate-100 p-4 bg-white hover:border-blue-200 hover:shadow-md cursor-pointer transition-all shadow-sm active:scale-[0.98]"
+                                >
                                     <div className="font-bold text-slate-800 text-base">{c.name}</div>
-                                    <div className="text-xs text-slate-500 mb-3">{c.courseName || "Cấp độ môn học"}</div>
+                                    <div className="text-xs text-slate-500 mb-3">{c.courseName || "Cấp độ khóa học"}</div>
                                     <div className="space-y-2">
                                         <div className="flex justify-between text-xs font-bold">
                                             <span className="text-slate-600">Sĩ số: {c.studentCount} hv</span>
@@ -140,7 +144,11 @@ export default function TeacherDashboard() {
                                 <div className="text-xs text-slate-400 italic text-center">Chưa có hoạt động mới.</div>
                             ) : (
                                 recentActivities.map((act) => (
-                                    <div key={act.id} className="flex gap-3 text-xs border-b last:border-0 pb-3 last:pb-0 items-start">
+                                    <div 
+                                        key={act.id} 
+                                        onClick={() => act.link && navigate(act.link)}
+                                        className={`flex gap-3 text-xs border-b last:border-0 pb-3 last:pb-0 items-start p-2 rounded-lg ${act.link ? "cursor-pointer hover:bg-slate-50 transition-all active:scale-[0.98]" : ""}`}
+                                    >
                                         <span className="text-xl">{act.isLate ? "⚠️" : "📝"}</span>
                                         <div>
                                             <div className={`font-semibold ${act.isLate ? "text-amber-700" : "text-slate-800"}`}>

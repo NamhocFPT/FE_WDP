@@ -4,11 +4,13 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { adminApi } from "service/adminApi"; 
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge } from "component/ui";
-import { ChevronRight, Search, Pencil, Users, Loader2, ToggleLeft } from "lucide-react";
+import { ChevronRight, Search, Pencil, Users, Loader2, ToggleLeft, Download } from "lucide-react";
 // Import Component Modal
 import CreateClassModal from "./CreateClassModal"; 
 import EditClassModal from "./EditClassModal";
+import ImportClassModal from "./ImportClassModal";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 export default function ClassManagement() {
     const nav = useNavigate();
@@ -17,7 +19,9 @@ export default function ClassManagement() {
     const [actionLoading, setActionLoading] = useState(false);
     const [q, setQ] = useState(""); 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); 
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [editClass, setEditClass] = useState(null); 
+    const [statusFilter, setStatusFilter] = useState("all"); // Lọc theo trạng thái
     // Status Change Modal
     const [statusModalClass, setStatusModalClass] = useState(null);
     const [statusAction, setStatusAction] = useState(""); // "closed" or "cancelled"
@@ -37,12 +41,47 @@ export default function ClassManagement() {
     useEffect(() => { fetchClasses(); }, []);
 
     const filteredClasses = useMemo(() => {
-        return classes.filter((cl) => 
-            !q || 
-            cl.name?.toLowerCase().includes(q.toLowerCase()) || 
-            cl.course?.name?.toLowerCase().includes(q.toLowerCase())
-        );
-    }, [q, classes]);
+        let result = classes;
+        if (statusFilter !== "all") {
+            result = result.filter(cl => cl.status === statusFilter);
+        }
+        if (q) {
+            result = result.filter(cl => 
+                cl.name?.toLowerCase().includes(q.toLowerCase()) || 
+                cl.course?.name?.toLowerCase().includes(q.toLowerCase())
+            );
+        }
+        return result;
+    }, [q, statusFilter, classes]);
+
+    // File Excel Template Download
+    const handleDownloadTemplate = () => {
+        const templateData = [
+            { "Mã môn": "TOAN10", "Học kỳ": "Học kỳ 1", "Tên lớp": "10A1", "Ngày bắt đầu": "2026-09-05", "Ngày kết thúc": "2027-01-15", "Sĩ số tối đa": 40, "Email giáo viên": "giaovien@school.edu.vn" },
+            { "Mã môn": "VAN11", "Học kỳ": "Học kỳ 1", "Tên lớp": "11B2", "Ngày bắt đầu": "2026-09-05", "Ngày kết thúc": "2027-01-15", "Sĩ số tối đa": 35, "Email giáo viên": "" }
+        ];
+        const ws = XLSX.utils.json_to_sheet(templateData);
+        ws["!cols"] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 25 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Template_Class");
+        XLSX.writeFile(wb, "Template_Import_LopHoc.xlsx");
+    };
+
+    const handleExportData = () => {
+        const exportData = filteredClasses.map(cl => ({
+            "Tên lớp": cl.name,
+            "Môn học": cl.course?.name || "",
+            "Học kỳ": cl.semester?.name || "",
+            "Giáo viên": cl.teacher?.full_name || "Chưa phân công",
+            "Sĩ số": `${cl.enrollment_count || 0}/${cl.max_students || 0}`,
+            "Trạng thái": cl.status === "active" ? "Đang diễn ra" : (cl.status === "upcoming" ? "Sắp tới" : (cl.status === "closed" ? "Đã đóng" : "Đã hủy"))
+        }));
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        ws["!cols"] = [{ wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 25 }, { wch: 10 }, { wch: 15 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Danh_sach_Lop_Hoc");
+        XLSX.writeFile(wb, "Danh_sach_Lop_Hoc.xlsx");
+    };
 
     if (loading) return <div className="p-8 text-center text-slate-500 italic">Đang tải danh sách lớp học...</div>;
 
@@ -53,6 +92,29 @@ export default function ClassManagement() {
                 subtitle="Xem và quản lý danh sách lớp học thời gian thực." 
                 right={[
                     <Button 
+                        key="export" 
+                        variant="outline"
+                        className="border-cyan-200 text-cyan-600 hover:bg-cyan-50"
+                        onClick={handleExportData}
+                    >
+                        <Download className="h-4 w-4 mr-1.5" /> Xuất Excel
+                    </Button>,
+                    <Button 
+                        key="template" 
+                        variant="outline"
+                        className="border-slate-300 text-slate-700 bg-white"
+                        onClick={handleDownloadTemplate}
+                    >
+                        Tải về File mẫu
+                    </Button>,
+                    <Button 
+                        key="import" 
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => setIsImportModalOpen(true)}
+                    >
+                        Import danh sách
+                    </Button>,
+                    <Button 
                         key="add" 
                         className="bg-[#0f172a] text-white px-5" 
                         onClick={() => setIsCreateModalOpen(true)}
@@ -62,16 +124,31 @@ export default function ClassManagement() {
                 ]} 
             />
 
-            {/* Thanh Search */}
-            <div className="bg-white p-4 rounded-xl border border-slate-200 relative shadow-sm">
-                <Search className="absolute left-7 top-7 text-slate-400" size={18} />
-                <input 
-                    type="text" 
-                    value={q} 
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder="Tìm kiếm theo mã hoặc tên lớp..." 
-                    className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 transition-all"
-                />
+            {/* Thanh Search & Filter */}
+            <div className="bg-white p-4 rounded-xl border border-slate-200 relative shadow-sm flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-3.5 text-slate-400" size={18} />
+                    <input 
+                        type="text" 
+                        value={q} 
+                        onChange={(e) => setQ(e.target.value)}
+                        placeholder="Tìm kiếm theo mã hoặc tên lớp..." 
+                        className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 transition-all"
+                    />
+                </div>
+                <div className="w-full sm:w-64">
+                    <select 
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 transition-all bg-white"
+                    >
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="active">Đang diễn ra</option>
+                        <option value="upcoming">Sắp tới</option>
+                        <option value="closed">Đã đóng</option>
+                        <option value="cancelled">Đã hủy</option>
+                    </select>
+                </div>
             </div>
 
             {/* Bảng dữ liệu */}
@@ -82,9 +159,9 @@ export default function ClassManagement() {
                             <thead>
                                 <tr className="bg-slate-50/50 border-b border-slate-100">
                                     <Th className="py-5 px-6">Lớp học</Th>
-                                    <Th>Khóa học</Th>
+                                    <Th>Môn học</Th>
                                     <Th>Học kỳ</Th>
-                                    <Th>Giảng viên</Th>
+                                    <Th>Giáo viên</Th>
                                     <Th>Sĩ số</Th>
                                     <Th>Trạng thái</Th>
                                     <Th className="text-center">Thao tác</Th>
@@ -138,6 +215,16 @@ export default function ClassManagement() {
                 />
             )}
 
+            {/* IMPORT MODAL */}
+            <ImportClassModal 
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onSuccess={() => {
+                    fetchClasses();
+                }}
+                onDownloadTemplate={handleDownloadTemplate}
+            />
+
             {/* EDIT POPUP */}
             {editClass && (
                 <EditClassModal 
@@ -160,7 +247,7 @@ export default function ClassManagement() {
                         <div>
                             <h3 className="text-xl font-bold text-slate-900">Chi tiết thay đổi trạng thái</h3>
                             <p className="text-sm text-slate-500 mt-2">
-                                Bạn đang chuyển lớp <span className="font-bold text-slate-800">"{statusModalClass?.name}"</span> sang trạng thái mới. Thao tác này có thể ảnh hưởng đến sinh viên.
+                                Bạn đang chuyển lớp <span className="font-bold text-slate-800">"{statusModalClass?.name}"</span> sang trạng thái mới. Thao tác này có thể ảnh hưởng đến học sinh.
                             </p>
                             <select 
                                 className="w-full mt-4 p-3 border border-slate-200 rounded-lg text-sm bg-slate-50 outline-none focus:border-indigo-500"

@@ -33,8 +33,8 @@ export default function Sidebar() {
 
     const iconMap = {
         "Tổng quan": <LayoutGrid size={18} />,
-        "Giảng viên": <Users size={18} />,
-        "Sinh viên": <Users size={18} />,
+        "Giáo viên": <Users size={18} />,
+        "Học sinh": <Users size={18} />,
         "Lịch học": <Calendar size={18} />,
         "Bài tập / Dự án": <FileText size={18} />,
         "Học liệu": <Bookmark size={18} />,
@@ -54,8 +54,8 @@ export default function Sidebar() {
         title = "Chi tiết lớp học";
         items = [
             { to: `/admin/classes/${classId}?tab=Overview`, label: "Tổng quan", id: "Overview" },
-            { to: `/admin/classes/${classId}?tab=Teachers`, label: "Giảng viên", id: "Teachers" },
-            { to: `/admin/classes/${classId}?tab=Students`, label: "Sinh viên", id: "Students" },
+            { to: `/admin/classes/${classId}?tab=Teachers`, label: "Giáo viên", id: "Teachers" },
+            { to: `/admin/classes/${classId}?tab=Students`, label: "Học sinh", id: "Students" },
             { to: `/admin/classes/${classId}?tab=Schedule`, label: "Lịch học", id: "Schedule" },
         ];
     } else if (isTeacherClassDetail) {

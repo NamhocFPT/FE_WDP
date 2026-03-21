@@ -24,7 +24,7 @@ export default function CreateClassModal({ onClose, onSuccess }) {
     const [dateError, setDateError] = useState("");
 
     useEffect(() => {
-        // 1. Lấy danh sách khóa học cho dropdown
+        // 1. Lấy danh sách môn học cho dropdown
         adminApi.getCourses().then(res => {
             if (res.data.success) setCourses(res.data.data.filter(c => !c.is_deleted));
         });
@@ -77,13 +77,13 @@ export default function CreateClassModal({ onClose, onSuccess }) {
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
                     {/* Course Selection */}
                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase block mb-2 tracking-wider">Khóa học (*)</label>
+                        <label className="text-xs font-bold text-slate-500 uppercase block mb-2 tracking-wider">Môn học (*)</label>
                         <select 
                             required
                             className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 bg-slate-50 cursor-pointer"
                             onChange={(e) => setFormData({...formData, course_id: e.target.value})}
                         >
-                            <option value="">-- Chọn một khóa học --</option>
+                            <option value="">-- Chọn một môn học --</option>
                             {courses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
                         </select>
                     </div>

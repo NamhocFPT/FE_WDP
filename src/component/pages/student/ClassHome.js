@@ -253,7 +253,7 @@ export default function ClassHome() {
             {currentTab === "materials" && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                     <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <LinkIcon className="text-slate-400" /> Tài liệu môn học
+                        <LinkIcon className="text-slate-400" /> Tài liệu khóa học
                     </h3>
                     
                     {isMaterialsLoading ? (
@@ -265,7 +265,7 @@ export default function ClassHome() {
                             <div className="flex flex-col items-center justify-center text-slate-500">
                                 <FolderOpen className="text-slate-300 mb-3" size={48} />
                                 <h3 className="text-lg font-medium text-slate-700">Chưa có tài liệu nào</h3>
-                                <p className="text-sm">Giảng viên chưa đăng tải tài liệu cho môn học này.</p>
+                                <p className="text-sm">Giảng viên chưa đăng tải tài liệu cho khóa học này.</p>
                             </div>
                         </Card>
                     ) : (
@@ -444,7 +444,7 @@ export default function ClassHome() {
                             <div className="lg:col-span-1">
                                 <Card className="bg-slate-900 text-white border-none">
                                     <CardContent className="p-6 text-center">
-                                        <p className="text-slate-400 text-xs font-bold uppercase mb-2">Tổng kết môn học</p>
+                                        <p className="text-slate-400 text-xs font-bold uppercase mb-2">Tổng kết khóa học</p>
                                         <div className="text-4xl font-black">{gradesData.course_total !== null ? Number(gradesData.course_total).toFixed(2) : "--"}</div>
                                         <p className="text-[10px] text-slate-500 mt-2 italic">* Chỉ tính các bài đã công bố</p>
                                     </CardContent>

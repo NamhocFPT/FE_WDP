@@ -2,13 +2,17 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { adminApi } from "service/adminApi";
 import { Button, Table, Th, Td } from "component/ui";
-import { Plus, Pencil, Trash2, Search, X, Loader2, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, Loader2, AlertTriangle, FileSpreadsheet, Upload, Download } from "lucide-react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
+import ImportCourseModal from "./ImportCourseModal";
 
 export default function CourseManagement() {
     const [q, setQ] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
     
     // States cho Modal Thêm/Sửa
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -51,7 +55,7 @@ export default function CourseManagement() {
         setIsDeleteModalOpen(true);
     };
 
-    // Thực hiện ẩn khóa học (Update is_deleted = true)
+    // Thực hiện ẩn môn học (Update is_deleted = true)
     const confirmHide = async () => {
         setLoading(true);
         try {
@@ -59,9 +63,9 @@ export default function CourseManagement() {
             await adminApi.deleteCourse(itemToDelete.id);
             await fetchCourses();
             setIsDeleteModalOpen(false);
-            toast.success("Xóa khóa học thành công!");
+            toast.success("Xóa môn học thành công!");
         } catch (err) {
-            toast.error(err.response?.data?.message || "Lỗi khi ẩn khóa học!");
+            toast.error(err.response?.data?.message || "Lỗi khi ẩn môn học!");
         } finally {
             setLoading(false);
         }
@@ -74,10 +78,10 @@ export default function CourseManagement() {
         try {
             if (editId) {
                 await adminApi.updateCourse(editId, formData);
-                toast.success("Cập nhật khóa học thành công!");
+                toast.success("Cập nhật môn học thành công!");
             } else {
                 await adminApi.addCourse(formData);
-                toast.success("Thêm mới khóa học thành công!");
+                toast.success("Thêm mới môn học thành công!");
             }
             await fetchCourses();
             setIsModalOpen(false);
@@ -94,32 +98,84 @@ export default function CourseManagement() {
     const rows = useMemo(() => {
         return courses.filter((c) => {
             const matchesSearch = !q || c.name?.toLowerCase().includes(q.toLowerCase()) || c.code?.toLowerCase().includes(q.toLowerCase());
+            const matchesStatus = statusFilter === "all" || c.status === statusFilter;
             const isNotDeleted = !c.is_deleted; 
-            return matchesSearch && isNotDeleted;
+            return matchesSearch && matchesStatus && isNotDeleted;
         });
-    }, [q, courses]);
+    }, [q, statusFilter, courses]);
+
+    // File Excel Template Download
+    const handleDownloadTemplate = () => {
+        const templateData = [
+            { "Mã môn": "TOAN10", "Tên môn": "Toán lớp 10", "Số tiết": 45, "Mô tả": "Dành cho học sinh khối 10" },
+            { "Mã môn": "VAN11", "Tên môn": "Ngữ Văn lớp 11", "Số tiết": 45, "Mô tả": "Dành cho học sinh khối 11" },
+            { "Mã môn": "ANH12", "Tên môn": "Tiếng Anh lớp 12", "Số tiết": 45, "Mô tả": "Hệ chuẩn 7 năm" }
+        ];
+        const ws = XLSX.utils.json_to_sheet(templateData);
+        ws["!cols"] = [{ wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 40 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Template");
+        XLSX.writeFile(wb, "Template_Import_Course.xlsx");
+    };
+
+    const handleExportData = () => {
+        const exportData = rows.map(c => ({
+            "Mã môn": c.code,
+            "Tên môn": c.name,
+            "Số tiết": c.expected_sessions || 0,
+            "Mô tả": c.description || "",
+            "Trạng thái": c.status === "active" ? "Đang hoạt động" : "Ngưng hoạt động"
+        }));
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        ws["!cols"] = [{ wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 40 }, { wch: 15 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Danh_sach_Mon_Hoc");
+        XLSX.writeFile(wb, "Danh_sach_Mon_Hoc.xlsx");
+    };
 
     return (
         <div className="flex flex-col h-full w-full bg-[#f8fafc] p-8 space-y-6">
             {/* Header section */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Quản lý Khóa học</h1>
-                    <p className="text-sm text-slate-500 mt-1">Quản lý danh sách khóa học và chương trình giảng dạy</p>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Quản lý Môn học</h1>
+                    <p className="text-sm text-slate-500 mt-1">Quản lý danh sách môn học và chương trình giảng dạy</p>
                 </div>
-                <Button className="bg-[#2563eb] text-white px-5 py-2 rounded-lg flex items-center font-semibold shadow-sm" 
-                    onClick={() => { setEditId(null); setIsModalOpen(true); }}>
-                    <Plus size={18} className="mr-2" /> Thêm Khóa học
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="border-cyan-200 text-cyan-600 hover:bg-cyan-50 h-10 px-4" onClick={handleExportData}>
+                        <Download className="h-4 w-4 mr-2" /> Xuất Excel
+                    </Button>
+                    <Button variant="outline" size="sm" className="border-blue-200 text-blue-600 hover:bg-blue-50 h-10 px-4" onClick={handleDownloadTemplate}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2" /> Tải về File mẫu
+                    </Button>
+                    <Button variant="outline" size="sm" className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 h-10 px-4" onClick={() => setShowImportModal(true)}>
+                        <Upload className="h-4 w-4 mr-2" /> Import danh sách
+                    </Button>
+                    <Button className="bg-[#2563eb] text-white h-10 px-5 rounded-lg flex items-center font-semibold shadow-sm" 
+                        onClick={() => { setEditId(null); setIsModalOpen(true); }}>
+                        <Plus size={18} className="mr-2" /> Thêm Môn học
+                    </Button>
+                </div>
             </div>
 
-            {/* Search Bar */}
-            <div className="bg-white p-4 rounded-xl border border-slate-200 relative shadow-sm">
-                <Search className="absolute left-7 top-7 text-slate-400" size={18} />
-                <input type="text" value={q} onChange={(e) => setQ(e.target.value)}
-                    placeholder="Tìm kiếm theo mã hoặc tên khóa học..." 
-                    className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 transition-all"
-                />
+            {/* Search Bar & Filters */}
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input type="text" value={q} onChange={(e) => setQ(e.target.value)}
+                        placeholder="Tìm kiếm theo mã hoặc tên môn học..." 
+                        className="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 transition-all"
+                    />
+                </div>
+                <select 
+                    className="border border-slate-200 rounded-lg text-sm px-4 py-2.5 outline-none focus:border-blue-500 bg-white min-w-[200px]"
+                    value={statusFilter} 
+                    onChange={e => setStatusFilter(e.target.value)}
+                >
+                    <option value="all">Tất cả Trạng thái</option>
+                    <option value="active">Đang hoạt động</option>
+                    <option value="inactive">Ngưng hoạt động</option>
+                </select>
             </div>
 
             {/* Table */}
@@ -127,8 +183,8 @@ export default function CourseManagement() {
                 <Table className="w-full">
                     <thead>
                         <tr className="border-b bg-slate-50/50">
-                            <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-left">Mã Khóa học</Th>
-                            <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-left">Tên Khóa học</Th>
+                            <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-left">Mã Môn học</Th>
+                            <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-left">Tên Môn học</Th>
                             <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-left">Số buổi dự kiến</Th>
                             <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-left">Trạng thái</Th>
                             <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-center">Thao tác</Th>
@@ -164,14 +220,14 @@ export default function CourseManagement() {
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]">
                     <div className="bg-white rounded-lg shadow-xl w-[500px] overflow-hidden">
                         <div className="p-5 border-b flex justify-between items-center bg-slate-50">
-                            <h2 className="text-lg font-bold text-slate-800">{editId ? "Chỉnh sửa Khóa học" : "Thêm Khóa học mới"}</h2>
+                            <h2 className="text-lg font-bold text-slate-800">{editId ? "Chỉnh sửa Môn học" : "Thêm Môn học mới"}</h2>
                             <X className="cursor-pointer text-slate-400 hover:text-slate-600" onClick={() => setIsModalOpen(false)} />
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Mã</label>
-                                    <input required className="w-full border border-slate-200 p-2 rounded text-sm focus:border-blue-500 outline-none" 
+                                    <input required disabled={editId !== null} className="w-full border border-slate-200 p-2 rounded text-sm focus:border-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-400" 
                                         value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} />
                                 </div>
                                 <div>
@@ -181,7 +237,7 @@ export default function CourseManagement() {
                                 </div>
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Tên Khóa học</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Tên Môn học</label>
                                 <input required className="w-full border border-slate-200 p-2 rounded text-sm focus:border-blue-500 outline-none" 
                                     value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                             </div>
@@ -222,7 +278,7 @@ export default function CourseManagement() {
             <div>
                 <h3 className="text-xl font-bold text-slate-900">Xác nhận xóa?</h3>
                 <p className="text-sm text-slate-500 mt-2">
-                    Khóa học <span className="font-bold text-slate-800">"{itemToDelete?.name}"</span> sẽ được ẩn khỏi danh sách. Bạn có chắc chắn muốn tiếp tục?
+                    Môn học <span className="font-bold text-slate-800">"{itemToDelete?.name}"</span> sẽ được ẩn khỏi danh sách. Bạn có chắc chắn muốn tiếp tục?
                 </p>
             </div>
             
@@ -245,6 +301,13 @@ export default function CourseManagement() {
         </div>
     </div>
 )}
+
+            <ImportCourseModal 
+                isOpen={showImportModal} 
+                onClose={() => setShowImportModal(false)} 
+                onSuccess={fetchCourses} 
+                onDownloadTemplate={handleDownloadTemplate} 
+            />
         </div>
     );
 }
