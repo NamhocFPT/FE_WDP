@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge, Input } from "component/ui";
+import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge, Input, cn } from "component/ui";
 
 export default function SubmissionList() {
     const { assessmentId } = useParams();
@@ -206,14 +206,22 @@ const fetchSubmissions = async () => {
                                                   (assessment?.due_at && s.submitted_at && new Date(s.submitted_at) > new Date(assessment.due_at));
 
                                     return (
-                                        <tr key={s.id} className="hover:bg-slate-50 transition-colors">
+                                        <tr key={s.id} className={cn(
+                                            "hover:bg-slate-50 transition-colors",
+                                            s.is_cheat && "bg-rose-50 hover:bg-rose-100/80"
+                                        )}>
                                             <Td>
                                                 <div className="flex items-center gap-3">
                                                     <div className="h-9 w-9 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center font-bold text-slate-600">
                                                         {s.student?.full_name?.charAt(0) || "U"}
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-sm text-slate-900">{s.student?.full_name || "Unknown User"}</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="font-bold text-sm text-slate-900">{s.student?.full_name || "Unknown User"}</p>
+                                                            {s.is_cheat && (
+                                                                <Badge tone="red" className="text-[10px] px-1 py-0 h-4 border-rose-200">GIAN LẬN</Badge>
+                                                            )}
+                                                        </div>
                                                         <p className="text-xs text-slate-500">{s.student?.email || "No email"}</p>
                                                     </div>
                                                 </div>

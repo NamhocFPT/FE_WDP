@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getQuizByClass, deleteQuiz, getTeacherClasses } from "service/TeacherQuizService";
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge } from "component/ui";
-import { FileText, Users, Settings, Plus, Trash2, Edit3, Eye, ChevronRight } from "lucide-react";
+import { FileText, Users, Settings, Plus, Trash2, Edit3, Eye, ChevronRight, ChevronLeft } from "lucide-react";
 
 export default function QuizList() {
     const { classId: paramClassId } = useParams();
@@ -13,6 +13,8 @@ export default function QuizList() {
     const [quizzes, setQuizzes] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     // Fetch danh sách lớp nếu không có classId từ URL
     useEffect(() => {
@@ -55,6 +57,7 @@ export default function QuizList() {
     useEffect(() => {
         if (selectedClassId) {
             fetchQuizzes(selectedClassId);
+            setCurrentPage(1); // Reset page on class change
         } else if (!paramClassId) {
             setIsLoading(false); // Không có gì để tải
         }
@@ -79,7 +82,7 @@ export default function QuizList() {
         <div className="space-y-6">
             <PageHeader 
                 title="Quản lý Trắc nghiệm Online" 
-                subtitle="Danh sách bài tập trắc nghiệm của lớp"
+                subtitle={selectedClassId ? `Lớp: ${classes.find(c => c.id === selectedClassId)?.name || selectedClassId}` : "Danh sách bài tập trắc nghiệm của lớp"}
                 onBack={() => navigate("/teacher/classes")}
                 right={[
                     <Button 
@@ -149,7 +152,7 @@ export default function QuizList() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {(Array.isArray(quizzes) ? quizzes : []).map((q) => (
+                                    {(Array.isArray(quizzes) ? quizzes : []).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((q) => (
                                         <tr key={q.id} className="hover:bg-slate-50 transition-colors group">
                                             <Td>
                                                 <div className="font-bold text-slate-900 flex items-center gap-2">
@@ -218,6 +221,38 @@ export default function QuizList() {
                                     ))}
                                 </tbody>
                             </Table>
+                        </div>
+                    )}
+                    
+                    {/* Pagination */}
+                    {!isLoading && !error && Math.ceil((quizzes || []).length / itemsPerPage) > 1 && (
+                        <div className="flex items-center justify-between px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-xl">
+                            <span className="text-sm font-medium text-slate-500">
+                                Hiển thị {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, quizzes.length)} trong số {quizzes.length} bài
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    disabled={currentPage === 1}
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    className="bg-white h-8 w-8 !p-0 flex items-center justify-center text-slate-600 border-slate-300"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <div className="flex items-center justify-center min-w-[40px] font-bold text-sm text-slate-700">
+                                    {currentPage} / {Math.ceil((quizzes || []).length / itemsPerPage)}
+                                </div>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    disabled={currentPage === Math.ceil((quizzes || []).length / itemsPerPage)}
+                                    onClick={() => setCurrentPage(prev => Math.min(Math.ceil((quizzes || []).length / itemsPerPage), prev + 1))}
+                                    className="bg-white h-8 w-8 !p-0 flex items-center justify-center text-slate-600 border-slate-300"
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     )}
                 </CardContent>

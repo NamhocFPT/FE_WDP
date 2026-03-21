@@ -19,8 +19,34 @@ export default function QuizReviewAttempt() {
         setLoading(true);
         try {
             const res = await TeacherQuizService.getSubmissionReview(submissionId);
-            if (res.success) {
-                setData(res.data);
+            if (res.success && res.data) {
+                // Map API response to match exactly what the UI expects
+                const bData = res.data;
+                const mappedData = {
+                    submission: {
+                        ...bData.submission,
+                        Student: bData.student,
+                        Assessment: bData.quiz,
+                        final_score: bData.grade?.final_score ?? "---"
+                    },
+                    questions: (bData.questions || []).map(q => ({
+                        id: q.question_id || q.id,
+                        answer_id: q.answer_id,
+                        is_correct: q.is_correct,
+                        points_awarded: q.score,
+                        max_points: q.max_points,
+                        content: q.question_text,
+                        options: (q.options || []).map(opt => ({
+                            id: opt.id,
+                            content: opt.option_text,
+                            is_correct: opt.is_correct
+                        })),
+                        user_answer: q.selected_option_id,
+                        teacher_comment: q.teacher_comment,
+                        is_gradable: true
+                    }))
+                };
+                setData(mappedData);
             } else {
                 toast.error(res.message || "Không thể tải chi tiết bài làm");
             }
@@ -54,8 +80,8 @@ export default function QuizReviewAttempt() {
         setSaving(true);
         try {
             const res = await TeacherQuizService.overrideQuestionMark(submissionId, question.id, {
-                newMark: parseFloat(overrideData.mark),
-                comment: overrideData.comment
+                new_score: parseFloat(overrideData.mark),
+                reason: overrideData.comment || "Ghi đè điểm thủ công" // Ensure reason is never empty as it is required by backend validation
             });
             if (res.success) {
                 toast.success("Đã cập nhật điểm");
