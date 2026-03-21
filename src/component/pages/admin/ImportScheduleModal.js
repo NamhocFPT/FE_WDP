@@ -186,10 +186,10 @@ export default function ImportScheduleModal({ isOpen, onClose, onSuccess }) {
                                 <UploadCloud className="mx-auto h-12 w-12 text-slate-300" />
                                 <div className="mt-4 flex text-sm leading-6 text-slate-600 justify-center">
                                     <label className="relative cursor-pointer rounded-md font-semibold text-blue-600 hover:text-blue-500">
-                                        <span>Upload a file</span>
+                                        <span>Tải tệp lên</span>
                                         <input type="file" className="sr-only" accept=".xls, .xlsx, .csv" onChange={handleFileChange} />
                                     </label>
-                                    <p className="pl-1">or drag and drop</p>
+                                    <p className="pl-1">hoặc kéo thả vào đây</p>
                                 </div>
                                 <p className="text-xs text-slate-500 mt-1">Excel hoặc CSV (.xlsx, .csv)</p>
                             </div>

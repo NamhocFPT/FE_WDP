@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from "react";
 import { PageHeader, StatCard, Card, CardHeader, CardTitle, CardContent } from "component/ui";
 import { Users, BookOpen, Presentation, CalendarCheck, Loader2 } from "lucide-react";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from "recharts";
 import { adminApi } from "service/adminApi";
 import { toast } from "sonner";
 
-const gradeColors = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
+const gradeColors = ["#6366f1", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
 
 export default function AdminDashboard() {
     const [timeFilter, setTimeFilter] = useState("Last 30 days");
@@ -43,13 +43,25 @@ export default function AdminDashboard() {
         if (active && payload && payload.length) {
             return (
                 <div className="bg-white p-3 border border-slate-200 rounded-lg shadow-sm">
-                    <p className="font-semibold text-slate-800">{`Grade ${payload[0].name}`}</p>
-                    <p className="text-slate-600">{`${payload[0].value} students`}</p>
+                    <p className="font-semibold text-slate-800">{`Điểm ${payload[0].name}`}</p>
+                    <p className="text-slate-600">{`${payload[0].value} sinh viên`}</p>
                 </div>
             );
         }
         return null;
     };
+
+    // Custom Legend for PieChart
+    const CustomPieLegend = ({ payload }) => (
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
+            {payload.map((entry, index) => (
+                <div key={index} className="flex items-center gap-1.5 text-sm text-slate-600">
+                    <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                    <span>Điểm {entry.value}</span>
+                </div>
+            ))}
+        </div>
+    );
 
     // Custom Tooltip for BarChart
     const CustomBarTooltip = ({ active, payload, label }) => {
@@ -59,7 +71,7 @@ export default function AdminDashboard() {
                     <p className="font-semibold text-slate-800 mb-1">{label}</p>
                     <p className="text-slate-600 flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full bg-blue-500"></span>
-                        {`${payload[0].value} Students`}
+                        {`${payload[0].value} Sinh viên`}
                     </p>
                 </div>
             );
@@ -72,17 +84,17 @@ export default function AdminDashboard() {
             {/* Header & Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <PageHeader
-                    title="Admin Dashboard"
-                    subtitle="Welcome back! Here's what's happening today."
+                    title="Bảng điều khiển Admin"
+                    subtitle="Chào mừng trở lại! Dưới đây là tình hình hôm nay."
                 />
                 <select 
                     className="w-full sm:w-48 p-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                     value={timeFilter}
                     onChange={(e) => setTimeFilter(e.target.value)}
                 >
-                    <option>Last 7 days</option>
-                    <option>Last 30 days</option>
-                    <option>Last 90 days</option>
+                    <option>7 ngày qua</option>
+                    <option>30 ngày qua</option>
+                    <option>90 ngày qua</option>
                 </select>
             </div>
 
@@ -95,30 +107,30 @@ export default function AdminDashboard() {
                 <>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <StatCard 
-                        label="Total Students" 
+                        label="Tổng sinh viên" 
                         value={data.statsData.totalStudents.toLocaleString()} 
-                        hint={<span className="text-green-600 font-medium">↗ +12% vs last period</span>}
+                        hint={<span className="text-green-600 font-medium">↗ +12% so với kỳ trước</span>}
                         icon={<Users size={24} className="text-indigo-600" />}
                         iconBg="bg-indigo-50"
                     />
                     <StatCard 
-                        label="Total Teachers" 
+                        label="Tổng giảng viên" 
                         value={data.statsData.totalTeachers} 
-                        hint={<span className="text-green-600 font-medium">↗ +5% vs last period</span>}
+                        hint={<span className="text-green-600 font-medium">↗ +5% so với kỳ trước</span>}
                         icon={<Presentation size={24} className="text-fuchsia-600" />}
                         iconBg="bg-fuchsia-50"
                     />
                     <StatCard 
-                        label="Active Classes" 
+                        label="Lớp đang học" 
                         value={data.statsData.activeClasses} 
-                        hint={<span className="text-green-600 font-medium">↗ +8% vs last period</span>}
+                        hint={<span className="text-green-600 font-medium">↗ +8% so với kỳ trước</span>}
                         icon={<BookOpen size={24} className="text-emerald-600" />}
                         iconBg="bg-emerald-50"
                     />
                     <StatCard 
-                        label="Submissions Today" 
+                        label="Bài nộp hôm nay" 
                         value={data.statsData.submissionsToday} 
-                        hint={<span className="text-red-500 font-medium">↘ -3% vs last period</span>}
+                        hint={<span className="text-red-500 font-medium">↘ -3% so với kỳ trước</span>}
                         icon={<CalendarCheck size={24} className="text-orange-600" />}
                         iconBg="bg-orange-50"
                     />
@@ -126,71 +138,86 @@ export default function AdminDashboard() {
 
                 {/* Charts Section */}
                 <div className="grid gap-6 lg:grid-cols-2">
-                    {/* Pie Chart */}
-                    <Card className="shadow-sm border-slate-200 h-[400px] flex flex-col">
+                    {/* Donut Pie Chart */}
+                    <Card className="shadow-sm border-slate-200 flex flex-col" style={{ height: 400 }}>
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-lg">Grade Distribution</CardTitle>
+                            <CardTitle className="text-lg">Phổ điểm hệ thống</CardTitle>
+                            <p className="text-sm text-slate-400">Thống kê điểm số của tất cả các bài nộp đã chấm</p>
                         </CardHeader>
-                        <CardContent className="flex-1 flex items-center justify-center p-0">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={data.gradeDistributionData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={0}
-                                        outerRadius={120}
-                                        paddingAngle={2}
-                                        dataKey="value"
-                                        label={({ name, value }) => `${name}: ${value}`}
-                                        labelLine={true}
-                                    >
-                                        {data.gradeDistributionData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={gradeColors[index % gradeColors.length]} />
-                                        ))}
-                                    </Pie>
-                                    <RechartsTooltip content={<CustomPieTooltip />} />
-                                </PieChart>
-                            </ResponsiveContainer>
+                        <CardContent className="flex-1 flex flex-col items-center justify-center p-4">
+                            {data.gradeDistributionData.every(d => d.value === 0) ? (
+                                <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-400">
+                                    <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <span className="text-sm font-medium">Chưa có dữ liệu điểm</span>
+                                </div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <PieChart>
+                                        <Pie
+                                            data={data.gradeDistributionData.filter(d => d.value > 0)}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={100}
+                                            paddingAngle={3}
+                                            dataKey="value"
+                                            label={false}
+                                            labelLine={false}
+                                        >
+                                            {data.gradeDistributionData.filter(d => d.value > 0).map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={gradeColors[data.gradeDistributionData.indexOf(entry) % gradeColors.length]} />
+                                            ))}
+                                        </Pie>
+                                        <RechartsTooltip content={<CustomPieTooltip />} />
+                                        <Legend
+                                            content={<CustomPieLegend />}
+                                            formatter={(value) => `Điểm ${value}`}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            )}
                         </CardContent>
                     </Card>
 
                     {/* Bar Chart */}
-                    <Card className="shadow-sm border-slate-200 h-[400px] flex flex-col">
+                    <Card className="shadow-sm border-slate-200 flex flex-col" style={{ height: 400 }}>
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-lg">Students by Course</CardTitle>
+                            <CardTitle className="text-lg">Sinh viên theo khóa học</CardTitle>
+                            <p className="text-sm text-slate-400">Số lượng sinh viên đăng ký theo từng khóa học</p>
                         </CardHeader>
                         <CardContent className="flex-1 pt-4">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height={300}>
                                 <BarChart data={data.studentsByCourseData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis 
-                                    dataKey="name" 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                    tick={{ fill: '#64748b', fontSize: 13 }}
-                                    dy={10}
-                                />
-                                <YAxis 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                    tick={{ fill: '#64748b', fontSize: 13 }}
-                                    dx={-10}
-                                    domain={[0, 60]}
-                                    ticks={[0, 15, 30, 45, 60]}
-                                />
-                                <RechartsTooltip content={<CustomBarTooltip />} cursor={{ fill: '#f1f5f9' }} />
-                                <Bar dataKey="students" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={60} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                    <XAxis
+                                        dataKey="name"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#64748b', fontSize: 13 }}
+                                        dy={10}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#64748b', fontSize: 13 }}
+                                        dx={-10}
+                                        allowDecimals={false}
+                                        domain={[0, 'auto']}
+                                    />
+                                    <RechartsTooltip content={<CustomBarTooltip />} cursor={{ fill: '#f1f5f9' }} />
+                                    <Bar dataKey="students" fill="#6366f1" radius={[6, 6, 0, 0]} maxBarSize={60} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
             </div>
 
             {/* Recent Activities */}
             <Card className="shadow-sm border-slate-200">
                 <CardHeader>
-                    <CardTitle className="text-lg">Recent Activities</CardTitle>
+                    <CardTitle className="text-lg">Hoạt động gần đây</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4 pb-6">
                     <div className="relative border-l-2 border-slate-100 ml-4 space-y-8">

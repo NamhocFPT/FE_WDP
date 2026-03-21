@@ -104,12 +104,12 @@ export default function CourseManagement() {
             {/* Header section */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Course Management</h1>
-                    <p className="text-sm text-slate-500 mt-1">Manage courses and curriculum</p>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Quản lý Khóa học</h1>
+                    <p className="text-sm text-slate-500 mt-1">Quản lý danh sách khóa học và chương trình giảng dạy</p>
                 </div>
                 <Button className="bg-[#2563eb] text-white px-5 py-2 rounded-lg flex items-center font-semibold shadow-sm" 
                     onClick={() => { setEditId(null); setIsModalOpen(true); }}>
-                    <Plus size={18} className="mr-2" /> Add Course
+                    <Plus size={18} className="mr-2" /> Thêm Khóa học
                 </Button>
             </div>
 
@@ -117,7 +117,7 @@ export default function CourseManagement() {
             <div className="bg-white p-4 rounded-xl border border-slate-200 relative shadow-sm">
                 <Search className="absolute left-7 top-7 text-slate-400" size={18} />
                 <input type="text" value={q} onChange={(e) => setQ(e.target.value)}
-                    placeholder="Search by code or name..." 
+                    placeholder="Tìm kiếm theo mã hoặc tên khóa học..." 
                     className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 transition-all"
                 />
             </div>
@@ -127,11 +127,11 @@ export default function CourseManagement() {
                 <Table className="w-full">
                     <thead>
                         <tr className="border-b bg-slate-50/50">
-                            <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-left">Course Code</Th>
-                            <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-left">Course Name</Th>
-                            <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-left">Sessions</Th>
-                            <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-left">Status</Th>
-                            <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-center">Actions</Th>
+                            <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-left">Mã Khóa học</Th>
+                            <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-left">Tên Khóa học</Th>
+                            <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-left">Số buổi dự kiến</Th>
+                            <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-left">Trạng thái</Th>
+                            <Th className="text-[11px] font-bold text-slate-400 uppercase tracking-widest py-4 px-6 text-center">Thao tác</Th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
@@ -144,7 +144,7 @@ export default function CourseManagement() {
                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
                                         c.status === 'inactive' ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"
                                     }`}>
-                                        {c.status || 'active'}
+                                        {c.status === 'inactive' ? 'Ngưng hoạt động' : 'Đang hoạt động'}
                                     </span>
                                 </Td>
                                 <Td className="py-4 px-6 text-center">
@@ -164,44 +164,44 @@ export default function CourseManagement() {
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]">
                     <div className="bg-white rounded-lg shadow-xl w-[500px] overflow-hidden">
                         <div className="p-5 border-b flex justify-between items-center bg-slate-50">
-                            <h2 className="text-lg font-bold text-slate-800">{editId ? "Edit Course" : "Add New Course"}</h2>
+                            <h2 className="text-lg font-bold text-slate-800">{editId ? "Chỉnh sửa Khóa học" : "Thêm Khóa học mới"}</h2>
                             <X className="cursor-pointer text-slate-400 hover:text-slate-600" onClick={() => setIsModalOpen(false)} />
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Code</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Mã</label>
                                     <input required className="w-full border border-slate-200 p-2 rounded text-sm focus:border-blue-500 outline-none" 
                                         value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Sessions</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Số buổi</label>
                                     <input type="number" required className="w-full border border-slate-200 p-2 rounded text-sm focus:border-blue-500 outline-none" 
                                         value={formData.expected_sessions} onChange={e => setFormData({...formData, expected_sessions: e.target.value})} />
                                 </div>
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Course Name</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Tên Khóa học</label>
                                 <input required className="w-full border border-slate-200 p-2 rounded text-sm focus:border-blue-500 outline-none" 
                                     value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Description</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Mô tả</label>
                                 <textarea className="w-full border border-slate-200 p-2 rounded text-sm h-20 outline-none focus:border-blue-500" 
                                     value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Status</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Trạng thái</label>
                                 <select className="w-full border border-slate-200 p-2 rounded text-sm bg-white outline-none focus:border-blue-500 cursor-pointer"
                                     value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
+                                    <option value="active">Đang hoạt động</option>
+                                    <option value="inactive">Ngưng hoạt động</option>
                                 </select>
                             </div>
                             <div className="flex justify-end gap-2 pt-4">
-                                <Button type="button" variant="outline" className="text-xs" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                                <Button type="button" variant="outline" className="text-xs" onClick={() => setIsModalOpen(false)}>Hủy</Button>
                                 <Button disabled={loading} type="submit" className="bg-[#2563eb] text-white text-xs px-6 font-semibold">
-                                    {loading ? <Loader2 className="animate-spin mr-2" size={14} /> : null} {editId ? "Update" : "Create"}
+                                    {loading ? <Loader2 className="animate-spin mr-2" size={14} /> : null} {editId ? "Cập nhật" : "Tạo mới"}
                                 </Button>
                             </div>
                         </form>
@@ -218,11 +218,11 @@ export default function CourseManagement() {
                 <AlertTriangle size={32} />
             </div>
             
-            {/* Modal Content - Switched to English */}
+            {/* Modal Content */}
             <div>
-                <h3 className="text-xl font-bold text-slate-900">Confirm Deletion?</h3>
+                <h3 className="text-xl font-bold text-slate-900">Xác nhận xóa?</h3>
                 <p className="text-sm text-slate-500 mt-2">
-                    The course <span className="font-bold text-slate-800">"{itemToDelete?.name}"</span> will be hidden from the list. Are you sure you want to proceed?
+                    Khóa học <span className="font-bold text-slate-800">"{itemToDelete?.name}"</span> sẽ được ẩn khỏi danh sách. Bạn có chắc chắn muốn tiếp tục?
                 </p>
             </div>
             
@@ -232,14 +232,14 @@ export default function CourseManagement() {
                     className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-colors" 
                     onClick={() => setIsDeleteModalOpen(false)}
                 >
-                    Cancel
+                    Hủy
                 </button>
                 <button 
                     className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm"
                     onClick={confirmHide}
                     disabled={loading}
                 >
-                    {loading ? <Loader2 className="animate-spin" size={18} /> : "Confirm"}
+                    {loading ? <Loader2 className="animate-spin" size={18} /> : "Xác nhận"}
                 </button>
             </div>
         </div>

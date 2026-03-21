@@ -740,11 +740,11 @@ export default function TeacherSchedule() {
                                                             {!student.attendance ? (
                                                                 <span className="text-slate-400">—</span>
                                                             ) : student.attendance.status === "present" ? (
-                                                                <span className="text-emerald-600 font-medium">✓ Present</span>
+                                                                <span className="text-emerald-600 font-medium">✓ Có mặt</span>
                                                             ) : student.attendance.status === "absent" ? (
-                                                                <span className="text-red-600 font-medium">✕ Absent</span>
+                                                                <span className="text-red-600 font-medium">✕ Vắng mặt</span>
                                                             ) : (
-                                                                <span className="text-amber-600 font-medium">⏰ Late</span>
+                                                                <span className="text-amber-600 font-medium">⏰ Muộn</span>
                                                             )}
                                                         </td>
                                                         <td className="px-3 py-2 text-slate-500 truncate max-w-[120px]" title={student.attendance?.note}>

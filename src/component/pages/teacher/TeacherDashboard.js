@@ -41,7 +41,7 @@ export default function TeacherDashboard() {
     return (
         <div className="space-y-6">
             <PageHeader 
-                title="Teacher Dashboard" 
+                title="Bảng điều khiển Giảng viên" 
                 subtitle="Tổng quan lịch dạy và bài tập cần chấm trong ngày." 
             />
 

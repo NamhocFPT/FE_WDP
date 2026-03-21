@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { adminApi } from "service/adminApi";
 import { PageHeader, Card, CardHeader, CardTitle, CardContent, Badge, Button, Table, Th, Td } from "component/ui";
 import { Info, BookOpen, Users, Calendar, ChevronLeft, UserPlus, Upload, Plus, Trash2, Loader2, Edit, Minus } from "lucide-react";
@@ -14,7 +14,12 @@ import { toast } from "sonner";
 export default function ClassDetail() {
     const { id } = useParams();
     const nav = useNavigate();
-    const [activeTab, setActiveTab] = useState("Overview");
+    const location = useLocation();
+    
+    // Đọc activeTab từ URL search param (?tab=Overview)
+    const queryParams = new URLSearchParams(location.search);
+    const activeTab = queryParams.get("tab") || "Overview";
+
     const [cl, setCl] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -30,7 +35,7 @@ export default function ClassDetail() {
             setCl(res.data.data);
             setLoading(false);
         } catch (err) {
-            console.error("Error fetching class detail:", err);
+            console.error("Lỗi lấy chi tiết lớp học:", err);
             setLoading(false);
         }
     }, [id]);
@@ -39,45 +44,25 @@ export default function ClassDetail() {
         fetchDetail();
     }, [fetchDetail]);
 
-    if (loading) return <div className="p-8 text-center text-slate-500">Loading class information...</div>;
-    if (!cl) return <div className="p-8 text-center text-red-500">Class not found.</div>;
-
-    const tabs = [
-        { id: "Overview", icon: <Info size={16}/> },
-        { id: "Teachers", icon: <BookOpen size={16}/> },
-        { id: "Students", icon: <Users size={16}/> },
-        { id: "Schedule", icon: <Calendar size={16}/> }
-    ];
+    if (loading) return <div className="p-8 text-center text-slate-500 italic">Đang tải thông tin lớp học...</div>;
+    if (!cl) return <div className="p-8 text-center text-red-500 font-bold">Không tìm thấy lớp học.</div>;
 
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
-                <button onClick={() => nav("/admin/classes")} className="p-2 hover:bg-slate-100 rounded-full transition">
-                    <ChevronLeft size={24} />
+                <button onClick={() => nav("/admin/classes")} className="p-2 hover:bg-slate-100 rounded-full transition shadow-sm border border-slate-100 bg-white">
+                    <ChevronLeft size={20} />
                 </button>
                 <PageHeader 
                     title={cl.name} 
                     subtitle={cl.course?.name} 
-                    right={[<Badge key="cap" tone="indigo">{cl.enrollments?.length || 0}/40 Students</Badge>]}
+                    right={[<Badge key="cap" tone="indigo" className="px-3 py-1">{cl.enrollments?.length || 0}/40 Sinh viên</Badge>]}
                 />
             </div>
 
-            {/* Tab Navigation chuẩn Figma */}
-            <div className="flex bg-slate-100 p-1 rounded-xl w-fit border border-slate-200">
-                {tabs.map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${
-                            activeTab === tab.id ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                        }`}
-                    >
-                        {tab.icon} {tab.id}
-                    </button>
-                ))}
-            </div>
-
-            <div className="mt-4">
+            {/* Thanh Tab Navigation cũ đã được chuyển sang Sidebar theo yêu cầu */}
+            
+            <div className="mt-4 animate-in fade-in duration-500">
                 {activeTab === "Overview" && <OverviewTab cl={cl} onAssignClick={() => setIsAssignModalOpen(true)} />}
                 {activeTab === "Teachers" && <TeachersTab cl={cl} onAssignClick={() => setIsAssignModalOpen(true)} onUnassignSuccess={fetchDetail} />}
                 {activeTab === "Students" && <StudentsTab cl={cl} onAddStudentClick={() => setIsAddStudentOpen(true)} onImportClick={() => setIsImportStudentsOpen(true)} onUnenrollSuccess={fetchDetail} />}
@@ -101,6 +86,7 @@ export default function ClassDetail() {
                 isOpen={isAddSessionOpen}
                 onClose={() => setIsAddSessionOpen(false)}
                 classId={cl.id}
+                currentTeacherId={cl.teacher?.id}
                 onSuccess={fetchDetail}
             />
             
@@ -109,6 +95,7 @@ export default function ClassDetail() {
                 onClose={() => setEditSessionGroup(null)}
                 classId={cl.id}
                 sessionGroup={editSessionGroup}
+                currentTeacherId={cl.teacher?.id}
                 onSuccess={() => {
                     setEditSessionGroup(null);
                     fetchDetail();
@@ -133,28 +120,26 @@ export default function ClassDetail() {
     );
 }
 
-// --- Định nghĩa các Tab Component để sửa lỗi 'is not defined' ---
-
 const OverviewTab = ({ cl, onAssignClick }) => (
     <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-            <CardHeader><CardTitle>Class Information</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4 text-sm italic">
-                <div><label className="text-slate-400 block not-italic font-medium">Semester</label><span className="font-bold">{cl.semester}</span></div>
-                <div><label className="text-slate-400 block not-italic font-medium">Start Date</label><span className="font-bold">{cl.start_date}</span></div>
-                <div><label className="text-slate-400 block not-italic font-medium">Capacity</label><span className="font-bold">{cl.max_capacity} students</span></div>
-                <div><label className="text-slate-400 block not-italic font-medium">Status</label><Badge tone="green">{cl.status}</Badge></div>
+            <CardHeader><CardTitle>Thông tin lớp học</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                <div><label className="text-slate-400 block font-medium">Học kỳ</label><span className="font-bold text-slate-700">{cl.semester}</span></div>
+                <div><label className="text-slate-400 block font-medium">Ngày bắt đầu</label><span className="font-bold text-slate-700">{cl.start_date ? new Date(cl.start_date).toLocaleDateString("vi-VN") : "---"}</span></div>
+                <div><label className="text-slate-400 block font-medium">Sĩ số</label><span className="font-bold text-slate-700">{cl.enrollments?.length || 0}/{cl.max_capacity} sinh viên</span></div>
+                <div><label className="text-slate-400 block font-medium">Trạng thái</label><Badge tone="green">{cl.status === "active" ? "Đang hoạt động" : cl.status}</Badge></div>
             </CardContent>
         </Card>
         <Card>
-            <CardHeader className="flex justify-between items-center"><CardTitle>Main Teacher</CardTitle><Button variant="outline" size="sm" onClick={onAssignClick}>Change</Button></CardHeader>
+            <CardHeader className="flex justify-between items-center"><CardTitle>Giảng viên phụ trách</CardTitle><Button variant="outline" size="sm" onClick={onAssignClick}>Thay đổi</Button></CardHeader>
             <CardContent className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 font-bold">
                     {cl.teacher?.full_name?.charAt(0) || "T"}
                 </div>
                 <div>
-                    <div className="font-bold text-slate-900">{cl.teacher?.full_name || "Unassigned"}</div>
-                    <div className="text-xs text-slate-500">Primary Instructor</div>
+                    <div className="font-bold text-slate-900">{cl.teacher?.full_name || "Chưa phân công"}</div>
+                    <div className="text-xs text-slate-500">Giảng viên chính</div>
                 </div>
             </CardContent>
         </Card>
@@ -165,14 +150,14 @@ const TeachersTab = ({ cl, onAssignClick, onUnassignSuccess }) => {
     const [removing, setRemoving] = useState(false);
 
     const handleUnassign = async () => {
-        if (!window.confirm("Bạn có chắc chắn muốn gỡ phân công giảng viên này?")) return;
+        if (!window.confirm("Bạn có chắc chắn muốn bỏ phân công giảng viên này?")) return;
         setRemoving(true);
         try {
             await adminApi.assignTeacher(cl.id, null);
-            toast.success("Gỡ phân công thành công!");
+            toast.success("Đã bỏ phân công thành công!");
             onUnassignSuccess();
         } catch (error) {
-            toast.error(error.response?.data?.message || "Có lỗi xảy ra");
+            toast.error(error.response?.data?.message || "Đã xảy ra lỗi");
         } finally {
             setRemoving(false);
         }
@@ -181,24 +166,24 @@ const TeachersTab = ({ cl, onAssignClick, onUnassignSuccess }) => {
     return (
         <Card>
             <CardHeader className="flex justify-between items-center">
-                <CardTitle>Assigned Teachers</CardTitle>
-                <Button size="sm" className="bg-blue-600" onClick={onAssignClick}><UserPlus size={16} className="mr-2"/> Assign Teacher</Button>
+                <CardTitle>Danh sách giảng viên</CardTitle>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onAssignClick}><UserPlus size={16} className="mr-2"/> Phân công giảng viên</Button>
             </CardHeader>
             <CardContent>
                 <Table>
-                    <thead><tr><Th>Name</Th><Th>Email</Th><Th>Role</Th><Th className="text-right">Action</Th></tr></thead>
+                    <thead><tr><Th>Họ tên</Th><Th>Email</Th><Th>Vai trò</Th><Th className="text-right">Hành động</Th></tr></thead>
                     <tbody>
                         {cl.teacher ? (
                             <tr>
-                                <Td className="font-bold">{cl.teacher.full_name}</Td>
+                                <Td className="font-bold text-indigo-700">{cl.teacher.full_name}</Td>
                                 <Td>{cl.teacher.email}</Td>
-                                <Td><Badge tone="blue">Primary</Badge></Td>
+                                <Td><Badge tone="blue">Chính</Badge></Td>
                                 <Td className="text-right">
                                     <button 
                                         onClick={handleUnassign} 
                                         disabled={removing}
                                         className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                                        title="Gỡ phân công (Unassign)"
+                                        title="Bỏ phân công"
                                     >
                                         {removing ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
                                     </button>
@@ -206,7 +191,7 @@ const TeachersTab = ({ cl, onAssignClick, onUnassignSuccess }) => {
                             </tr>
                         ) : (
                             <tr>
-                                <Td colSpan={4} className="text-center text-slate-500 py-6">Chưa có giảng viên được phân công.</Td>
+                                <Td colSpan={4} className="text-center text-slate-500 py-6 italic">Chưa có giảng viên được phân công.</Td>
                             </tr>
                         )}
                     </tbody>
@@ -228,11 +213,11 @@ const StudentsTab = ({ cl, onAddStudentClick, onImportClick, onUnenrollSuccess }
         setIsUnenrolling(true);
         try {
             await adminApi.unenrollStudent(cl.id, confirmModalState.studentId);
-            toast.success("Xóa học viên thành công!");
+            toast.success("Đã hủy đăng ký sinh viên thành công!");
             setConfirmModalState({ isOpen: false, studentId: null, studentName: "" });
             if (onUnenrollSuccess) onUnenrollSuccess();
         } catch (error) {
-            toast.error(error.response?.data?.message || "Có lỗi xảy ra khi xóa học viên");
+            toast.error(error.response?.data?.message || "Lỗi khi hủy đăng ký sinh viên");
         } finally {
             setIsUnenrolling(false);
         }
@@ -242,10 +227,10 @@ const StudentsTab = ({ cl, onAddStudentClick, onImportClick, onUnenrollSuccess }
         <>
             <Card>
                 <CardHeader className="flex justify-between items-center">
-                <CardTitle>Enrolled Students</CardTitle>
+                <CardTitle>Sinh viên đã đăng ký</CardTitle>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={onImportClick}><Upload size={16} className="mr-2"/> Import</Button>
-                    <Button size="sm" className="bg-blue-600" onClick={onAddStudentClick}><Plus size={16} className="mr-2"/> Add Student</Button>
+                    <Button variant="outline" size="sm" onClick={onImportClick}><Upload size={16} className="mr-2"/> Nhập Excel</Button>
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onAddStudentClick}><Plus size={16} className="mr-2"/> Thêm sinh viên</Button>
                 </div>
             </CardHeader>
             <CardContent>
@@ -253,10 +238,10 @@ const StudentsTab = ({ cl, onAddStudentClick, onImportClick, onUnenrollSuccess }
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50 text-slate-500 text-sm font-medium border-b">
-                                <th className="p-3 w-1/4">Name</th>
+                                <th className="p-3 w-1/4">Họ tên</th>
                                 <th className="p-3 w-1/3">Email</th>
-                                <th className="p-3 w-1/4">Student ID</th>
-                                <th className="p-3 w-1/6 text-right">Actions</th>
+                                <th className="p-3 w-1/4">MSSV</th>
+                                <th className="p-3 w-1/6 text-right">Hành động</th>
                             </tr>
                         </thead>
                         <tbody className="text-sm">
@@ -264,7 +249,7 @@ const StudentsTab = ({ cl, onAddStudentClick, onImportClick, onUnenrollSuccess }
                                 <tr key={index} className="border-b hover:bg-slate-50 transition-colors">
                                     <td className="p-3 font-medium">{en.student?.full_name}</td>
                                     <td className="p-3 text-slate-500">{en.student?.email}</td>
-                                    <td className="p-3 text-slate-500">ST100{index}</td>
+                                    <td className="p-3 text-slate-500">ST{en.user_id.substring(0,5).toUpperCase()}</td>
                                     <td className="p-3 text-right">
                                         <Button 
                                             variant="ghost" 
@@ -272,7 +257,7 @@ const StudentsTab = ({ cl, onAddStudentClick, onImportClick, onUnenrollSuccess }
                                             className="text-slate-600 hover:text-red-600"
                                             onClick={() => handleUnenrollClick(en.user_id, en.student?.full_name)}
                                         >
-                                            <Minus size={14} className="mr-2"/> Unenroll
+                                            <Minus size={14} className="mr-2"/> Hủy đăng ký
                                         </Button>
                                     </td>
                                 </tr>
@@ -280,8 +265,8 @@ const StudentsTab = ({ cl, onAddStudentClick, onImportClick, onUnenrollSuccess }
                         </tbody>
                     </table>
                 ) : (
-                    <div className="text-center text-slate-500 py-8">
-                        Chưa có học sinh trong lớp.
+                    <div className="text-center text-slate-500 py-8 italic">
+                        Chưa có sinh viên nào đăng ký lớp này.
                     </div>
                 )}
             </CardContent>
@@ -291,10 +276,10 @@ const StudentsTab = ({ cl, onAddStudentClick, onImportClick, onUnenrollSuccess }
             isOpen={confirmModalState.isOpen}
             onClose={() => setConfirmModalState({ isOpen: false, studentId: null, studentName: "" })}
             onConfirm={confirmUnenroll}
-            title="Xác nhận Xóa Học Viên"
-            message={<span>Bạn có chắc chắn muốn xóa học viên <strong className="text-slate-900">{confirmModalState.studentName}</strong> khỏi lớp này không? Hành động này không thể hoàn tác.</span>}
-            confirmText="Xác nhận Xóa"
-            cancelText="Hủy bỏ"
+            title="Xác nhận hủy đăng ký"
+            message={<span>Bạn có chắc chắn muốn hủy đăng ký cho sinh viên <strong className="text-slate-900">{confirmModalState.studentName}</strong> khỏi lớp học này? Hành động này không thể hoàn tác.</span>}
+            confirmText="Xác nhận hủy"
+            cancelText="Quay lại"
             isDestructive={true}
             loading={isUnenrolling}
         />
@@ -307,12 +292,12 @@ const ScheduleTab = ({ cl, onAddSessionClick, onEditSessionClick, onDeleteSessio
 
     const formatTime = (dateStr) => {
         if (!dateStr) return "--:--";
-        return new Date(dateStr).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: false });
+        return new Date(dateStr).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit', hour12: false });
     };
 
     const getDayOfWeek = (dateStr) => {
         if (!dateStr) return "";
-        const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const days = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
         return days[new Date(dateStr).getDay()];
     };
 
@@ -324,17 +309,17 @@ const ScheduleTab = ({ cl, onAddSessionClick, onEditSessionClick, onDeleteSessio
             const day = getDayOfWeek(s.start_time);
             const startTimeStr = formatTime(s.start_time);
             const endTimeStr = formatTime(s.end_time);
-            const room = s.room || "N/A";
+            const room = s.room || "Chưa rõ";
             
             const key = `${day}-${startTimeStr}-${endTimeStr}-${room}`;
             if (!groups[key]) {
                 groups[key] = {
-                    id: s.id, // ID of the first session in this group for key rendering
-                    sessionIds: [], // Keep track of all IDs in this group
+                    id: s.id,
+                    sessionIds: [],
                     day: day,
                     time: `${startTimeStr} - ${endTimeStr}`,
                     room: room,
-                    teacher: cl.teacher?.full_name || "Unassigned"
+                    teacher: cl.teacher?.full_name || "Chưa phân công"
                 };
             }
             groups[key].sessionIds.push(s.id);
@@ -343,14 +328,14 @@ const ScheduleTab = ({ cl, onAddSessionClick, onEditSessionClick, onDeleteSessio
     }
 
     const handleDelete = async (group) => {
-        if (!window.confirm("Bác có chắc chắn muốn xóa toàn bộ các buổi học thuộc lịch trình này không?")) return;
+        if (!window.confirm("Bạn có chắc chắn muốn xóa tất cả buổi học thuộc lịch này không?")) return;
         setDeletingId(group.id);
         try {
             await adminApi.deleteSessions(cl.id, group.sessionIds);
-            toast.success("Schedule deleted successfully!");
+            toast.success("Đã xóa lịch học thành công!");
             onDeleteSessionSuccess();
         } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to delete schedule");
+            toast.error(error.response?.data?.message || "Lỗi khi xóa lịch học");
         } finally {
             setDeletingId(null);
         }
@@ -359,33 +344,33 @@ const ScheduleTab = ({ cl, onAddSessionClick, onEditSessionClick, onDeleteSessio
     return (
         <Card>
             <CardHeader className="flex justify-between items-center">
-                <CardTitle>Class Sessions</CardTitle>
-                <Button size="sm" className="bg-blue-600" onClick={onAddSessionClick}><Plus size={16} className="mr-2"/> Add Session</Button>
+                <CardTitle>Lịch học chi tiết</CardTitle>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onAddSessionClick}><Plus size={16} className="mr-2"/> Thêm buổi học</Button>
             </CardHeader>
             <CardContent>
                 <Table>
                     <thead>
                         <tr>
-                            <Th>Day</Th>
-                            <Th>Time</Th>
-                            <Th>Room</Th>
-                            <Th>Teacher</Th>
-                            <Th className="text-right">Actions</Th>
+                            <Th>Thứ</Th>
+                            <Th>Thời gian</Th>
+                            <Th>Phòng</Th>
+                            <Th>Giảng viên</Th>
+                            <Th className="text-right">Thao tác</Th>
                         </tr>
                     </thead>
                     <tbody>
                         {groupedSchedules.length > 0 ? (
                             groupedSchedules.map(group => (
                                 <tr key={group.id}>
-                                    <Td className="font-bold">{group.day}</Td>
-                                    <Td>{group.time}</Td>
+                                    <Td className="font-bold text-slate-900">{group.day}</Td>
+                                    <Td className="text-slate-600 font-medium">{group.time}</Td>
                                     <Td>{group.room}</Td>
                                     <Td>{group.teacher}</Td>
                                     <Td className="text-right space-x-2">
                                         <button 
                                             onClick={() => onEditSessionClick(group)}
                                             className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                            title="Edit Schedule"
+                                            title="Sửa lịch học"
                                         >
                                             <Edit size={18} />
                                         </button>
@@ -393,7 +378,7 @@ const ScheduleTab = ({ cl, onAddSessionClick, onEditSessionClick, onDeleteSessio
                                             onClick={() => handleDelete(group)}
                                             disabled={deletingId === group.id}
                                             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                                            title="Delete Schedule"
+                                            title="Xóa lịch học"
                                         >
                                             {deletingId === group.id ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
                                         </button>
@@ -402,7 +387,7 @@ const ScheduleTab = ({ cl, onAddSessionClick, onEditSessionClick, onDeleteSessio
                             ))
                         ) : (
                             <tr>
-                                <Td colSpan={5} className="text-center text-slate-500 py-6">No sessions scheduled.</Td>
+                                <Td colSpan={5} className="text-center text-slate-500 py-6 italic">Chưa có lịch học nào được thiết lập.</Td>
                             </tr>
                         )}
                     </tbody>

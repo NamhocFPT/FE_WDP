@@ -68,14 +68,17 @@ export function Td({ className, ...props }) {
     return <td className={cn("border-b border-slate-100 px-3 py-2 text-slate-700", className)} {...props} />;
 }
 
-export function PageHeader({ title, subtitle, right }) {
+export function PageHeader({ title, subtitle, right, icon }) {
     return (
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-                <h1 className="text-xl font-bold text-slate-900">{title}</h1>
-                {subtitle ? <p className="mt-1 text-sm text-slate-600">{subtitle}</p> : null}
+        <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex items-start gap-3">
+                {icon && <div className="mt-1">{icon}</div>}
+                <div>
+                    <div className="text-2xl font-black text-slate-900 tracking-tight">{title}</div>
+                    {subtitle ? <div className="mt-1 text-sm font-medium text-slate-500">{subtitle}</div> : null}
+                </div>
             </div>
-            {right ? <div className="flex gap-2">{right}</div> : null}
+            {right ? <div className="flex items-center gap-2">{right}</div> : null}
         </div>
     );
 }

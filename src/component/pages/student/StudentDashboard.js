@@ -28,7 +28,7 @@ export default function StudentDashboard() {
                 }
             } catch (err) {
                 console.error("Lỗi lấy dữ liệu dashboard:", err);
-                setError("Could not load your dashboard data.");
+                setError("Không thể tải dữ liệu bảng điều khiển.");
             } finally {
                 setIsLoading(false);
             }
@@ -36,7 +36,6 @@ export default function StudentDashboard() {
         fetchDashboard();
     }, []);
 
-    // Xử lý giao diện lúc đang tải dữ liệu (Loading Skeleton mượt mà)
     if (isLoading) {
         return (
             <div className="space-y-6 animate-pulse p-4">
@@ -52,7 +51,6 @@ export default function StudentDashboard() {
         );
     }
 
-    // Xử lý giao diện lúc gọi API lỗi
     if (error) {
         return (
             <div className="p-10 mt-10 text-center bg-red-50 border-2 border-dashed border-red-200 rounded-xl text-red-500 font-medium">
@@ -61,7 +59,6 @@ export default function StudentDashboard() {
         );
     }
 
-    // Lấy dữ liệu an toàn (fallback array rỗng nếu api trả thiếu)
     const classes = dashboardData.classes || [];
     const upcomingAssessmentsCount = dashboardData.upcomingAssessmentsCount || 0;
     const upcomingAssessments = dashboardData.upcomingAssessments || [];
@@ -77,23 +74,18 @@ export default function StudentDashboard() {
 
     return (
         <div className="space-y-6">
-            <PageHeader title="Student Dashboard" subtitle="Your classes, schedule and progress." />
+            <PageHeader title="Bảng điều khiển Sinh viên" subtitle="Tổng quan lớp học, lịch trình và tiến độ của bạn." />
 
-            {/* KHỐI THỐNG KÊ (STAT CARDS) */}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <StatCard label="Enrolled Classes" value={classes.length} hint="Active" />
-                <StatCard label="Upcoming Tasks" value={upcomingAssessmentsCount} hint="To do" />
-                <StatCard label="Today Sessions" value={todaySessions.length} hint="Classes today" />
+                <StatCard label="Lớp đang học" value={classes.length} hint="Đang hoạt động" />
+                <StatCard label="Nhiệm vụ sắp tới" value={upcomingAssessmentsCount} hint="Cần hoàn thành" />
+                <StatCard label="Lịch học hôm nay" value={todaySessions.length} hint="Buổi học hôm nay" />
                 <div className="cursor-pointer" onClick={() => navigate('/student/grades')}>
-                    <StatCard label="My Progress" value="View" hint="All grades" />
+                    <StatCard label="Tiến độ học tập" value="Xem" hint="Tất cả điểm số" />
                 </div>
             </div>
 
-
-            {/* KHỐI CHI TIẾT LỊCH TRÌNH VÀ LỚP HỌC */}
             <div className="grid gap-4 lg:grid-cols-2">
-
-                {/* Cột 1: Lịch học hôm nay */}
                 <Card>
                     <CardHeader><CardTitle>Lịch học hôm nay</CardTitle></CardHeader>
                     <CardContent className="space-y-2">
@@ -109,19 +101,17 @@ export default function StudentDashboard() {
                                         <span className="font-medium text-slate-700">{s.time}</span> • {s.location}
                                     </div>
                                 </div>
-                                <Badge tone="blue">Class</Badge>
+                                <Badge tone="blue">Lớp học</Badge>
                             </div>
                         ))}
                     </CardContent>
                 </Card>
 
-                {/* Cột 2: Việc cần làm & Deadline */}
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2 border-b">
                         <CardTitle>Hạn chót sắp tới (7 ngày)</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2 p-0">
-                        {/* Tab Buttons */}
                         <div className="flex border-b border-slate-200">
                             {['all', 'quiz', 'assignment'].map(tab => (
                                 <button
@@ -129,7 +119,7 @@ export default function StudentDashboard() {
                                     onClick={() => setActiveTab(tab)}
                                     className={`flex-1 py-2 text-center text-sm font-semibold border-b-2 transition-all ${activeTab === tab ? 'border-b-blue-600 text-blue-600 bg-white' : 'border-b-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
                                 >
-                                    {tab === 'all' ? 'Tất cả' : tab === 'quiz' ? 'Quiz' : 'Bài tập'}
+                                    {tab === 'all' ? 'Tất cả' : tab === 'quiz' ? 'Trắc nghiệm' : 'Tự luận'}
                                 </button>
                             ))}
                         </div>
@@ -138,10 +128,10 @@ export default function StudentDashboard() {
                         {filteredAssessments.length === 0 ? (
                             <div className="py-8 text-center text-sm text-slate-500 border border-dashed rounded-xl bg-slate-50">
                                 {activeTab === 'all' 
-                                    ? 'Tuyệt vời! Bạn không có bài tập hay quiz nào sắp đến hạn.' 
+                                    ? 'Tuyệt vời! Bạn không có bài tự luận hay trắc nghiệm nào sắp đến hạn.' 
                                     : activeTab === 'quiz' 
-                                        ? 'Không có quiz nào sắp đến hạn.' 
-                                        : 'Không có bài tập nào sắp đến hạn.'}
+                                        ? 'Không có bài trắc nghiệm nào sắp đến hạn.' 
+                                        : 'Không có bài tự luận nào sắp đến hạn.'}
                             </div>
                         ) : filteredAssessments.map((a) => (
                             <div 
@@ -161,7 +151,7 @@ export default function StudentDashboard() {
                                         Môn: <span className="font-medium">{a.className}</span> • Hạn: <span className={`font-medium ${a.isUrgent ? 'text-red-600' : 'text-orange-600'}`}>{a.dueFormatted}</span>
                                     </div>
                                 </div>
-                                <Badge tone={a.type === 'QUIZ' ? 'purple' : 'orange'}>{a.type}</Badge>
+                                <Badge tone={a.type === 'QUIZ' ? 'purple' : 'orange'}>{a.type === 'QUIZ' ? 'Trắc nghiệm' : 'Tự luận'}</Badge>
                             </div>
                         ))}
                         </div>
@@ -170,7 +160,6 @@ export default function StudentDashboard() {
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2 mt-4">
-                 {/* Cột 3: Lớp học & Tiến độ */}
                  <Card>
                     <CardHeader><CardTitle>Khóa học tham gia</CardTitle></CardHeader>
                     <CardContent className="space-y-3">
@@ -199,7 +188,6 @@ export default function StudentDashboard() {
                     </CardContent>
                 </Card>
 
-                {/* Cột 4: Hoạt động gần đây */}
                 <Card>
                     <CardHeader><CardTitle>Hoạt động gần đây</CardTitle></CardHeader>
                     <CardContent className="space-y-2">

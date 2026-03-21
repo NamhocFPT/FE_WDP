@@ -2,7 +2,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { X, AlertTriangle, Loader2 } from "lucide-react";
 
-export default function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmText = "Confirm", cancelText = "Cancel", isDestructive = false, loading = false }) {
+export default function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmText = "Xác nhận", cancelText = "Hủy bỏ", isDestructive = false, loading = false }) {
     if (!isOpen) return null;
 
     const content = (

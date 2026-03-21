@@ -41,12 +41,12 @@ export default function AssignTeacherModal({ isOpen, onClose, classId, currentTe
         setAssigning(true);
         try {
             await adminApi.assignTeacher(classId, selectedTeacher);
-            toast.success("Phân công Giảng viên thành công!");
+            toast.success("Phân công giảng viên thành công!");
             onSuccess();
             onClose();
         } catch (error) {
             console.error(error);
-            toast.error(error.response?.data?.message || "Có lỗi xảy ra khi phân công.");
+            toast.error(error.response?.data?.message || "Đã xảy ra lỗi khi phân công.");
         } finally {
             setAssigning(false);
         }
@@ -60,7 +60,7 @@ export default function AssignTeacherModal({ isOpen, onClose, classId, currentTe
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b border-slate-100 shrink-0">
                     <div>
-                        <h3 className="text-xl font-bold text-slate-900">Phân công Giảng viên</h3>
+                        <h3 className="text-xl font-bold text-slate-900">Phân công giảng viên</h3>
                         <p className="text-sm text-slate-500 mt-1">Chọn hoặc tìm kiếm giảng viên phù hợp cho lớp học</p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition-colors">
@@ -130,7 +130,7 @@ export default function AssignTeacherModal({ isOpen, onClose, classId, currentTe
                         onClick={onClose}
                         disabled={assigning}
                     >
-                        Hủy
+                        Hủy bỏ
                     </button>
                     <button
                         type="button"

@@ -31,7 +31,7 @@ export default function MyClasses() {
 
     return (
         <div className="space-y-6">
-            <PageHeader title="My Classes" subtitle="Classes you are enrolled in." />
+            <PageHeader title="Lớp học của tôi" subtitle="Danh sách các lớp học bạn đang tham gia." />
 
             {/* Xử lý trạng thái Loading và Error */}
             {isLoading ? (
@@ -40,7 +40,7 @@ export default function MyClasses() {
                 </div>
             ) : error ? (
                 <div className="text-center p-10 bg-red-50 border-2 border-dashed border-red-200 rounded-xl text-red-500 font-medium">
-                    {error}
+                    {error === "Could not load your classes." ? "Không thể tải danh sách lớp học." : error}
                 </div>
             ) : classes.length === 0 ? (
                 <div className="text-center p-12 border-2 border-dashed border-slate-200 bg-slate-50 rounded-xl text-slate-500">
@@ -59,11 +59,11 @@ export default function MyClasses() {
                                             {c.name}
                                         </div>
                                         <div className="mt-1 text-sm text-slate-600">
-                                            Teacher: <span className="font-medium text-slate-800">{c.teacher || "Chưa phân công"}</span>
+                                            Giảng viên: <span className="font-medium text-slate-800">{c.teacher || "Chưa phân công"}</span>
                                         </div>
                                     </div>
                                     <Badge tone="blue" className="shrink-0 whitespace-nowrap">
-                                        Room {c.room || "N/A"}
+                                        Phòng {c.room || "TBA"}
                                     </Badge>
                                 </div>
 

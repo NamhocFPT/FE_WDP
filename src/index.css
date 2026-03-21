@@ -48,14 +48,12 @@
     --ring: 216 34% 17%;
   }
 
-
   * {
     @apply border-border;
     margin: 0;
     padding: 0;
     box-sizing: border-box;
   }
-
 
   html, body, #root {
     height: 100%;
@@ -66,8 +64,22 @@
   body {
     @apply bg-background text-foreground;
     background-color: #f8fafc; 
-    font-family: 'Inter', sans-serif;
+    font-family: 'Outfit', 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Custom Premium Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+  }
 }
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');

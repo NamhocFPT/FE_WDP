@@ -71,14 +71,14 @@ export default function QuizList() {
                 alert(res.message || "Xóa thất bại.");
             }
         } catch (err) {
-            alert("Lỗi khi xóa bài Quiz.");
+            alert("Lỗi khi xóa bài trắc nghiệm.");
         }
     };
 
     return (
         <div className="space-y-6">
             <PageHeader 
-                title="Quản lý Quiz Online" 
+                title="Quản lý Trắc nghiệm Online" 
                 subtitle="Danh sách bài tập trắc nghiệm của lớp"
                 right={[
                     <Button 
@@ -87,7 +87,7 @@ export default function QuizList() {
                         onClick={() => navigate(`/teacher/quizzes/create?classId=${selectedClassId}`)}
                         className="flex items-center gap-2 bg-blue-600 text-white"
                     >
-                        <Plus size={18} /> Tạo Quiz Mới
+                        <Plus size={18} /> Tạo Bài Trắc Nghiệm Mới
                     </Button>
                 ]}
             />
@@ -99,7 +99,7 @@ export default function QuizList() {
                     </div>
                     <div>
                         <div className="text-sm font-bold text-slate-900">Chọn lớp học</div>
-                        <div className="text-xs text-slate-500">Lọc danh sách Quiz theo từng lớp</div>
+                        <div className="text-xs text-slate-500">Lọc danh sách theo từng lớp</div>
                     </div>
                 </div>
                 
@@ -108,7 +108,6 @@ export default function QuizList() {
                     value={selectedClassId}
                     onChange={(e) => {
                         setSelectedClassId(e.target.value);
-                        // Nếu đang ở route có param, cập nhật URL để đồng bộ (optional)
                         if (paramClassId) navigate(`/teacher/classes/${e.target.value}/quizzes`, { replace: true });
                     }}
                 >
@@ -123,7 +122,7 @@ export default function QuizList() {
                 <CardContent className="p-0">
                     {isLoading ? (
                         <div className="p-12 text-center text-slate-500 animate-pulse">
-                            Đang tải danh sách bài Quiz...
+                            Đang tải danh sách bài trắc nghiệm...
                         </div>
                     ) : error ? (
                         <div className="p-12 text-center text-red-500 bg-red-50 font-medium rounded-b-xl">
@@ -132,8 +131,8 @@ export default function QuizList() {
                     ) : quizzes.length === 0 ? (
                         <div className="p-12 text-center text-slate-400">
                             {!selectedClassId 
-                                ? "Vui lòng chọn một lớp học để xem danh sách Quiz." 
-                                : "Chưa có bài Quiz nào được tạo cho lớp này."}
+                                ? "Vui lòng chọn một lớp học để xem danh sách." 
+                                : "Chưa có bài trắc nghiệm nào được tạo cho lớp này."}
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
