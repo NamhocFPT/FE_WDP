@@ -29,12 +29,12 @@ export default function DashboardLayout({ requiredRole }) {
         {/* Navbar on Top - Full Width */}
         <Navbar />
 
-        <div className="flex flex-1 overflow-hidden h-[calc(100vh-64px)]">
+        <div className="flex flex-1 overflow-hidden h-[calc(100vh-64px)] items-stretch">
           {/* Sidebar below Navbar */}
           <Sidebar />
 
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 w-full animate-in fade-in duration-500">
-            <div className="mx-auto max-w-[1700px] w-full">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 w-full animate-in fade-in duration-500 h-full">
+            <div className="mx-auto max-w-[1700px] w-full min-h-full">
               <Outlet />
             </div>
           </main>

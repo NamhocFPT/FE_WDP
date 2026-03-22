@@ -10,6 +10,7 @@ import {
     ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FolderOpen, Download
 } from "lucide-react";
 import ClassStream from "component/pages/common/stream/ClassStream";
+import StreamNotificationPanel from "component/pages/common/stream/StreamNotificationPanel";
 import { format } from "date-fns";
 
 const getTypeIcon = (type) => {
@@ -214,7 +215,14 @@ export default function ClassHome() {
 
             {/* TAB: STREAM */}
             {currentTab === "stream" && (
-                <ClassStream classId={id} />
+                <div className="grid grid-cols-12 gap-6">
+                    <div className="col-span-12 lg:col-span-8 xl:col-span-9">
+                        <ClassStream classId={id} />
+                    </div>
+                    <div className="hidden lg:block lg:col-span-4 xl:col-span-3">
+                        <StreamNotificationPanel />
+                    </div>
+                </div>
             )}
 
             {/* TAB: OVERVIEW */}
