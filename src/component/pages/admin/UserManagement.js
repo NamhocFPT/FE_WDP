@@ -31,6 +31,7 @@ export default function UserManagement() {
     const [editForm, setEditForm] = useState({ id: "", full_name: "", phone: "" });
     const [confirmAction, setConfirmAction] = useState({ type: "", user: null });
     const [generatedPassword, setGeneratedPassword] = useState("");
+    const [emailSentStatus, setEmailSentStatus] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
 
     // ── Fetch users ──
@@ -76,6 +77,7 @@ export default function UserManagement() {
                 setShowCreateModal(false);
                 setCreateForm({ email: "", full_name: "", role_code: "STUDENT" });
                 setGeneratedPassword(result.data.generated_password);
+                setEmailSentStatus(result.data.email_sent);
                 setShowPasswordModal(true);
                 fetchUsers();
             } else {
@@ -132,6 +134,7 @@ export default function UserManagement() {
             if (res.data.success) {
                 setShowConfirmModal(false);
                 setGeneratedPassword(res.data.data.generated_password);
+                setEmailSentStatus(res.data.data.email_sent);
                 setShowPasswordModal(true);
                 fetchUsers();
             }
@@ -422,10 +425,19 @@ export default function UserManagement() {
             {/* ── Modal: Hiển thị mật khẩu mới ── */}
             <Modal open={showPasswordModal} title="Mật khẩu đã được tạo" onClose={() => setShowPasswordModal(false)}>
                 <div className="space-y-4">
-                    <p className="text-sm text-slate-600">Mật khẩu đã được sinh và gán cho tài khoản. Hãy ghi lại và gửi cho người dùng:</p>
+                    <p className="text-sm text-slate-600">Mật khẩu đã được gán cho tài khoản. Hãy ghi lại và gửi cho người dùng nếu cần:</p>
                     <div className="p-4 bg-slate-900 rounded-xl text-center">
                         <code className="text-lg font-bold text-emerald-400 select-all">{generatedPassword}</code>
                     </div>
+                    {emailSentStatus ? (
+                        <p className="text-xs text-emerald-600 font-semibold bg-emerald-50 p-2 rounded-lg border border-emerald-100">
+                             Hệ thống đã gửi một email chứa thông tin đăng nhập đến người dùng.
+                        </p>
+                    ) : (
+                        <p className="text-xs text-amber-600 font-semibold bg-amber-50 p-2 rounded-lg border border-amber-100">
+                            ⚠ Không thể gửi email: Vui lòng sao chép và gửi mật khẩu trực tiếp cho người dùng.
+                        </p>
+                    )}
                     <p className="text-xs text-slate-400 italic">Người dùng sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu.</p>
                     <div className="flex justify-end">
                         <Button onClick={() => setShowPasswordModal(false)}>Đóng</Button>
