@@ -72,15 +72,31 @@ export default function MyClasses() {
                                     <div className="flex items-center gap-2 font-semibold text-slate-800 mb-2">
                                         <span className="text-base">⏰</span> Lịch học
                                     </div>
-                                    <div className="flex flex-wrap gap-1.5">
+                                    <div className="flex flex-wrap gap-1.5 items-center">
                                         {c.schedule && c.schedule.length > 0 ? (
-                                            Array.from(new Set(c.schedule.map((s) => `${s.day} ${s.time} • P.${s.room}`))).map((timeStr, idx) => (
-                                                <div key={idx} className="bg-white border border-slate-200 text-slate-600 px-2.5 py-1 rounded-md text-[11px] font-medium shadow-sm">
-                                                    {timeStr}
-                                                </div>
-                                            ))
+                                            (() => {
+                                                const uniqueSchedule = Array.from(new Set(c.schedule.map((s) => `${s.day} ${s.time} • P.${s.room}`)));
+                                                const displayCount = 3;
+                                                const displayItems = uniqueSchedule.slice(0, displayCount);
+                                                const remainingCount = uniqueSchedule.length - displayItems.length;
+                                                
+                                                return (
+                                                    <>
+                                                        {displayItems.map((timeStr, idx) => (
+                                                            <div key={idx} className="bg-white border border-slate-200 text-slate-600 px-2 py-1 rounded-md text-[10px] font-black shadow-sm flex items-center gap-1 border-l-2 border-l-blue-400 whitespace-nowrap">
+                                                                {timeStr}
+                                                            </div>
+                                                        ))}
+                                                        {remainingCount > 0 && (
+                                                            <span className="text-[10px] font-black text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                                                                +{remainingCount}
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()
                                         ) : (
-                                            <span className="text-slate-400 italic">Chưa có lịch học cụ thể</span>
+                                            <span className="text-slate-400 italic text-[10px]">Chưa sắp lịch</span>
                                         )}
                                     </div>
                                 </div>

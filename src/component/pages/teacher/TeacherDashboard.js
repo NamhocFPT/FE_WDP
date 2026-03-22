@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { PageHeader, StatCard, Card, CardHeader, CardTitle, CardContent, Badge, Button } from "component/ui";
 import { useNavigate } from "react-router-dom";
+import { Clock } from "lucide-react";
 
 export default function TeacherDashboard() {
     const navigate = useNavigate();
@@ -40,9 +41,9 @@ export default function TeacherDashboard() {
 
     return (
         <div className="space-y-6">
-            <PageHeader 
-                title="Bảng điều khiển Giảng viên" 
-                subtitle="Tổng quan lịch dạy và bài tập cần chấm trong ngày." 
+            <PageHeader
+                title="Bảng điều khiển Giảng viên"
+                subtitle="Tổng quan lịch dạy và bài tập cần chấm trong ngày."
             />
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -68,7 +69,7 @@ export default function TeacherDashboard() {
                                         <div>
                                             <div className="font-bold text-slate-800 text-base">{s.className}</div>
                                             <div className="text-xs text-slate-500 mt-1 flex gap-2 items-center">
-                                                <span>🕒 {new Date(s.startTime).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})} - {new Date(s.endTime).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}</span>
+                                                <span>🕒 {new Date(s.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - {new Date(s.endTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                                                 <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-semibold">Phòng: {s.room || "TBA"}</span>
                                             </div>
                                         </div>
@@ -84,20 +85,53 @@ export default function TeacherDashboard() {
                         <CardHeader><CardTitle>Lớp học của tôi</CardTitle></CardHeader>
                         <CardContent className="p-4 grid gap-4 grid-cols-1 md:grid-cols-2">
                             {classes.map((c) => (
-                                <div 
-                                    key={c.id} 
+                                <div
+                                    key={c.id}
                                     onClick={() => navigate(`/teacher/classes/${c.id}`)}
                                     className="rounded-xl border border-slate-100 p-4 bg-white hover:border-blue-200 hover:shadow-md cursor-pointer transition-all shadow-sm active:scale-[0.98]"
                                 >
                                     <div className="font-bold text-slate-800 text-base">{c.name}</div>
-                                    <div className="text-xs text-slate-500 mb-3">{c.courseName || "Cấp độ khóa học"}</div>
-                                    <div className="space-y-2">
+                                    <div className="text-xs text-slate-500 mb-3">{c.courseName || "Cấp độ môn học"}</div>
+                                    <div className="space-y-3">
                                         <div className="flex justify-between text-xs font-bold">
                                             <span className="text-slate-600">Sĩ số: {c.studentCount} hv</span>
                                             <span className="text-blue-700">{c.progress}% Hoàn tất</span>
                                         </div>
                                         <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                                             <div className="h-full bg-blue-600 transition-all" style={{ width: `${c.progress}%` }}></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 pt-3 border-t border-slate-50">
+                                        <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-2">
+                                            <Clock className="w-3 h-3" /> Lịch dạy tuần này
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5 items-center">
+                                            {c.schedule && c.schedule.length > 0 ? (
+                                                (() => {
+                                                    const uniqueSchedule = Array.from(new Set(c.schedule.map((s) => `${s.day} ${s.time}`)));
+                                                    const displayCount = 3;
+                                                    const displayItems = uniqueSchedule.slice(0, displayCount);
+                                                    const remainingCount = uniqueSchedule.length - displayItems.length;
+
+                                                    return (
+                                                        <>
+                                                            {displayItems.map((timeStr, idx) => (
+                                                                <div key={idx} className="bg-slate-50 border border-slate-200 text-slate-600 px-2 py-1 rounded-md text-[9px] font-black shadow-sm flex items-center gap-1 border-l-2 border-l-blue-400 whitespace-nowrap">
+                                                                    {timeStr}
+                                                                </div>
+                                                            ))}
+                                                            {remainingCount > 0 && (
+                                                                <span className="text-[9px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+                                                                    +{remainingCount}
+                                                                </span>
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()
+                                            ) : (
+                                                <span className="text-slate-400 italic text-[9px]">Chưa sắp lịch</span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -120,8 +154,8 @@ export default function TeacherDashboard() {
                                 </div>
                             ) : (
                                 needsGrading.map((g) => (
-                                    <div 
-                                        key={g.assessmentId} 
+                                    <div
+                                        key={g.assessmentId}
                                         onClick={() => navigate(`/teacher/assessments/${g.assessmentId}/submissions`)}
                                         className="flex items-center justify-between p-3 rounded-xl border border-amber-100 bg-amber-50/40 hover:bg-amber-50 cursor-pointer transition-all active:scale-95"
                                     >
@@ -144,8 +178,8 @@ export default function TeacherDashboard() {
                                 <div className="text-xs text-slate-400 italic text-center">Chưa có hoạt động mới.</div>
                             ) : (
                                 recentActivities.map((act) => (
-                                    <div 
-                                        key={act.id} 
+                                    <div
+                                        key={act.id}
                                         onClick={() => act.link && navigate(act.link)}
                                         className={`flex gap-3 text-xs border-b last:border-0 pb-3 last:pb-0 items-start p-2 rounded-lg ${act.link ? "cursor-pointer hover:bg-slate-50 transition-all active:scale-[0.98]" : ""}`}
                                     >

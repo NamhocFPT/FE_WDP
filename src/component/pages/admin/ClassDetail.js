@@ -17,7 +17,7 @@ export default function ClassDetail() {
     const { id } = useParams();
     const nav = useNavigate();
     const location = useLocation();
-    
+
     // Đọc activeTab từ URL search param (?tab=Overview)
     const queryParams = new URLSearchParams(location.search);
     const activeTab = queryParams.get("tab") || "Overview";
@@ -65,40 +65,40 @@ export default function ClassDetail() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-4">
-                <button onClick={() => nav("/admin/classes")} className="p-2 hover:bg-slate-100 rounded-full transition shadow-sm border border-slate-100 bg-white">
-                    <ChevronLeft size={20} />
-                </button>
-                <PageHeader 
-                    title={cl.name} 
-                    subtitle={cl.course?.name} 
-                    right={[<Badge key="cap" tone="indigo" className="px-3 py-1">{cl.enrollments?.length || 0}/40 Học sinh</Badge>]}
-                />
-            </div>
+            <PageHeader
+                title={cl.name}
+                subtitle={cl.course?.name}
+                onBack={() => nav("/admin/classes")}
+                right={[
+                    <Badge key="cap" tone="blue" className="px-4 py-1.5 text-sm shadow-sm border border-blue-200 bg-blue-50/50">
+                        <Users className="w-3.5 h-3.5 mr-1.5 opacity-70" /> {cl.enrollments?.length || 0} / {cl.max_capacity || 40} Sinh viên
+                    </Badge>
+                ]}
+            />
 
             {/* Thanh Tab Navigation cũ đã được chuyển sang Sidebar theo yêu cầu */}
-            
+
             <div className="mt-4 animate-in fade-in duration-500">
                 {activeTab === "Overview" && <OverviewTab cl={cl} onAssignClick={() => setIsAssignModalOpen(true)} />}
                 {activeTab === "Teachers" && <TeachersTab cl={cl} onAssignClick={() => setIsAssignModalOpen(true)} onUnassignSuccess={fetchDetail} />}
                 {activeTab === "Students" && <StudentsTab cl={cl} onAddStudentClick={() => setIsAddStudentOpen(true)} onImportClick={() => setIsImportStudentsOpen(true)} onUnenrollSuccess={fetchDetail} />}
-                {activeTab === "Schedule" && <ScheduleTab 
-                    cl={cl} 
-                    onAddSessionClick={() => setIsAddSessionOpen(true)} 
+                {activeTab === "Schedule" && <ScheduleTab
+                    cl={cl}
+                    onAddSessionClick={() => setIsAddSessionOpen(true)}
                     onImportScheduleClick={() => setIsImportScheduleOpen(true)}
                     onEditSessionClick={(group) => setEditSessionGroup(group)}
                     onDeleteSessionSuccess={fetchDetail}
                 />}
             </div>
 
-            <AssignTeacherModal 
+            <AssignTeacherModal
                 isOpen={isAssignModalOpen}
                 onClose={() => setIsAssignModalOpen(false)}
                 classId={cl.id}
                 currentTeacherId={cl.teacher?.id}
                 onSuccess={fetchDetail}
             />
-            
+
             <AddSessionModal
                 isOpen={isAddSessionOpen}
                 onClose={() => setIsAddSessionOpen(false)}
@@ -106,7 +106,7 @@ export default function ClassDetail() {
                 currentTeacherId={cl.teacher?.id}
                 onSuccess={fetchDetail}
             />
-            
+
             <EditSessionModal
                 isOpen={!!editSessionGroup}
                 onClose={() => setEditSessionGroup(null)}
@@ -150,21 +150,21 @@ const OverviewTab = ({ cl, onAssignClick }) => (
         <Card>
             <CardHeader><CardTitle>Thông tin lớp học</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 gap-4 text-sm">
-                <div><label className="text-slate-400 block font-medium">Học kỳ</label><span className="font-bold text-slate-700">{cl.semester}</span></div>
-                <div><label className="text-slate-400 block font-medium">Ngày bắt đầu</label><span className="font-bold text-slate-700">{cl.start_date ? new Date(cl.start_date).toLocaleDateString("vi-VN") : "---"}</span></div>
-                <div><label className="text-slate-400 block font-medium">Sĩ số</label><span className="font-bold text-slate-700">{cl.enrollments?.length || 0}/{cl.max_capacity} học sinh</span></div>
-                <div><label className="text-slate-400 block font-medium">Trạng thái</label><Badge tone="green">{cl.status === "active" ? "Đang hoạt động" : cl.status}</Badge></div>
+                <div><label className="text-slate-400 block font-medium uppercase tracking-tighter text-[10px]">Học kỳ</label><span className="font-bold text-slate-700">{cl.semester}</span></div>
+                <div><label className="text-slate-400 block font-medium uppercase tracking-tighter text-[10px]">Ngày bắt đầu</label><span className="font-bold text-slate-700">{cl.start_date ? new Date(cl.start_date).toLocaleDateString("vi-VN") : "---"}</span></div>
+                <div><label className="text-slate-400 block font-medium uppercase tracking-tighter text-[10px]">Sĩ số</label><span className="font-bold text-slate-700">{cl.enrollments?.length || 0}/{cl.max_capacity} sinh viên</span></div>
+                <div><label className="text-slate-400 block font-medium uppercase tracking-tighter text-[10px]">Trạng thái</label><Badge tone="green" className="font-bold">{cl.status === "active" ? "Đang hoạt động" : cl.status}</Badge></div>
             </CardContent>
         </Card>
         <Card>
             <CardHeader className="flex justify-between items-center"><CardTitle>Giáo viên phụ trách</CardTitle><Button variant="outline" size="sm" onClick={onAssignClick}>Thay đổi</Button></CardHeader>
             <CardContent className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 font-black border border-blue-100">
                     {cl.teacher?.full_name?.charAt(0) || "T"}
                 </div>
                 <div>
-                    <div className="font-bold text-slate-900">{cl.teacher?.full_name || "Chưa phân công"}</div>
-                    <div className="text-xs text-slate-500">Giáo viên chính</div>
+                    <div className="font-black text-slate-900">{cl.teacher?.full_name || "Chưa phân công"}</div>
+                    <div className="text-xs font-semibold text-slate-400 uppercase tracking-tighter">Giảng viên chính</div>
                 </div>
             </CardContent>
         </Card>
@@ -192,7 +192,7 @@ const TeachersTab = ({ cl, onAssignClick, onUnassignSuccess }) => {
         <Card>
             <CardHeader className="flex justify-between items-center">
                 <CardTitle>Danh sách giáo viên</CardTitle>
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onAssignClick}><UserPlus size={16} className="mr-2"/> Phân công giáo viên</Button>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onAssignClick}><UserPlus size={16} className="mr-2" /> Phân công giáo viên</Button>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -204,8 +204,8 @@ const TeachersTab = ({ cl, onAssignClick, onUnassignSuccess }) => {
                                 <Td>{cl.teacher.email}</Td>
                                 <Td><Badge tone="blue">Chính</Badge></Td>
                                 <Td className="text-right">
-                                    <button 
-                                        onClick={handleUnassign} 
+                                    <button
+                                        onClick={handleUnassign}
                                         disabled={removing}
                                         className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                                         title="Bỏ phân công"
@@ -252,62 +252,62 @@ const StudentsTab = ({ cl, onAddStudentClick, onImportClick, onUnenrollSuccess }
         <>
             <Card>
                 <CardHeader className="flex justify-between items-center">
-                <CardTitle>Học sinh đã đăng ký</CardTitle>
-                <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={onImportClick}><Upload size={16} className="mr-2"/> Nhập Excel</Button>
-                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onAddStudentClick}><Plus size={16} className="mr-2"/> Thêm học sinh</Button>
-                </div>
-            </CardHeader>
-            <CardContent>
-                {cl.enrollments && cl.enrollments.length > 0 ? (
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50 text-slate-500 text-sm font-medium border-b">
-                                <th className="p-3 w-1/4">Họ tên</th>
-                                <th className="p-3 w-1/3">Email</th>
-                                <th className="p-3 w-1/4">MSSV</th>
-                                <th className="p-3 w-1/6 text-right">Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-sm">
-                            {cl.enrollments.map((en, index) => (
-                                <tr key={index} className="border-b hover:bg-slate-50 transition-colors">
-                                    <td className="p-3 font-medium">{en.student?.full_name}</td>
-                                    <td className="p-3 text-slate-500">{en.student?.email}</td>
-                                    <td className="p-3 text-slate-500">ST{en.user_id.substring(0,5).toUpperCase()}</td>
-                                    <td className="p-3 text-right">
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            className="text-slate-600 hover:text-red-600"
-                                            onClick={() => handleUnenrollClick(en.user_id, en.student?.full_name)}
-                                        >
-                                            <Minus size={14} className="mr-2"/> Hủy đăng ký
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                ) : (
-                    <div className="text-center text-slate-500 py-8 italic">
-                        Chưa có học sinh nào đăng ký lớp này.
+                    <CardTitle>Học sinh đã đăng ký</CardTitle>
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={onImportClick}><Upload size={16} className="mr-2" /> Nhập Excel</Button>
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onAddStudentClick}><Plus size={16} className="mr-2" /> Thêm học sinh</Button>
                     </div>
-                )}
-            </CardContent>
-        </Card>
+                </CardHeader>
+                <CardContent>
+                    {cl.enrollments && cl.enrollments.length > 0 ? (
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 text-slate-500 text-sm font-medium border-b">
+                                    <th className="p-3 w-1/4">Họ tên</th>
+                                    <th className="p-3 w-1/3">Email</th>
+                                    <th className="p-3 w-1/4">MSSV</th>
+                                    <th className="p-3 w-1/6 text-right">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody className="text-sm">
+                                {cl.enrollments.map((en, index) => (
+                                    <tr key={index} className="border-b hover:bg-slate-50 transition-colors">
+                                        <td className="p-3 font-medium">{en.student?.full_name}</td>
+                                        <td className="p-3 text-slate-500">{en.student?.email}</td>
+                                        <td className="p-3 text-slate-500">ST{en.user_id.substring(0, 5).toUpperCase()}</td>
+                                        <td className="p-3 text-right">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-slate-600 hover:text-red-600"
+                                                onClick={() => handleUnenrollClick(en.user_id, en.student?.full_name)}
+                                            >
+                                                <Minus size={14} className="mr-2" /> Hủy đăng ký
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <div className="text-center text-slate-500 py-8 italic">
+                            Chưa có học sinh nào đăng ký lớp này.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
-        <ConfirmModal
-            isOpen={confirmModalState.isOpen}
-            onClose={() => setConfirmModalState({ isOpen: false, studentId: null, studentName: "" })}
-            onConfirm={confirmUnenroll}
-            title="Xác nhận hủy đăng ký"
-            message={<span>Bạn có chắc chắn muốn hủy đăng ký cho học sinh <strong className="text-slate-900">{confirmModalState.studentName}</strong> khỏi lớp học này? Hành động này không thể hoàn tác.</span>}
-            confirmText="Xác nhận hủy"
-            cancelText="Quay lại"
-            isDestructive={true}
-            loading={isUnenrolling}
-        />
+            <ConfirmModal
+                isOpen={confirmModalState.isOpen}
+                onClose={() => setConfirmModalState({ isOpen: false, studentId: null, studentName: "" })}
+                onConfirm={confirmUnenroll}
+                title="Xác nhận hủy đăng ký"
+                message={<span>Bạn có chắc chắn muốn hủy đăng ký cho học sinh <strong className="text-slate-900">{confirmModalState.studentName}</strong> khỏi lớp học này? Hành động này không thể hoàn tác.</span>}
+                confirmText="Xác nhận hủy"
+                cancelText="Quay lại"
+                isDestructive={true}
+                loading={isUnenrolling}
+            />
         </>
     );
 };
@@ -335,7 +335,7 @@ const ScheduleTab = ({ cl, onAddSessionClick, onImportScheduleClick, onEditSessi
             const startTimeStr = formatTime(s.start_time);
             const endTimeStr = formatTime(s.end_time);
             const room = s.room || "Chưa rõ";
-            
+
             const key = `${day}-${startTimeStr}-${endTimeStr}-${room}`;
             if (!groups[key]) {
                 groups[key] = {
@@ -371,8 +371,8 @@ const ScheduleTab = ({ cl, onAddSessionClick, onImportScheduleClick, onEditSessi
             <CardHeader className="flex justify-between items-center">
                 <CardTitle>Lịch học chi tiết</CardTitle>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={onImportScheduleClick}><Upload size={16} className="mr-2"/> Nhập Excel</Button>
-                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onAddSessionClick}><Plus size={16} className="mr-2"/> Thêm buổi học</Button>
+                    <Button variant="outline" size="sm" onClick={onImportScheduleClick}><Upload size={16} className="mr-2" /> Nhập Excel</Button>
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onAddSessionClick}><Plus size={16} className="mr-2" /> Thêm buổi học</Button>
                 </div>
             </CardHeader>
             <CardContent>
@@ -395,14 +395,14 @@ const ScheduleTab = ({ cl, onAddSessionClick, onImportScheduleClick, onEditSessi
                                     <Td>{group.room}</Td>
                                     <Td>{group.teacher}</Td>
                                     <Td className="text-right space-x-2">
-                                        <button 
+                                        <button
                                             onClick={() => onEditSessionClick(group)}
                                             className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                             title="Sửa lịch học"
                                         >
                                             <Edit size={18} />
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => handleDelete(group)}
                                             disabled={deletingId === group.id}
                                             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"

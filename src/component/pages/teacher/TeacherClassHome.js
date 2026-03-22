@@ -60,6 +60,7 @@ export default function TeacherClassHome() {
             <PageHeader 
                 title={selectedClass.name} 
                 subtitle={`Mã học phần: ${selectedClass.courseCode || selectedClass.course?.code || "N/A"}`} 
+                onBack={() => nav("/teacher/classes")}
             />
 
             <div className="grid gap-6 md:grid-cols-3">
@@ -85,13 +86,13 @@ export default function TeacherClassHome() {
                                     <h4 className="flex items-center gap-2 text-sm font-black text-slate-900 uppercase tracking-wider">
                                         <Clock className="w-4 h-4 text-blue-600" /> Thời gian học
                                     </h4>
-                                    <div className="max-h-[145px] overflow-y-auto pr-2 custom-scrollbar">
-                                        <div className="flex flex-wrap gap-2">
+                                    <div className="max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                             {selectedClass.schedule && selectedClass.schedule.length > 0 ? (
                                                 Array.from(new Set(selectedClass.schedule.map(s => `${s.day} ${s.time}`))).map((timeStr, idx) => (
-                                                    <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl shadow-sm hover:border-blue-200 transition-all duration-200 group">
+                                                    <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl shadow-sm hover:border-blue-200 transition-all duration-200 group whitespace-nowrap">
                                                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 group-hover:scale-125 transition-transform" />
-                                                        <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">{timeStr}</span>
+                                                        <span className="text-[10px] font-black text-slate-700 uppercase tracking-tighter">{timeStr}</span>
                                                     </div>
                                                 ))
                                             ) : (
