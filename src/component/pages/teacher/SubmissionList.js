@@ -87,7 +87,7 @@ const fetchSubmissions = async () => {
                         <h2 className="text-xl font-bold text-slate-800 mb-4">{assessment.title}</h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4 border-b pb-4">
                             <div>
-                                <p className="text-slate-500 font-semibold mb-1">Môn học</p>
+                                <p className="text-slate-500 font-semibold mb-1">Khóa học</p>
                                 <p className="font-medium">{assessment.Course?.name || '---'}</p>
                             </div>
                             <div>

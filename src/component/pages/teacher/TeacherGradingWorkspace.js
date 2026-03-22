@@ -292,7 +292,7 @@ export default function TeacherGradingWorkspace() {
                             </h2>
                             {nextSubmissionId && (
                                 <Button size="sm" variant="outline" onClick={() => navigate(`/teacher/grading/${nextSubmissionId}`, { state: { submissionIds } })}>
-                                    Học viên tiếp ➡️
+                                    Sinh viên tiếp ➡️
                                 </Button>
                             )}
                         </div>

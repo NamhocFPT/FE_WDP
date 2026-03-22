@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, UploadCloud, Loader2, FileText, CheckCircle, AlertCircle } from "lucide-react";
+import { X, UploadCloud, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "service/adminApi";
+import { Badge } from "component/ui";
 import * as XLSX from "xlsx";
 
-export default function ImportScheduleModal({ isOpen, onClose, onSuccess, prefilledClassCode = "" }) {
+export default function ImportCourseModal({ isOpen, onClose, onSuccess, onDownloadTemplate }) {
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
     const [dragActive, setDragActive] = useState(false);
@@ -24,61 +25,39 @@ export default function ImportScheduleModal({ isOpen, onClose, onSuccess, prefil
 
     if (!isOpen) return null;
 
-    const parseScheduleFromFile = (uploadedFile) => {
+    const parseCourseFromFile = (uploadedFile) => {
         const reader = new FileReader();
 
         reader.onload = async (e) => {
             try {
                 const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
+                const workbook = XLSX.read(data, { type: "array" });
                 const firstSheetName = workbook.SheetNames[0];
-                const sheet = workbook.Sheets[firstSheetName];
-                
-                // Trả về mảng 2D (mảng các mảng hàng)
-                const rows2D = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
-                if (rows2D.length <= 1) {
-                    toast.error("File excel trống hoặc thiếu dữ liệu.");
-                    return;
-                }
-
-                // Cột Assumed: 0: Mã Lớp, 1: Email GV, 2: Ngày, 3: Bắt đầu, 4: Kết thúc, 5: Phòng
-                const headers = rows2D[0];
-                const rows = [];
-                
-                for (let i = 1; i < rows2D.length; i++) {
-                    const r = rows2D[i];
-                    if (!r || r.length === 0) continue;
-
-                    let classNameVal = r[0] ? String(r[0]).trim() : "";
-                    
-                    rows.push({
-                        class_name: prefilledClassCode || classNameVal,
-                        teacher_email: r[1] ? String(r[1]).trim() : "",
-                        date: r[2] ? String(r[2]).trim() : "",
-                        start_time: r[3] ? String(r[3]).trim() : "",
-                        end_time: r[4] ? String(r[4]).trim() : "",
-                        room: r[5] ? String(r[5]).trim() : ""
-                    });
-                }
+                const worksheet = workbook.Sheets[firstSheetName];
+                const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
                 if (rows.length === 0) {
-                    toast.error("Không đọc được bản ghi nào.");
+                    toast.error("File excel trống hoặc thiếu dữ liệu.");
                     return;
                 }
 
                 setLoading(true);
                 setFile(uploadedFile);
 
-                // Call Validate API
-                const res = await adminApi.validateScheduleImport(rows);
+                const res = await adminApi.validateCourseImport(rows);
                 if (res.data.success) {
-                    setPreviewData(res.data.data);
-                    if (res.data.data.invalid_count > 0) {
+                    const data = res.data.data;
+                    setPreviewData(data);
+                    
+                    const validCount = data.validRows?.length || 0;
+                    const invalidCount = data.invalidRows?.length || 0;
+
+                    if (invalidCount > 0) {
                         setActiveTab("invalid");
-                        toast.warning(`Tìm thấy ${res.data.data.invalid_count} dòng bị lỗi.`);
+                        toast.warning(`Tìm thấy ${invalidCount} dòng bị lỗi.`);
                     } else {
                         setActiveTab("valid");
-                        toast.success(`Tìm thấy ${res.data.data.valid_count} dòng hợp lệ.`);
+                        toast.success(`Tìm thấy ${validCount} dòng hợp lệ.`);
                     }
                 }
             } catch (error) {
@@ -95,7 +74,7 @@ export default function ImportScheduleModal({ isOpen, onClose, onSuccess, prefil
 
     const handleFileChange = (e) => {
         const targetFile = e.target.files[0];
-        if (targetFile) parseScheduleFromFile(targetFile);
+        if (targetFile) parseCourseFromFile(targetFile);
     };
 
     const handleDrag = (e) => {
@@ -105,15 +84,15 @@ export default function ImportScheduleModal({ isOpen, onClose, onSuccess, prefil
 
     const handleDrop = (e) => {
         e.preventDefault(); e.stopPropagation(); setDragActive(false);
-        if (e.dataTransfer.files?.[0]) parseScheduleFromFile(e.dataTransfer.files[0]);
+        if (e.dataTransfer.files?.[0]) parseCourseFromFile(e.dataTransfer.files[0]);
     };
 
     const handleConfirmImport = async () => {
         if (!previewData || previewData.validRows.length === 0) return;
         setLoading(true);
         try {
-            await adminApi.confirmScheduleImport(previewData.validRows);
-            toast.success("Import lịch học thành công!");
+            await adminApi.confirmCourseImport(previewData.validRows);
+            toast.success("Import môn học thành công!");
             if (onSuccess) onSuccess();
             onClose();
         } catch (error) {
@@ -131,47 +110,33 @@ export default function ImportScheduleModal({ isOpen, onClose, onSuccess, prefil
                     <thead className="bg-slate-50">
                         <tr>
                             <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">Dòng</th>
-                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">Lớp</th>
-                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">Giáo Viên</th>
-                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">Ngày</th>
-                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">Giờ</th>
-                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">Phòng</th>
-                            {type === "invalid" && <th className="px-3 py-2 text-left text-xs font-semibold text-red-600">Lý do</th>}
+                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">Mã Môn</th>
+                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">Tên Môn</th>
+                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">Số tiết</th>
+                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">Mô tả</th>
+                            {type === "invalid" && <th className="px-3 py-2 text-left text-xs font-semibold text-red-600">Lý do lỗi</th>}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 bg-white">
                         {rows.map((r, i) => (
-                            <tr key={i} className={`hover:bg-slate-50 text-xs ${type === "invalid" ? "bg-red-50/30" : ""}`}>
-                                <td className={`px-3 py-2 ${type === "invalid" ? "text-red-700 font-bold" : "text-slate-600"}`}>
-                                    {r.rowNum || i+1}
-                                </td>
-                                <td className="px-3 py-2 font-medium text-slate-800">{r.class_name}</td>
-                                <td className="px-3 py-2 text-slate-600 max-w-[200px] truncate">
-                                    {r.teacher_name ? <span title={r.teacher_email}>{r.teacher_name}</span> : r.teacher_email}
-                                </td>
-                                <td className="px-3 py-2 text-slate-600">{r.date}</td>
-                                <td className="px-3 py-2 text-slate-600">{r.original_start ?? r.start_time} - {r.original_end ?? r.end_time}</td>
-                                <td className="px-3 py-2 text-slate-600">{r.room}</td>
-                                {type === "invalid" && <td className="px-3 py-2 text-red-600 font-bold bg-red-50">{r.error}</td>}
+                            <tr key={i} className="hover:bg-slate-50 text-xs">
+                                <td className="px-3 py-2 text-slate-600">{r.rowNumber || i + 1}</td>
+                                <td className="px-3 py-2 font-medium text-slate-800">{r.code || "—"}</td>
+                                <td className="px-3 py-2 text-slate-600">{r.name || "—"}</td>
+                                <td className="px-3 py-2 text-slate-600">{r.expected_sessions || "—"}</td>
+                                <td className="px-3 py-2 text-slate-600 max-w-[150px] truncate">{r.description || "—"}</td>
+                                {type === "invalid" && <td className="px-3 py-2 text-red-600 font-medium">{r.reason}</td>}
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
         );
-    }
-
-    const handleDownloadTemplate = () => {
-        const templateData = [
-            ["Mã Lớp", "Email GV", "Ngày (dd/MM/yyyy)", "Giờ Bắt Đầu (HH:mm)", "Giờ Kết Thúc (HH:mm)", "Phòng"],
-            [prefilledClassCode || "SWP391", "namnv@fpt.edu.vn", "25/08/2026", "07:30", "09:50", "P101"]
-        ];
-        const ws = XLSX.utils.aoa_to_sheet(templateData);
-        ws['!cols'] = [{wch: 15}, {wch: 25}, {wch: 18}, {wch: 20}, {wch: 20}, {wch: 15}];
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Template");
-        XLSX.writeFile(wb, "Schedule_Import_Template.xlsx");
     };
+
+    const validCount = previewData?.validRows?.length || 0;
+    const invalidCount = previewData?.invalidRows?.length || 0;
+    const totalCount = validCount + invalidCount;
 
     const modalContent = (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
@@ -179,10 +144,10 @@ export default function ImportScheduleModal({ isOpen, onClose, onSuccess, prefil
                 {/* Header */}
                 <div className="flex justify-between items-start p-6 pb-4 shrink-0">
                     <div>
-                        <h3 className="text-xl font-bold text-slate-900">Import Lịch học</h3>
+                        <h3 className="text-xl font-bold text-slate-900">Import Môn học</h3>
                         <p className="text-sm text-slate-500 mt-1">
                             Upload file Excel/CSV theo Template mẫu.
-                            <button onClick={handleDownloadTemplate} className="text-blue-600 hover:underline font-medium ml-1">Tải xuống file mẫu</button>
+                            <button onClick={onDownloadTemplate} className="text-blue-600 hover:underline font-medium ml-1">Tải xuống file mẫu</button>
                         </p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition-colors">
@@ -217,7 +182,7 @@ export default function ImportScheduleModal({ isOpen, onClose, onSuccess, prefil
                     {previewData && (
                         <div className="space-y-4">
                             <div className="flex justify-between items-center bg-slate-50 p-3 rounded-lg">
-                                <span className="text-sm text-slate-600">Tổng quan: <b>{previewData.total} dòng đọc được</b></span>
+                                <span className="text-sm text-slate-600">Tổng quan: <b>{totalCount} dòng đọc được</b></span>
                                 <button onClick={() => { setPreviewData(null); setFile(null); }} className="text-xs text-blue-600 font-medium hover:underline">
                                     Tải tệp khác
                                 </button>
@@ -231,7 +196,7 @@ export default function ImportScheduleModal({ isOpen, onClose, onSuccess, prefil
                                         activeTab === "valid" ? 'border-green-500 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
                                     }`}
                                 >
-                                    <CheckCircle size={16} /> Hợp lệ ({previewData.valid_count})
+                                    <CheckCircle size={16} /> Hợp lệ ({validCount})
                                 </button>
                                 <button 
                                     onClick={() => setActiveTab("invalid")}
@@ -239,7 +204,7 @@ export default function ImportScheduleModal({ isOpen, onClose, onSuccess, prefil
                                         activeTab === "invalid" ? 'border-red-500 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-700'
                                     }`}
                                 >
-                                    <AlertCircle size={16} /> Lỗi ({previewData.invalid_count})
+                                    <AlertCircle size={16} /> Lỗi ({invalidCount})
                                 </button>
                             </div>
 
@@ -259,11 +224,11 @@ export default function ImportScheduleModal({ isOpen, onClose, onSuccess, prefil
                     {previewData && (
                         <button
                             onClick={handleConfirmImport}
-                            disabled={loading || previewData.valid_count === 0}
+                            disabled={loading || validCount === 0}
                             className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
                         >
                             {loading && <Loader2 className="animate-spin" size={16} />}
-                            Xác nhận Import ({previewData.valid_count} dòng)
+                            Xác nhận Import ({validCount} dòng)
                         </button>
                     )}
                 </div>

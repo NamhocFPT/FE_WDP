@@ -138,7 +138,7 @@ export default function EditSessionModal({ isOpen, onClose, classId, sessionGrou
 
                     {/* Teacher */}
                     <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-2 uppercase tracking-wider">Giảng viên</label>
+                        <label className="text-xs font-bold text-slate-700 block mb-2 uppercase tracking-wider">Giáo viên</label>
                         <select 
                             className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-all"
                             value={formData.teacher_id}

@@ -2,7 +2,7 @@ export const navByRole = {
     admin: [
         { to: "/admin", label: "Tổng quan" },
         { to: "/admin/users", label: "Người dùng" },
-        { to: "/admin/courses", label: "Khóa học" },
+        { to: "/admin/courses", label: "Môn học" },
         { 
             to: "/admin/classes", 
             label: "Lớp học",
