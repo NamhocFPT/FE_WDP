@@ -72,6 +72,13 @@ export const api = {
         });
     },
 
+    async googleLogin(token) {
+        return fetchWithAuth("/auth/google", {
+            method: "POST",
+            body: JSON.stringify({ token }),
+        });
+    },
+
     async logout() {
         return fetchWithAuth("/auth/logout", {
             method: "POST",

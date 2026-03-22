@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { PageHeader, Card, CardContent, Button, Input, Badge, Modal } from "component/ui";
 import {
@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import * as TeacherQuizService from "service/TeacherQuizService";
 import { toast } from "sonner";
+import 'katex/dist/katex.min.css';
+import Latex from 'react-latex-next';
 
 export default function QuizQuestionManager() {
     const { classId, quizId } = useParams();
@@ -20,7 +22,31 @@ export default function QuizQuestionManager() {
     const [editingQuestion, setEditingQuestion] = useState(null);
     const [showAIModal, setShowAIModal] = useState(false);
     const [aiPrompt, setAiPrompt] = useState("");
+    const [aiFile, setAiFile] = useState(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [mathpadTemp, setMathpadTemp] = useState("");
+    const questionTextRef = useRef(null);
+    
+    // NEW STATES
+    const [quizMeta, setQuizMeta] = useState(null);
+    const [classMeta, setClassMeta] = useState(null);
+    
+    useEffect(() => {
+        import("mathlive");
+        async function fetchMetadata() {
+            try {
+                if (quizId && quizId !== "undefined") {
+                    const resQuiz = await TeacherQuizService.getQuizDetail(classId, quizId);
+                    if (resQuiz && resQuiz.data) setQuizMeta(resQuiz.data);
+                }
+                const resClasses = await TeacherQuizService.getTeacherClasses();
+                const clsList = Array.isArray(resClasses) ? resClasses : (resClasses?.data || []);
+                const currentCls = clsList.find(c => c.id === classId);
+                if (currentCls) setClassMeta(currentCls);
+            } catch (err) { }
+        }
+        fetchMetadata();
+    }, [classId, quizId]);
 
     const initialQuestionState = {
         question_text: "",
@@ -151,7 +177,13 @@ export default function QuizQuestionManager() {
         }
         setIsGenerating(true);
         try {
-            const res = await TeacherQuizService.generateAIQuestions(quizId, { prompt: aiPrompt });
+            const formData = new FormData();
+            formData.append("prompt", aiPrompt);
+            if (aiFile) {
+                formData.append("file", aiFile);
+            }
+
+            const res = await TeacherQuizService.generateAIQuestions(quizId, formData);
             if (res.success) {
                 const aiQuestions = res.data;
                 if (window.confirm(`AI đã tạo ${aiQuestions.length} câu hỏi. Bạn có muốn lưu tất cả vào Quiz không?`)) {
@@ -209,25 +241,44 @@ export default function QuizQuestionManager() {
 
     return (
         <div className="space-y-6">
-            <PageHeader
-                title="Cấu trúc đề Quiz"
-                subtitle={`Lớp: ${classId} • Đề: ${quizInfo?.title || quizId}`}
-                right={[
-                    <Button key="back" variant="outline" onClick={() => navigate(-1)}>Quay lại</Button>,
-                    <Button key="cancel" variant="danger" className="text-red-600 border-red-100 hover:bg-red-50" onClick={handleCancelQuiz}>
-                        Hủy đề
-                    </Button>,
-                    <Button key="save" onClick={handlePublishQuiz} className="bg-blue-600 text-white hover:bg-blue-700 shadow-sm border-blue-700">
-                        <Save className="h-4 w-4 mr-2" /> Lưu đề
-                    </Button>,
-                    <Button key="ai" className="bg-gradient-to-r from-purple-600 to-blue-600 text-white border-none ml-2 shadow-sm" onClick={() => setShowAIModal(true)}>
-                        <Sparkles className="h-4 w-4 mr-2" /> Soạn bằng AI (Gemini)
-                    </Button>,
-                    <Button key="add" onClick={handleAddQuestion} disabled={!!editingQuestion} className="ml-2">
-                        <Plus className="h-4 w-4 mr-2" /> Thêm câu hỏi
+            {/* Header Redesign */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 p-8 text-white shadow-2xl">
+                <div className="absolute top-0 right-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-white opacity-5 blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 -mb-10 -ml-10 h-48 w-48 rounded-full bg-blue-500 opacity-10 blur-2xl"></div>
+                
+                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div>
+                        <div className="mb-2 flex items-center gap-2 text-blue-200">
+                            <span className="rounded-full bg-blue-500/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm border border-blue-400/30">
+                                {classMeta?.name || `Lớp: ${classId}`}
+                            </span>
+                        </div>
+                        <h1 className="text-3xl lg:text-4xl font-black tracking-tight">{quizMeta?.title || quizInfo?.title || `Bài Quiz: ${quizId}`}</h1>
+                        <p className="mt-2 text-indigo-200 text-sm max-w-xl">Quản lý ngân hàng câu hỏi, soạn thảo công thức Toán học / Vật Lý nâng cao trực tiếp bằng Virtual Keyboard.</p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-end gap-3 max-w-sm">
+                        <Button variant="ghost" className="border border-indigo-400/30 bg-indigo-500/10 text-white hover:bg-white hover:text-indigo-900 transition-colors rounded-xl" onClick={() => navigate(-1)}>
+                            Quay lại
+                        </Button>
+                        <Button variant="danger" className="bg-red-500 hover:bg-red-600 text-white border-none shadow-lg shadow-red-500/20 rounded-xl" onClick={handleCancelQuiz}>
+                            Xóa đề
+                        </Button>
+                        <Button onClick={handlePublishQuiz} className="bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 border-none rounded-xl">
+                            <Save className="h-4 w-4 mr-2" /> Hoàn tất
+                        </Button>
+                    </div>
+                </div>
+                
+                <div className="relative z-10 mt-8 flex flex-wrap gap-3">
+                    <Button variant="ghost" onClick={handleAddQuestion} disabled={!!editingQuestion} className="bg-white text-indigo-900 hover:bg-slate-50 border-none shadow-lg rounded-xl h-11 px-5">
+                        <Plus className="h-5 w-5 mr-2 text-indigo-600" /> Tạo câu hỏi thủ công
                     </Button>
-                ]}
-            />
+                    <Button variant="ghost" className="bg-gradient-to-r from-purple-500 hover:from-purple-400 to-pink-500 hover:to-pink-400 text-white border-none shadow-lg shadow-purple-500/25 rounded-xl h-11 px-5" onClick={() => setShowAIModal(true)}>
+                        <Sparkles className="h-5 w-5 mr-2" /> Sáng tạo bằng Gemini AI
+                    </Button>
+                </div>
+            </div>
 
             <div className="grid gap-6 lg:grid-cols-3">
                 {/* Left side: List of questions */}
@@ -255,12 +306,16 @@ export default function QuizQuestionManager() {
                                                     <Badge tone="blue">Câu {index + 1}</Badge>
                                                     <Badge tone="slate">{q.points} điểm</Badge>
                                                 </div>
-                                                <h4 className="font-bold text-slate-900 mb-4">{q.question_text}</h4>
+                                                <div className="font-bold text-slate-900 mb-4 text-lg">
+                                                    <Latex>{q.question_text}</Latex>
+                                                </div>
                                                 <div className="grid gap-2 sm:grid-cols-2">
                                                     {(Array.isArray(q.options) ? q.options : []).map((opt, i) => (
-                                                        <div key={i} className={`flex items-center gap-2 p-2 rounded-lg text-sm border ${opt.is_correct ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-semibold' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
-                                                            {opt.is_correct ? <CheckCircle2 className="h-4 w-4" /> : <div className="h-4 w-4 rounded-full border border-slate-300"></div>}
-                                                            {opt.option_text}
+                                                        <div key={i} className={`flex items-center gap-2 p-2 rounded-lg text-sm border overflow-hidden ${opt.is_correct ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-semibold' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
+                                                            {opt.is_correct ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <div className="h-4 w-4 rounded-full border border-slate-300 shrink-0"></div>}
+                                                            <div className="flex-1 overflow-hidden pointer-events-none">
+                                                                <Latex>{opt.option_text || ""}</Latex>
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -298,23 +353,68 @@ export default function QuizQuestionManager() {
 
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Nội dung câu hỏi</label>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nội dung câu hỏi</label>
+                                            </div>
                                             <textarea
-                                                className="w-full p-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
-                                                placeholder="Nhập câu hỏi tại đây..."
+                                                ref={questionTextRef}
+                                                className="w-full p-4 rounded-2xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none min-h-[120px]"
+                                                placeholder="VD: Để chèn công thức Toán học, dùng đoạn mã $$x^2$$ bên trong câu hỏi này..."
                                                 value={editingQuestion.question_text}
                                                 onChange={(e) => setEditingQuestion({ ...editingQuestion, question_text: e.target.value })}
                                             />
                                         </div>
 
+                                        <div className="p-4 rounded-xl border border-dashed border-purple-300 bg-purple-50/50">
+                                            <label className="text-xs font-bold text-purple-700 uppercase tracking-wider block mb-2">Bảng nháp công thức (Virtual Keyboard)</label>
+                                            <div className="flex items-stretch gap-2">
+                                                <div className="flex-1 rounded-xl border-2 border-purple-100 bg-white overflow-hidden p-1">
+                                                    <math-field 
+                                                        style={{ width: '100%', fontSize: '1.1rem', backgroundColor: 'transparent', border: 'none', outline: 'none', padding: '8px' }}
+                                                        onInput={(e) => setMathpadTemp(e.target.value)}
+                                                    >
+                                                        {mathpadTemp}
+                                                    </math-field>
+                                                </div>
+                                                <Button 
+                                                    variant="outline" 
+                                                    className="border-purple-200 text-purple-700 bg-white"
+                                                    onClick={() => {
+                                                        if (mathpadTemp.includes("\\placeholder")) {
+                                                            return toast.error("Vui lòng gõ số/chữ vào ô vuông trống trong Bảng nháp cho hoàn chỉnh trước khi Chèn!");
+                                                        }
+                                                        const latexToAdd = ` $$${mathpadTemp}$$ `;
+
+                                                        if (questionTextRef.current) {
+                                                            const start = questionTextRef.current.selectionStart;
+                                                            const end = questionTextRef.current.selectionEnd;
+                                                            const text = editingQuestion.question_text || "";
+                                                            const newText = text.substring(0, start) + latexToAdd + text.substring(end);
+                                                            setEditingQuestion({ ...editingQuestion, question_text: newText });
+                                                            
+                                                            setTimeout(() => {
+                                                                if (questionTextRef.current) {
+                                                                    questionTextRef.current.focus();
+                                                                    questionTextRef.current.setSelectionRange(start + latexToAdd.length, start + latexToAdd.length);
+                                                                }
+                                                            }, 0);
+                                                        } else {
+                                                            setEditingQuestion({ ...editingQuestion, question_text: (editingQuestion.question_text || "") + latexToAdd });
+                                                        }
+                                                        toast.success("Đã chèn lệnh Toán vào câu hỏi!");
+                                                    }}
+                                                >
+                                                    <Plus className="w-4 h-4 mr-1" /> Chèn
+                                                </Button>
+                                            </div>
+                                            <p className="text-[11px] text-purple-600 mt-2">Dùng bảng phụ này để gõ Phân số, Căn,... Sau đó bấm nút "Chèn" để thêm mã Toán học vào câu hỏi.</p>
+                                        </div>
+
                                         <div className="w-1/2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Điểm số</label>
-                                            <Input
-                                                type="number"
-                                                min="0"
-                                                value={editingQuestion.points}
-                                                onChange={(e) => setEditingQuestion({ ...editingQuestion, points: Number(e.target.value) })}
-                                            />
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Điểm số mỗi câu (Tự động chia đều)</label>
+                                            <div className="rounded-xl border border-slate-200 bg-slate-50 h-11 px-3 py-2 text-sm text-slate-600 flex items-center font-semibold">
+                                                {quizMeta?.max_score ? (quizMeta.max_score / Math.max(1, questions.length + (typeof editingQuestion.id === 'string' && editingQuestion.id.startsWith('temp-') ? 1 : 0))).toFixed(2).replace(/\.00$/, '') : 1}
+                                            </div>
                                         </div>
 
                                         <div className="space-y-3">
@@ -335,13 +435,13 @@ export default function QuizQuestionManager() {
                                                             onChange={(e) => handleOptionChange(idx, 'is_correct', e.target.checked)}
                                                         />
                                                         <Input
-                                                            placeholder={`Lựa chọn ${idx + 1}`}
+                                                            placeholder={`Lựa chọn ${idx + 1} (Có thể dùng $$ $$)`}
                                                             value={opt.option_text}
                                                             onChange={(e) => handleOptionChange(idx, 'option_text', e.target.value)}
-                                                            className="flex-1 bg-white"
+                                                            className="flex-1 bg-white h-11 rounded-xl"
                                                         />
-                                                        <button className="text-slate-400 hover:text-red-500" onClick={() => removeOption(idx)}>
-                                                            <Trash2 className="h-4 w-4" />
+                                                        <button className="text-slate-400 hover:text-red-500 p-2" onClick={() => removeOption(idx)}>
+                                                            <Trash2 className="h-5 w-5" />
                                                         </button>
                                                     </div>
                                                 </div>
@@ -399,6 +499,32 @@ export default function QuizQuestionManager() {
                             value={aiPrompt}
                             onChange={(e) => setAiPrompt(e.target.value)}
                         />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase block">Đính kèm tài liệu tham khảo (Tùy chọn)</label>
+                        <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center bg-white hover:bg-slate-50 transition-colors relative">
+                            <input 
+                                type="file" 
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                accept=".pdf,.doc,.docx,.txt"
+                                onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                        setAiFile(e.target.files[0]);
+                                    }
+                                }}
+                            />
+                            {aiFile ? (
+                                <div className="text-sm font-semibold text-purple-700">{aiFile.name} ({(aiFile.size/1024).toFixed(1)} KB)</div>
+                            ) : (
+                                <div className="text-sm text-slate-500">Kéo thả hoặc click để chọn file PDF, Word, TXT (Tối đa 10MB)</div>
+                            )}
+                        </div>
+                        {aiFile && (
+                            <div className="text-right">
+                                <button className="text-xs text-red-500 hover:text-red-700 font-semibold" onClick={() => setAiFile(null)}>Gỡ bỏ file</button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex justify-end gap-3">

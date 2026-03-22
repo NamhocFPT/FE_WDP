@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { PageHeader, Card, CardContent, Input, Button, Badge, Table, Th, Td, Modal } from "component/ui";
 import { adminApi } from "service/adminApi";
-import { Search, UserPlus, Edit2, Lock, Unlock, KeyRound, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, UserPlus, Edit2, Lock, Unlock, KeyRound, ChevronLeft, ChevronRight, User } from "lucide-react";
 
 export default function UserManagement() {
     // ── State ──
@@ -226,7 +226,18 @@ export default function UserManagement() {
                                     <tbody>
                                         {users.map((u) => (
                                             <tr key={u.id} className="hover:bg-slate-50/80 group">
-                                                <Td className="font-semibold text-slate-900">{u.full_name}</Td>
+                                                <Td>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-9 w-9 shrink-0 rounded-xl bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
+                                                            {u.avatar_url ? (
+                                                                <img src={u.avatar_url} alt="" className="h-full w-full object-cover" />
+                                                            ) : (
+                                                                <User className="h-5 w-5 text-slate-400" />
+                                                            )}
+                                                        </div>
+                                                        <span className="font-semibold text-slate-900">{u.full_name}</span>
+                                                    </div>
+                                                </Td>
                                                 <Td className="text-slate-600">{u.email}</Td>
                                                 <Td className="text-slate-500">{u.phone || "—"}</Td>
                                                 <Td>{getRoleBadge(u)}</Td>

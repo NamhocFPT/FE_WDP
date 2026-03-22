@@ -142,7 +142,7 @@ export default function Sidebar() {
                                                 className={({ isActive }) => {
                                                     const isTabActive = (isAdminClassDetail || isStudentClassDetail)
                                                         ? (child.id && location.search.includes(`tab=${child.id}`))
-                                                        : isActive;
+                                                        : (child.to.includes('?') ? (location.pathname + location.search === child.to) : isActive);
                                                     return cn(
                                                         "flex items-center gap-3 rounded-xl px-4 py-2 text-sm font-bold transition-all duration-200",
                                                         isTabActive 

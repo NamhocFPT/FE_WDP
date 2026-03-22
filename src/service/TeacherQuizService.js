@@ -229,7 +229,7 @@ export const generateAIQuestions = async (quizId, payload) => {
         return { success: false, message: "ID bài thi không hợp lệ" };
     }
     try {
-        const res = await request.post(`api/teacher/quizzes/${quizId}/generate-ai`, payload);
+        const res = await request.postFormData(`api/teacher/quizzes/${quizId}/generate-ai`, payload);
         return res;
     } catch (error) {
         console.error("Error generateAIQuestions:", error);

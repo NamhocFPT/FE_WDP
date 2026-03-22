@@ -269,7 +269,7 @@ export default function QuizCreation() {
                 {/* LEFT: Form */}
                 <div className="lg:col-span-2 space-y-4">
                     {/* General */}
-                    <Card>
+                    <Card className="hover:shadow-xl transition-all duration-300 border-white hover:border-blue-200 hover:-translate-y-1 bg-white/70 backdrop-blur-sm">
                         <CardContent className="space-y-3">
                             <div className="text-sm font-bold text-slate-900">Thông tin chung</div>
 
@@ -327,7 +327,7 @@ export default function QuizCreation() {
                     </Card>
 
                     {/* Timing */}
-                    <Card>
+                    <Card className="hover:shadow-xl transition-all duration-300 border-white hover:border-blue-200 hover:-translate-y-1 bg-white/70 backdrop-blur-sm">
                         <CardContent className="space-y-3">
                             <div className="text-sm font-bold text-slate-900">Thời gian (Timing)</div>
 
@@ -376,7 +376,7 @@ export default function QuizCreation() {
                     </Card>
 
                     {/* Grade & Behavior */}
-                    <Card>
+                    <Card className="hover:shadow-xl transition-all duration-300 border-white hover:border-blue-200 hover:-translate-y-1 bg-white/70 backdrop-blur-sm">
                         <CardContent className="space-y-3">
                             <div className="text-sm font-bold text-slate-900">Điểm số & Hành vi (Grade & Behavior)</div>
 
@@ -392,7 +392,6 @@ export default function QuizCreation() {
                                         <option value="2">2 lần</option>
                                         <option value="0">Không giới hạn</option>
                                     </select>
-                                    <div className="mt-1 text-xs text-slate-500">* Unlimited sẽ gửi attemptLimit=0</div>
                                 </div>
 
                                 <div>
@@ -421,7 +420,7 @@ export default function QuizCreation() {
                     </Card>
 
                     {/* Review Options */}
-                    <Card>
+                    <Card className="hover:shadow-xl transition-all duration-300 border-white hover:border-blue-200 hover:-translate-y-1 bg-white/70 backdrop-blur-sm">
                         <CardContent className="space-y-3">
                             <div className="text-sm font-bold text-slate-900">Tuỳ chọn xem lại (Review options)</div>
 
@@ -435,7 +434,6 @@ export default function QuizCreation() {
                                     />
                                     <div>
                                         <div className="font-semibold">Xem điểm/đáp án ngay sau khi nộp</div>
-                                        <div className="text-xs text-slate-500">reviewOption = after_submit</div>
                                     </div>
                                 </label>
 
@@ -448,7 +446,6 @@ export default function QuizCreation() {
                                     />
                                     <div>
                                         <div className="font-semibold">Chỉ xem sau khi đóng đề</div>
-                                        <div className="text-xs text-slate-500">reviewOption = after_close</div>
                                     </div>
                                 </label>
                             </div>
@@ -464,12 +461,7 @@ export default function QuizCreation() {
                             <span className="font-bold">Tóm tắt cấu hình</span>
                         </div>
                         <CardContent className="space-y-4 pt-4">
-                            {!isEditMode && (
-                                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 shadow-sm">
-                                    <div className="font-bold flex items-center gap-1.5"><Clock size={16} /> Lưu ý quan trọng:</div>
-                                    <div className="mt-1 opacity-90 leading-snug">Sau khi <b className="font-semibold">Lưu cấu hình</b>, hệ thống sẽ tạo một Quiz <b>trống (draft)</b> và tự động chuyển bạn sang giao diện Soạn Câu Hỏi (UC_TEA_09).</div>
-                                </div>
-                            )}
+
 
                             <div className="space-y-3.5 text-sm">
                                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
@@ -514,10 +506,10 @@ export default function QuizCreation() {
                             ) : null}
 
                             <div className="pt-2 border-t border-slate-100 flex flex-col gap-3">
-                                <Button className="w-full justify-center bg-blue-600 hover:bg-blue-700 text-white py-2.5 shadow-md" onClick={() => onSave({ goNext: true })} disabled={submitting}>
-                                    {isEditMode ? "Lưu biên soạn đề" : "Lưu & Bắt đầu soạn đề"} <ArrowRight size={18} className="ml-1.5" />
+                                <Button className="w-full justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 rounded-xl shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-0.5 transition-all duration-200" onClick={() => onSave({ goNext: true })} disabled={submitting}>
+                                    {isEditMode ? "Lưu biên soạn đề" : "Lưu & Bắt đầu soạn đề"} <ArrowRight size={18} className="ml-1.5 animate-pulse" />
                                 </Button>
-                                <Button variant="outline" className="w-full justify-center py-2.5 bg-white shadow-sm" onClick={onCancel} disabled={submitting}>
+                                <Button variant="outline" className="w-full justify-center py-2.5 bg-white shadow-sm hover:bg-slate-50 transition-colors rounded-xl" onClick={onCancel} disabled={submitting}>
                                     Hủy bỏ
                                 </Button>
                             </div>

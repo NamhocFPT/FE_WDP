@@ -30,6 +30,7 @@ import TeacherSchedule from "component/pages/teacher/TeacherSchedule";
 import QuizCreation from "component/pages/teacher/QuizCreation";
 import MaterialsManagement from "component/pages/teacher/MaterialsManagement";
 import AssignmentManagement from "component/pages/teacher/AssignmentManagement";
+import EssayCreation from "component/pages/teacher/EssayCreation";
 import GradingPage from "component/pages/teacher/GradingPage";
 import QuizQuestionManager from "component/pages/teacher/QuizQuestionManager";
 import TeacherClassList from "../pages/teacher/TeacherClassList";
@@ -175,7 +176,10 @@ export const router = [
       },
       { path: "quizzes", element: <QuizList /> }, // Keep for compatibility
       { path: "quizzes/create", element: <QuizCreation /> },
+      { path: "classes/:classId/quizzes/create", element: <QuizCreation /> },
       { path: "classes/:classId/assignments", element: <AssignmentManagement /> },
+      { path: "classes/:classId/assignments/essay/create", element: <EssayCreation /> },
+      { path: "classes/:classId/assignments/essay/edit", element: <EssayCreation /> },
       { path: "grading", element: <GradingPage /> }, // Keep for compatibility
       { path: "notifications", element: <TeacherDashboard /> },
       { path: "assessments/:assessmentId/submissions", element: <SubmissionList /> },

@@ -29,6 +29,20 @@ export const post = async(path,option) =>{
     const result = await response.json();
     return result
 }
+
+export const postFormData = async(path, formData) => {
+    const token = store.getToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(API_DOMAIN + path, {
+        method: 'POST',
+        headers,
+        body: formData
+    });
+    const result = await response.json();
+    return result;
+}
 export const patch = async(path,option,id) =>{
     const token = store.getToken();
     const headers = {

@@ -68,8 +68,12 @@ export default function Navbar() {
                                 {user?.role === 'ADMIN' ? 'Quản trị viên' : (user?.role === 'TEACHER' ? 'Giảng viên' : 'Học viên')}
                             </span>
                         </div>
-                        <div className="h-9 w-9 shrink-0 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-black text-xs border border-white/50 shadow-lg">
-                            {(user?.full_name || user?.fullName || "A").charAt(0).toUpperCase()}
+                        <div className="h-9 w-9 shrink-0 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-black text-xs border border-white/50 shadow-lg overflow-hidden">
+                            {(user?.avatar_url || user?.avatarUrl) ? (
+                                <img src={user?.avatar_url || user?.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                            ) : (
+                                (user?.full_name || user?.fullName || "A").charAt(0).toUpperCase()
+                            )}
                         </div>
                     </Link>
                     
