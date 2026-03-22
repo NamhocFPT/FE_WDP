@@ -49,16 +49,16 @@ export default function ClassDetail() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-4">
-                <button onClick={() => nav("/admin/classes")} className="p-2 hover:bg-slate-100 rounded-full transition shadow-sm border border-slate-100 bg-white">
-                    <ChevronLeft size={20} />
-                </button>
-                <PageHeader 
-                    title={cl.name} 
-                    subtitle={cl.course?.name} 
-                    right={[<Badge key="cap" tone="indigo" className="px-3 py-1">{cl.enrollments?.length || 0}/40 Sinh viên</Badge>]}
-                />
-            </div>
+            <PageHeader 
+                title={cl.name} 
+                subtitle={cl.course?.name} 
+                onBack={() => nav("/admin/classes")}
+                right={[
+                    <Badge key="cap" tone="blue" className="px-4 py-1.5 text-sm shadow-sm border border-blue-200 bg-blue-50/50">
+                        <Users className="w-3.5 h-3.5 mr-1.5 opacity-70" /> {cl.enrollments?.length || 0} / {cl.max_capacity || 40} Sinh viên
+                    </Badge>
+                ]}
+            />
 
             {/* Thanh Tab Navigation cũ đã được chuyển sang Sidebar theo yêu cầu */}
             
@@ -125,21 +125,21 @@ const OverviewTab = ({ cl, onAssignClick }) => (
         <Card>
             <CardHeader><CardTitle>Thông tin lớp học</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 gap-4 text-sm">
-                <div><label className="text-slate-400 block font-medium">Học kỳ</label><span className="font-bold text-slate-700">{cl.semester}</span></div>
-                <div><label className="text-slate-400 block font-medium">Ngày bắt đầu</label><span className="font-bold text-slate-700">{cl.start_date ? new Date(cl.start_date).toLocaleDateString("vi-VN") : "---"}</span></div>
-                <div><label className="text-slate-400 block font-medium">Sĩ số</label><span className="font-bold text-slate-700">{cl.enrollments?.length || 0}/{cl.max_capacity} sinh viên</span></div>
-                <div><label className="text-slate-400 block font-medium">Trạng thái</label><Badge tone="green">{cl.status === "active" ? "Đang hoạt động" : cl.status}</Badge></div>
+                <div><label className="text-slate-400 block font-medium uppercase tracking-tighter text-[10px]">Học kỳ</label><span className="font-bold text-slate-700">{cl.semester}</span></div>
+                <div><label className="text-slate-400 block font-medium uppercase tracking-tighter text-[10px]">Ngày bắt đầu</label><span className="font-bold text-slate-700">{cl.start_date ? new Date(cl.start_date).toLocaleDateString("vi-VN") : "---"}</span></div>
+                <div><label className="text-slate-400 block font-medium uppercase tracking-tighter text-[10px]">Sĩ số</label><span className="font-bold text-slate-700">{cl.enrollments?.length || 0}/{cl.max_capacity} sinh viên</span></div>
+                <div><label className="text-slate-400 block font-medium uppercase tracking-tighter text-[10px]">Trạng thái</label><Badge tone="green" className="font-bold">{cl.status === "active" ? "Đang hoạt động" : cl.status}</Badge></div>
             </CardContent>
         </Card>
         <Card>
             <CardHeader className="flex justify-between items-center"><CardTitle>Giảng viên phụ trách</CardTitle><Button variant="outline" size="sm" onClick={onAssignClick}>Thay đổi</Button></CardHeader>
             <CardContent className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 font-black border border-blue-100">
                     {cl.teacher?.full_name?.charAt(0) || "T"}
                 </div>
                 <div>
-                    <div className="font-bold text-slate-900">{cl.teacher?.full_name || "Chưa phân công"}</div>
-                    <div className="text-xs text-slate-500">Giảng viên chính</div>
+                    <div className="font-black text-slate-900">{cl.teacher?.full_name || "Chưa phân công"}</div>
+                    <div className="text-xs font-semibold text-slate-400 uppercase tracking-tighter">Giảng viên chính</div>
                 </div>
             </CardContent>
         </Card>

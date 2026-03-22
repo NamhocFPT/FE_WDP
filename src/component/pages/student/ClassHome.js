@@ -205,6 +205,7 @@ export default function ClassHome() {
             <PageHeader
                 title={cl.name}
                 subtitle={`Giảng viên: ${cl.teacher || "Chưa phân công"} • Phòng: ${cl.room || "TBA"}`}
+                onBack={() => navigate("/student/classes")}
             />
 
             {/* TAB: STREAM */}
@@ -218,16 +219,18 @@ export default function ClassHome() {
                     <Card>
                         <CardHeader><CardTitle>Lịch học</CardTitle></CardHeader>
                         <CardContent>
-                            <div className="flex flex-wrap gap-2">
-                                {cl.schedule?.length > 0 ? (
-                                    Array.from(new Set(cl.schedule.map((s) => `${s.day} ${s.time} • P.${s.room || 'TBA'}`))).map((timeStr, idx) => (
-                                        <div key={idx} className="bg-slate-50 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:border-blue-300 hover:bg-white transition-colors">
-                                            {timeStr}
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-slate-500 italic w-full text-center py-4 bg-slate-50 rounded-lg">Chưa có lịch học.</p>
-                                )}
+                            <div className="max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {cl.schedule?.length > 0 ? (
+                                        Array.from(new Set(cl.schedule.map((s) => `${s.day} ${s.time} • P.${s.room || 'TBA'}`))).map((timeStr, idx) => (
+                                            <div key={idx} className="bg-slate-50 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:border-blue-300 hover:bg-white transition-colors whitespace-nowrap">
+                                                {timeStr}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-slate-500 italic w-full text-center py-4 bg-slate-50 rounded-lg">Chưa có lịch học.</p>
+                                    )}
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

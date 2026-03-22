@@ -70,26 +70,30 @@ export function Td({ className, ...props }) {
 
 export function PageHeader({ title, subtitle, right, icon, onBack }) {
     return (
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-6">
+            <div className="flex items-center gap-4">
                 {onBack && (
                     <button 
                         onClick={onBack}
-                        className="p-1.5 -ml-1 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors"
+                        className="flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-slate-200 shadow-sm hover:bg-slate-50 transition-all group"
                         title="Quay lại"
                     >
-                        <ArrowLeft className="w-5 h-5" />
+                        <ArrowLeft className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors" />
                     </button>
                 )}
-                <div className="flex items-start gap-3">
-                    {icon && <div className="mt-1">{icon}</div>}
-                    <div>
-                        <div className="text-2xl font-black text-slate-900 tracking-tight leading-tight">{title}</div>
-                        {subtitle ? <div className="mt-1 text-sm font-medium text-slate-500">{subtitle}</div> : null}
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                        {icon && <div className="text-blue-500">{icon}</div>}
+                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{title}</h1>
                     </div>
+                    {subtitle && (
+                        <p className="text-[13px] font-medium text-slate-500 mt-0.5">
+                            {subtitle}
+                        </p>
+                    )}
                 </div>
             </div>
-            {right ? <div className="flex items-center gap-2">{right}</div> : null}
+            {right ? <div className="flex items-center gap-3">{right}</div> : null}
         </div>
     );
 }

@@ -97,9 +97,9 @@ export default function TeacherClassList() {
                                             {c.schedule && c.schedule.length > 0 ? (
                                                 (() => {
                                                     const uniqueSchedule = Array.from(new Set(c.schedule.map((s) => `${s.day} ${s.time}`)));
-                                                    const displayCount = 2;
+                                                    const displayCount = 3;
                                                     const displayItems = uniqueSchedule.slice(0, displayCount);
-                                                    const remainingCount = uniqueSchedule.length - displayCount;
+                                                    const remainingCount = uniqueSchedule.length - displayItems.length;
                                                     
                                                     return (
                                                         <>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { PageHeader, StatCard, Card, CardHeader, CardTitle, CardContent, Badge, Button } from "component/ui";
 import { useNavigate } from "react-router-dom";
+import { Clock } from "lucide-react";
 
 export default function TeacherDashboard() {
     const navigate = useNavigate();
@@ -87,13 +88,46 @@ export default function TeacherDashboard() {
                                 <div key={c.id} className="rounded-xl border border-slate-100 p-4 bg-white hover:border-blue-200 transition-all shadow-sm">
                                     <div className="font-bold text-slate-800 text-base">{c.name}</div>
                                     <div className="text-xs text-slate-500 mb-3">{c.courseName || "Cấp độ môn học"}</div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                         <div className="flex justify-between text-xs font-bold">
                                             <span className="text-slate-600">Sĩ số: {c.studentCount} hv</span>
                                             <span className="text-blue-700">{c.progress}% Hoàn tất</span>
                                         </div>
                                         <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                                             <div className="h-full bg-blue-600 transition-all" style={{ width: `${c.progress}%` }}></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 pt-3 border-t border-slate-50">
+                                        <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-2">
+                                            <Clock className="w-3 h-3" /> Lịch dạy tuần này
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5 items-center">
+                                            {c.schedule && c.schedule.length > 0 ? (
+                                                (() => {
+                                                    const uniqueSchedule = Array.from(new Set(c.schedule.map((s) => `${s.day} ${s.time}`)));
+                                                    const displayCount = 3;
+                                                    const displayItems = uniqueSchedule.slice(0, displayCount);
+                                                    const remainingCount = uniqueSchedule.length - displayItems.length;
+                                                    
+                                                    return (
+                                                        <>
+                                                            {displayItems.map((timeStr, idx) => (
+                                                                <div key={idx} className="bg-slate-50 border border-slate-200 text-slate-600 px-2 py-1 rounded-md text-[9px] font-black shadow-sm flex items-center gap-1 border-l-2 border-l-blue-400 whitespace-nowrap">
+                                                                    {timeStr}
+                                                                </div>
+                                                            ))}
+                                                            {remainingCount > 0 && (
+                                                                <span className="text-[9px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+                                                                    +{remainingCount}
+                                                                </span>
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()
+                                            ) : (
+                                                <span className="text-slate-400 italic text-[9px]">Chưa sắp lịch</span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
