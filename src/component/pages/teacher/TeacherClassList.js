@@ -93,13 +93,29 @@ export default function TeacherClassList() {
                                         <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-tighter">
                                             <Clock className="w-3.5 h-3.5" /> Lịch dạy tuần này
                                         </div>
-                                        <div className="flex flex-wrap gap-1.5">
+                                        <div className="flex flex-wrap gap-1.5 items-center">
                                             {c.schedule && c.schedule.length > 0 ? (
-                                                Array.from(new Set(c.schedule.map((s) => `${s.day} ${s.time}`))).slice(0, 2).map((timeStr, idx) => (
-                                                    <div key={idx} className="bg-slate-50 border border-slate-200 text-slate-600 px-2.5 py-1 rounded text-[10px] font-bold shadow-sm">
-                                                        {timeStr}
-                                                    </div>
-                                                ))
+                                                (() => {
+                                                    const uniqueSchedule = Array.from(new Set(c.schedule.map((s) => `${s.day} ${s.time}`)));
+                                                    const displayCount = 2;
+                                                    const displayItems = uniqueSchedule.slice(0, displayCount);
+                                                    const remainingCount = uniqueSchedule.length - displayCount;
+                                                    
+                                                    return (
+                                                        <>
+                                                            {displayItems.map((timeStr, idx) => (
+                                                                <div key={idx} className="bg-slate-50 border border-slate-200 text-slate-600 px-2 py-1 rounded-md text-[9px] font-black shadow-sm flex items-center gap-1 border-l-2 border-l-blue-400">
+                                                                    {timeStr}
+                                                                </div>
+                                                            ))}
+                                                            {remainingCount > 0 && (
+                                                                <span className="text-[9px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+                                                                    +{remainingCount}
+                                                                </span>
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()
                                             ) : (
                                                 <span className="text-slate-400 italic text-[10px]">Chưa sắp lịch</span>
                                             )}

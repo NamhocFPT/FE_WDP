@@ -9,10 +9,10 @@ export default function Sidebar() {
     const user = store.getCurrentUser();
     const location = useLocation();
     const { id: paramId, classId: paramClassId } = useParams();
-    
+
     const classIdMatch = location.pathname.match(/\/(?:teacher|student|admin)\/classes\/([a-zA-Z0-9_-]+)/);
     const classIdFromPath = classIdMatch ? classIdMatch[1] : null;
-    
+
     const classId = paramClassId || paramId || classIdFromPath;
     const roleKey = user?.role?.toLowerCase();
     const navItems = navByRole[roleKey] || [];
@@ -63,8 +63,8 @@ export default function Sidebar() {
         items = [
             { to: `/teacher/classes/${classId}`, label: "Tổng quan", end: true },
             { to: `/teacher/classes/${classId}/stream`, label: "Bảng tin" },
-            { 
-                label: "Bài tập", 
+            {
+                label: "Bài tập",
                 icon: <FileText size={18} />,
                 children: [
                     { to: `/teacher/classes/${classId}/assignments?type=quiz`, label: "Trắc nghiệm" },
@@ -80,7 +80,7 @@ export default function Sidebar() {
             { to: `/student/classes/${classId}?tab=stream`, label: "Bảng tin", id: "stream" },
             { to: `/student/classes/${classId}?tab=overview`, label: "Tổng quan", id: "overview" },
             { to: `/student/classes/${classId}?tab=materials`, label: "Học liệu", id: "materials" },
-            { 
+            {
                 label: "Bài tập",
                 icon: <FileText size={18} />,
                 children: [
@@ -101,7 +101,7 @@ export default function Sidebar() {
     }
 
     return (
-        <aside className="sticky top-0 hidden h-full w-64 border-r border-slate-100 bg-white p-6 md:block overflow-y-auto animate-in slide-in-from-left-4 duration-500">
+        <aside className="hidden h-[calc(100vh-64px)] w-64 flex-shrink-0 border-r border-slate-100 bg-white p-6 md:block overflow-y-auto animate-in slide-in-from-left-4 duration-500">
             <div className="mb-8">
                 <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-3 py-1 bg-slate-50 rounded-md inline-block">
                     {title}
@@ -111,15 +111,15 @@ export default function Sidebar() {
             <nav className="space-y-1">
                 {items.map((it, idx) => {
                     if (it.children) {
-                        const isAnyChildActive = it.children.some(child => 
-                            (isStudentClassDetail && child.id && (location.search.includes(`tab=${child.id}`) || location.pathname.endsWith(`/${child.id}`))) ||
-                            (!isStudentClassDetail && (location.pathname + location.search === child.to || location.pathname === child.to))
+                        const isAnyChildActive = it.children.some(child =>
+                            (isStudentClassDetail && child.id && location.search.includes(`tab=${child.id}`)) ||
+                            (!isStudentClassDetail && (location.pathname + location.search).includes(child.to))
                         );
                         const isExpanded = expandedItems[it.label];
 
                         return (
                             <div key={idx} className="space-y-1">
-                                <button 
+                                <button
                                     onClick={() => toggleExpand(it.label)}
                                     className={cn(
                                         "w-full flex items-center justify-between px-4 py-3 text-sm font-bold transition-all duration-200 rounded-xl hover:bg-slate-50",
@@ -132,7 +132,7 @@ export default function Sidebar() {
                                     </div>
                                     {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                 </button>
-                                
+
                                 {isExpanded && (
                                     <div className="ml-4 border-l-2 border-slate-100 pl-2 space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
                                         {it.children.map((child, cidx) => (
@@ -140,13 +140,13 @@ export default function Sidebar() {
                                                 key={cidx}
                                                 to={child.to}
                                                 className={({ isActive }) => {
-                                                   const isTabActive = (isAdminClassDetail || isStudentClassDetail)
-                                    ? (child.id && (location.search.includes(`tab=${child.id}`) || location.pathname.endsWith(`/${child.id}`)))
-                                    : (child.to.includes('?') ? (location.pathname + location.search === child.to) : isActive);
+                                                    const isTabActive = (isAdminClassDetail || isStudentClassDetail)
+                                                        ? (child.id && (location.search.includes(`tab=${child.id}`) || location.pathname.endsWith(`/${child.id}`)))
+                                                        : (child.to.includes('?') ? (location.pathname + location.search === child.to) : isActive);
                                                     return cn(
                                                         "flex items-center gap-3 rounded-xl px-4 py-2 text-sm font-bold transition-all duration-200",
-                                                        isTabActive 
-                                                            ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600 rounded-l-none translate-x-1" 
+                                                        isTabActive
+                                                            ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600 rounded-l-none translate-x-1"
                                                             : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 shadow-none border-none"
                                                     );
                                                 }}
@@ -167,12 +167,12 @@ export default function Sidebar() {
                             end={it.end}
                             className={({ isActive }) => {
                                 const isTabActive = (isAdminClassDetail || isStudentClassDetail)
-                                    ? (it.id && (location.search.includes(`tab=${it.id}`) || location.pathname.endsWith(`/${it.id}`)))
-                                    : isActive;
+                                    ? (it.id && location.search.includes(`tab=${it.id}`))
+                                    : (location.pathname + location.search === it.to || (it.to?.indexOf('?') === -1 && isActive));
                                 return cn(
                                     "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200",
-                                    isTabActive 
-                                        ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600 rounded-l-none translate-x-1" 
+                                    isTabActive
+                                        ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600 rounded-l-none translate-x-1"
                                         : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 shadow-none border-none"
                                 );
                             }}
