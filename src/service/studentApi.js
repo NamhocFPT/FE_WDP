@@ -57,6 +57,10 @@ const getGradesOverview = () => {
     return api.get(`/grades/overview`);
 };
 
+const getSubmissionReview = (submissionId) => {
+    return api.get(`/attempts/${submissionId}/review`);
+};
+
 export const studentApi = {
     getStudentDashboard,
     getMyClasses,
@@ -64,4 +68,5 @@ export const studentApi = {
     getClassGrades,
     getClassMaterials,
     getGradesOverview,
+    getSubmissionReview,
 };

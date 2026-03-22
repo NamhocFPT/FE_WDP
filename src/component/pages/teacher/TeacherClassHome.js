@@ -111,7 +111,7 @@ export default function TeacherClassHome() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
                                             <div className="text-[10px] text-emerald-600 font-black uppercase mb-1">Sĩ số</div>
-                                            <div className="text-2xl font-black text-emerald-900">{selectedClass.studentCount || 0} <span className="text-xs font-bold opacity-60">sv</span></div>
+                                            <div className="text-2xl font-black text-emerald-900">{selectedClass.studentCount || 0} <span className="text-xs font-bold opacity-60">học sinh</span></div>
                                         </div>
                                         <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl">
                                             <div className="text-[10px] text-blue-600 font-black uppercase mb-1">Khóa học</div>

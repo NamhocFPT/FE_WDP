@@ -13,6 +13,7 @@ export default function AssignmentManagement() {
     const [assignments, setAssignments] = useState([]);
     const [isFetching, setIsFetching] = useState(true);
     const [message, setMessage] = useState({ text: "", type: "" });
+    const [classDetail, setClassDetail] = useState(null);
 
     const fetchAssignments = async () => {
         try {
@@ -21,7 +22,10 @@ export default function AssignmentManagement() {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const data = await response.json();
-            if (data.success) setAssignments(data.data);
+            if (data.success) {
+                setAssignments(data.data.assessments);
+                setClassDetail(data.data.class);
+            }
         } catch (error) {
             console.error("Lỗi lấy danh sách bài tập:", error);
         } finally {
@@ -57,6 +61,8 @@ export default function AssignmentManagement() {
     const onQuickPublish = async (assignment) => {
         try {
             const token = localStorage.getItem("smartedu_token");
+            const { files, ...assignmentClean } = assignment; // Bỏ files để tránh lỗi tải lại file khi publish
+            
             const response = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/assessments/essay/${assignment.id}`, {
                 method: "PUT",
                 headers: { 
@@ -64,7 +70,7 @@ export default function AssignmentManagement() {
                     "Authorization": `Bearer ${token}` 
                 },
                 body: JSON.stringify({ 
-                    ...assignment, 
+                    ...assignmentClean, 
                     settings: assignment.settings_json,
                     status: 'published' 
                 })
@@ -73,6 +79,8 @@ export default function AssignmentManagement() {
             if (data.success) {
                 setMessage({ text: "Bài tập đã được công bố!", type: "success" });
                 fetchAssignments();
+            } else {
+                setMessage({ text: data.message || "Không thể công bố bài tập.", type: "error" });
             }
         } catch (error) {
             console.error("Lỗi công bố nhanh:", error);
@@ -101,7 +109,7 @@ export default function AssignmentManagement() {
         <div className="space-y-4 max-w-7xl mx-auto">
             <PageHeader 
                 title={pageTitle} 
-                subtitle={`Lớp: ${classId}`} 
+                subtitle={classDetail ? `${classDetail.course?.name || "---"} (${classDetail.name})` : `Lớp: ${classId}`} 
                 icon={pageIcon}
                 onBack={() => navigate("/teacher/classes")}
                 right={[
@@ -143,13 +151,13 @@ export default function AssignmentManagement() {
                                                     className="font-semibold text-blue-600 cursor-pointer hover:underline flex items-center gap-2"
                                                     onClick={() => {
                                                         if (a.type?.toUpperCase() === 'QUIZ') {
-                                                            navigate(`/teacher/assessments/${a.id}/quiz-attempts`);
+                                                            navigate(`/teacher/classes/${classId}/assessments/${a.id}/quiz-attempts`);
                                                         } else {
-                                                            navigate(`/teacher/assessments/${a.id}/submissions`);
+                                                             navigate(`/teacher/classes/${classId}/assessments/${a.id}/submissions`);
                                                         }
                                                     }}
                                                 >
-                                                    {a.is_published ? <Eye className="h-3.5 w-3.5 text-emerald-500" /> : <EyeOff className="h-3.5 w-3.5 text-amber-500" />}
+                                                    {a.status === 'published' ? <Eye className="h-3.5 w-3.5 text-emerald-500" /> : <EyeOff className="h-3.5 w-3.5 text-amber-500" />}
                                                     {a.title}
                                                 </div>
                                                 <div className="text-xs text-slate-400 mt-1">{a.type?.toUpperCase() === 'QUIZ' ? '(Trắc nghiệm)' : '(Tự luận)'}</div>
@@ -157,27 +165,20 @@ export default function AssignmentManagement() {
                                             <Td>{a.due_at ? new Date(a.due_at).toLocaleString('vi-VN') : "Không có hạn"}</Td>
                                             <Td><Badge tone="amber">{a.max_score || 100}</Badge></Td>
                                             <Td>
-                                                <Badge tone={a.is_published ? 'green' : 'slate'}>
-                                                    {a.is_published ? 'Đã công bố' : 'Bản nháp / Ẩn'}
+                                                <Badge tone={a.status === 'published' ? 'green' : 'slate'}>
+                                                    {a.status === 'published' ? 'Đã công bố' : 'Bản nháp / Ẩn'}
                                                 </Badge>
                                             </Td>
                                             <Td className="text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <Button 
-                                                        size="xs" 
-                                                        variant="outline"
-                                                        className={a.is_published ? "text-amber-600 border-amber-200" : "text-emerald-600 border-emerald-200"}
-                                                        onClick={() => navigate(`/teacher/classes/${classId}/gradebook`)}
-                                                    >
-                                                        {a.is_published ? 'Ẩn' : 'Công bố'}
-                                                    </Button>
-                                                    {a.status === 'draft' && a.type?.toUpperCase() === 'ESSAY' && (
+                                                    {a.status !== 'published' && a.type?.toUpperCase() === 'ESSAY' && (
                                                         <Button 
                                                             size="xs" 
-                                                            className="bg-green-600 text-white hover:bg-green-700" 
+                                                            variant="outline"
+                                                            className="text-emerald-600 border-emerald-200"
                                                             onClick={() => onQuickPublish(a)}
                                                         >
-                                                            Công bố ngay
+                                                            Công bố
                                                         </Button>
                                                     )}
                                                     <Button size="xs" variant="outline" onClick={() => handleEditClick(a)}>

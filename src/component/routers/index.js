@@ -38,6 +38,7 @@ import TeacherClassHome from "component/pages/teacher/TeacherClassHome";
 import SubmissionList from "../pages/teacher/SubmissionList";
 import TeacherGradingWorkspace from '../pages/teacher/TeacherGradingWorkspace';
 import QuizAttempts from "component/pages/teacher/QuizAttempts";
+import TeacherStudentList from "component/pages/teacher/TeacherStudentList";
 import QuizReviewAttempt from "component/pages/teacher/QuizReviewAttempt";
 import TeacherGradebook from "component/pages/teacher/TeacherGradebook";
 import QuizList from "component/pages/teacher/QuizList";
@@ -56,6 +57,7 @@ import StudentQuizStart from "component/pages/student/StudentQuizStart";
 import StudentQuizTake from "component/pages/student/StudentQuizTake";
 import StudentQuizSummary from "component/pages/student/StudentQuizSummary";
 import StudentQuizResult from "component/pages/student/StudentQuizResult";
+import StudentQuizReview from "component/pages/student/StudentQuizReview";
 
 // Wrapper to pass classId from URL params to ClassStream
 function ClassStreamWrapper() {
@@ -192,13 +194,14 @@ export const router = [
       { path: "classes/:classId/assignments/essay/edit", element: <EssayCreation /> },
       { path: "grading", element: <GradingPage /> }, // Keep for compatibility
       { path: "notifications", element: <TeacherDashboard /> },
-      { path: "assessments/:assessmentId/submissions", element: <SubmissionList /> },
-      { path: "grading/:submissionId", element: <TeacherGradingWorkspace /> },
+      { path: "classes/:classId/assessments/:assessmentId/submissions", element: <SubmissionList /> },
+      { path: "classes/:classId/assessments/:assessmentId/submissions/:submissionId/grade", element: <TeacherGradingWorkspace /> },
       { path: "classes/:classId/quizzes/:quizId/questions", element: <QuizQuestionManager /> },
-      { path: "assessments/:assessmentId/quiz-attempts", element: <QuizAttempts /> },
+      { path: "classes/:classId/assessments/:assessmentId/quiz-attempts", element: <QuizAttempts /> },
       { path: "quiz-attempts/:submissionId/review", element: <QuizReviewAttempt /> },
       { path: "classes/:classId/quizzes", element: <QuizList /> },
       { path: "classes/:classId/gradebook", element: <TeacherGradebook /> },
+      { path: "classes/:classId/students", element: <TeacherStudentList /> },
       { path: "classes/:classId/stream", element: <ClassStreamWrapper /> },
     ],
   },
@@ -221,9 +224,10 @@ export const router = [
       { path: "quizzes/:quizId/start", element: <StudentQuizStart /> },
       { path: "attempts/:submissionId/summary", element: <StudentQuizSummary /> },
       { path: "quiz-result", element: <StudentQuizResult /> },
+      { path: "attempts/:submissionId/review", element: <StudentQuizReview /> },
       { path: "grades", element: <Grades /> },
       { path: "classes/:classId/grades", element: <StudentClassGrades /> },
-      { path: "assessments/:assessmentId", element: <StudentAssignmentDetail /> },
+      { path: "classes/:classId/assessments/:assessmentId", element: <StudentAssignmentDetail /> },
     ],
   },
   

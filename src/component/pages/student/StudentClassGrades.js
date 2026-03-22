@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge } from "component/ui";
 import { studentApi } from "service/studentApi";
-import { ChevronLeft, Lock, CheckCircle2, AlertCircle, MessageSquare } from "lucide-react";
+import { ChevronLeft, Lock, CheckCircle2, AlertCircle, MessageSquare, Eye } from "lucide-react";
 
 export default function StudentClassGrades() {
     const { classId } = useParams();
@@ -66,7 +66,7 @@ export default function StudentClassGrades() {
         <div className="space-y-6">
             <PageHeader 
                 title={`Bảng điểm: ${data.class.name}`} 
-                subtitle={`Giảng viên: ${data.class.teacher}`}
+                subtitle={`Giáo viên: ${data.class.teacher}`}
                 right={[
                     <Button key="back" variant="outline" onClick={() => navigate(-1)}>
                         <ChevronLeft className="mr-1 h-4 w-4" /> Quay lại
@@ -77,15 +77,7 @@ export default function StudentClassGrades() {
             <div className="grid gap-6 lg:grid-cols-4">
                 {/* Summary Section */}
                 <div className="lg:col-span-1 space-y-4">
-                    <Card className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white border-none shadow-lg">
-                        <CardContent className="p-6 text-center">
-                            <p className="text-blue-100 text-sm font-semibold uppercase tracking-wider mb-2">Điểm tổng kết hiện tại</p>
-                            <div className="text-5xl font-black mb-1">
-                                {data.course_total !== null ? Number(data.course_total).toFixed(2) : "--"}
-                            </div>
-                            <p className="text-blue-100 text-xs">Dựa trên {data.grade_items.filter(i => i.status === 'published').length} hạng mục đã công bố</p>
-                        </CardContent>
-                    </Card>
+
 
                     <Card className="border-slate-200">
                         <CardContent className="p-4 space-y-3">
@@ -115,7 +107,7 @@ export default function StudentClassGrades() {
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
                                     <Th className="py-4">Hạng mục đánh giá</Th>
-                                    <Th>Trọng số</Th>
+
                                     <Th>Điểm / Tối đa</Th>
                                     <Th>Trạng thái</Th>
                                     <Th>Nhận xét từ GV</Th>
@@ -129,16 +121,22 @@ export default function StudentClassGrades() {
                                             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
                                                 {item.type === 'QUIZ' ? 'Trắc nghiệm' : item.type === 'ESSAY' ? 'Tự luận' : item.type} • {item.submitted_at ? new Date(item.submitted_at).toLocaleDateString('vi-VN') : "Chưa nộp"}
                                             </div>
+                                            {item.type === 'QUIZ' && item.submission_id && item.submitted_at && (
+                                                <button 
+                                                    onClick={() => navigate(`/student/attempts/${item.submission_id}/review`)}
+                                                    className="inline-flex items-center gap-1 mt-1.5 text-xs text-blue-600 hover:text-blue-800 font-bold"
+                                                >
+                                                    <Eye className="h-3 w-3" /> Xem lại bài
+                                                </button>
+                                            )}
                                         </Td>
-                                        <Td>
-                                            <span className="font-semibold text-slate-600">
-                                                {item.weight !== null && item.weight !== undefined ? `${item.weight}%` : '--'}
-                                            </span>
-                                        </Td>
+
                                         <Td>
                                             <div className="flex items-baseline gap-1">
                                                 {item.status === "published" ? (
                                                     <span className="text-lg font-black text-blue-600">{item.score}</span>
+                                                ) : item.status === "no_submission" && item.due_at && new Date(item.due_at) < new Date() ? (
+                                                    <span className="text-lg font-black text-red-500">0</span>
                                                 ) : (
                                                     <span className="text-lg font-bold text-slate-300">--</span>
                                                 )}
@@ -169,10 +167,7 @@ export default function StudentClassGrades() {
                             </tbody>
                         </Table>
                         
-                        <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center font-bold text-slate-900">
-                            <span>TỔNG TRỌNG SỐ ĐÃ TÍNH ĐIỂM</span>
-                            <span className="text-lg text-blue-700">{data.total_weight}%</span>
-                        </div>
+
                     </CardContent>
                 </Card>
             </div>

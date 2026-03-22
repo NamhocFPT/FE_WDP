@@ -140,7 +140,7 @@ export default function StudentDashboard() {
                                     if (a.type === "QUIZ" || String(a.type).toUpperCase() === "QUIZ") {
                                         navigate(`/student/quizzes/${a.id}/start`);
                                     } else {
-                                        navigate(`/student/assessments/${a.id}`);
+                                        navigate(`/student/classes/${a.classId}/assessments/${a.id}`);
                                     }
                                 }}
                                 className={`flex items-center justify-between rounded-lg border px-4 py-3 text-sm hover:shadow-md cursor-pointer transition-all ${a.isUrgent ? 'border-l-4 border-l-red-500 bg-red-50/30' : 'border-slate-200 border-l-4 border-l-orange-400'}`}

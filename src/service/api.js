@@ -30,7 +30,7 @@ async function fetchWithAuth(url, options = {}) {
     const data = await response.json();
 
     if (response.status === 404 && (!options.method || options.method === "GET")) {
-        toast.error("Nội dung này không còn tồn tại hoặc đã bị gỡ bởi Giảng viên.");
+        toast.error("Nội dung này không còn tồn tại hoặc đã bị gỡ bởi Giáo viên.");
     }
 
     return { ok: response.ok, status: response.status, data };
@@ -79,6 +79,20 @@ export const api = {
         });
     },
 
+    async forgotPassword(email) {
+        return fetchWithAuth("/auth/forgot-password", {
+            method: "POST",
+            body: JSON.stringify({ email }),
+        });
+    },
+
+    async resetPassword({ email, otp, newPassword }) {
+        return fetchWithAuth("/auth/reset-password", {
+            method: "POST",
+            body: JSON.stringify({ email, otp, newPassword }),
+        });
+    },
+
     async logout() {
         return fetchWithAuth("/auth/logout", {
             method: "POST",
@@ -118,6 +132,14 @@ export const api = {
         },
         async readAllNotifications() {
             return fetchWithAuth("/notifications/read-all", { method: "PATCH" });
+        }
+    },
+    ai: {
+        async classChat(classId, message, history = []) {
+            return fetchWithAuth(`/ai/class-chat/${classId}`, {
+                method: "POST",
+                body: JSON.stringify({ message, history })
+            });
         }
     }
 };

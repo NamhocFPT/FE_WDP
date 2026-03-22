@@ -41,7 +41,7 @@ export default function TeacherDashboard() {
     return (
         <div className="space-y-6">
             <PageHeader 
-                title="Bảng điều khiển Giảng viên" 
+                title="Bảng điều khiển Giáo viên" 
                 subtitle="Tổng quan lịch dạy và bài tập cần chấm trong ngày." 
             />
 
@@ -93,7 +93,7 @@ export default function TeacherDashboard() {
                                     <div className="text-xs text-slate-500 mb-3">{c.courseName || "Cấp độ khóa học"}</div>
                                     <div className="space-y-2">
                                         <div className="flex justify-between text-xs font-bold">
-                                            <span className="text-slate-600">Sĩ số: {c.studentCount} hv</span>
+                                            <span className="text-slate-600">Sĩ số: {c.studentCount} học sinh</span>
                                             <span className="text-blue-700">{c.progress}% Hoàn tất</span>
                                         </div>
                                         <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -122,7 +122,13 @@ export default function TeacherDashboard() {
                                 needsGrading.map((g) => (
                                     <div 
                                         key={g.assessmentId} 
-                                        onClick={() => navigate(`/teacher/assessments/${g.assessmentId}/submissions`)}
+                                        onClick={() => {
+                                            if (g.type?.toUpperCase() === 'QUIZ') {
+                                                navigate(`/teacher/classes/${g.classId}/assessments/${g.assessmentId}/quiz-attempts`);
+                                            } else {
+                                                navigate(`/teacher/classes/${g.classId}/assessments/${g.assessmentId}/submissions`);
+                                            }
+                                        }}
                                         className="flex items-center justify-between p-3 rounded-xl border border-amber-100 bg-amber-50/40 hover:bg-amber-50 cursor-pointer transition-all active:scale-95"
                                     >
                                         <div className="overflow-hidden">

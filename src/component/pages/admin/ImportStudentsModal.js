@@ -41,7 +41,7 @@ export default function ImportStudentsModal({ isOpen, onClose, classId, onSucces
                     rows = rawRows.map(r => ({
                         full_name: r["Họ tên"] || r.full_name || r.name,
                         email: r["Email"] || r.email,
-                        student_code: r["Mã SV"] || r.student_code
+                        student_code: r["Mã SV"] || r["Mã học sinh"] || r.student_code
                     }));
                 } else {
                     // txt/csv regex fallback

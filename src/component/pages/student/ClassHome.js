@@ -7,11 +7,12 @@ import {
     Lock, CheckCircle2, AlertCircle, HelpCircle,
     FileText, File, MonitorPlay, Table as TableIcon,
     Image, Film, Archive, Link as LinkIcon, Text as TextIcon,
-    ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FolderOpen, Download
+    ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FolderOpen, Download, Eye
 } from "lucide-react";
 import ClassStream from "component/pages/common/stream/ClassStream";
 import StreamNotificationPanel from "component/pages/common/stream/StreamNotificationPanel";
 import { format } from "date-fns";
+import ClassAIChatbot from "./ClassAIChatbot";
 
 const getTypeIcon = (type) => {
     switch (type) {
@@ -210,7 +211,7 @@ export default function ClassHome() {
         <div className="space-y-6 animate-in fade-in duration-500 pb-10">
             <PageHeader
                 title={cl.name}
-                subtitle={`Giảng viên: ${cl.teacher || "Chưa phân công"} • Phòng: ${cl.room || "TBA"}`}
+                subtitle={`Giáo viên: ${cl.teacher || "Chưa phân công"} • Phòng: ${cl.room || "TBA"}`}
             />
 
             {/* TAB: STREAM */}
@@ -278,7 +279,7 @@ export default function ClassHome() {
                             <div className="flex flex-col items-center justify-center text-slate-500">
                                 <FolderOpen className="text-slate-300 mb-3" size={48} />
                                 <h3 className="text-lg font-medium text-slate-700">Chưa có tài liệu nào</h3>
-                                <p className="text-sm">Giảng viên chưa đăng tải tài liệu cho khóa học này.</p>
+                                <p className="text-sm">Giáo viên chưa đăng tải tài liệu cho khóa học này.</p>
                             </div>
                         </Card>
                     ) : (
@@ -455,9 +456,12 @@ export default function ClassHome() {
                                 <thead>
                                     <tr>
                                         <Th>Tiêu đề</Th>
-                                        <Th>Lượt nộp</Th>
+                                        <Th>Trạng thái nộp</Th>
                                         <Th>Hạn nộp</Th>
+                                        <Th>Hạn cuối</Th>
                                         <Th>Điểm / Tối đa</Th>
+                                        <Th>Trạng thái chấm</Th>
+                                        <Th className="text-right">Thao tác</Th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -465,7 +469,7 @@ export default function ClassHome() {
                                         const assignList = cl.assignments?.filter(a => a.type !== 'QUIZ' && String(a.type).toUpperCase() !== 'QUIZ' && a.status !== 'draft') || [];
                                         const totalAssignPages = Math.ceil(assignList.length / ITEMS_PER_PAGE);
                                         const paginatedAssigns = assignList.slice((assignPage - 1) * ITEMS_PER_PAGE, assignPage * ITEMS_PER_PAGE);
-                                        if (assignList.length === 0) return <tr><Td colSpan="4" className="text-center py-8 text-slate-500 italic">Không có bài tự luận nào.</Td></tr>;
+                                         if (assignList.length === 0) return <tr><Td colSpan="7" className="text-center py-8 text-slate-500 italic">Không có bài tự luận nào.</Td></tr>;
                                         return (
                                             <>
                                                 {paginatedAssigns.map((a) => (
@@ -474,7 +478,7 @@ export default function ClassHome() {
                                                             {a.status === 'published' ? (
                                                                 <div
                                                                     className="font-bold text-blue-600 cursor-pointer group-hover:underline"
-                                                                    onClick={() => navigate(`/student/assessments/${a.id}`)}
+                                                                    onClick={() => navigate(`/student/classes/${id}/assessments/${a.id}`)}
                                                                 >
                                                                     {a.title}
                                                                 </div>
@@ -485,12 +489,15 @@ export default function ClassHome() {
                                                                 </div>
                                                             )}
                                                         </Td>
-                                                        <Td className="text-slate-600 text-sm font-medium">
-                                                            {a.attemptCount} / {a.attemptLimit || "∞"}
+                                                        <Td>
+                                                            {a.submissionStatus === 'late' ? <Badge tone="red">Nộp muộn</Badge> :
+                                                             a.submissionStatus === 'submitted' ? <Badge tone="blue">Đã nộp</Badge> :
+                                                             <Badge tone="amber">Chưa nộp</Badge>}
                                                         </Td>
                                                         <Td className="text-slate-600 text-sm font-medium">{a.due}</Td>
+                                                        <Td className="text-slate-600 text-sm font-medium">{a.cutoff || "--"}</Td>
                                                         <Td>
-                                                            {a.status === 'closed' ? (
+                                                            {a.status === 'closed' || a.studentScore !== null ? (
                                                                 <div className="flex items-center gap-1 font-bold text-slate-700">
                                                                     <span className={a.studentScore !== null && a.studentScore !== undefined ? "text-blue-600 text-base" : ""}>{a.studentScore !== null && a.studentScore !== undefined ? a.studentScore : '--'}</span>
                                                                     <span className="text-slate-400 font-normal">/ {a.points}</span>
@@ -499,11 +506,26 @@ export default function ClassHome() {
                                                                 <Badge tone="amber">{a.points}</Badge>
                                                             )}
                                                         </Td>
+                                                        <Td>
+                                                            {a.gradingStatus === 'graded' ? <Badge tone="green">Đã chấm</Badge> :
+                                                             a.gradingStatus === 'ungraded' ? <Badge tone="orange">Chưa chấm</Badge> :
+                                                             <Badge tone="slate">-</Badge>}
+                                                        </Td>
+                                                        <Td className="text-right">
+                                                            <Button
+                                                                variant="ghost"
+                                                                title="Xem chi tiết"
+                                                                className="px-2 py-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                                onClick={() => navigate(`/student/classes/${id}/assessments/${a.id}`)}
+                                                            >
+                                                                <Eye size={18} />
+                                                            </Button>
+                                                        </Td>
                                                     </tr>
                                                 ))}
                                                 {totalAssignPages > 1 && (
                                                     <tr>
-                                                        <Td colSpan="4">
+                                                        <Td colSpan="8">
                                                             <div className="flex items-center justify-between pt-1">
                                                                 <span className="text-sm text-slate-500">
                                                                     Hiển thị {(assignPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(assignPage * ITEMS_PER_PAGE, assignList.length)} / {assignList.length}
@@ -619,6 +641,9 @@ export default function ClassHome() {
                     )}
                 </div>
             )}
+
+            {/* AI Assistant Chatbot (UC_STU_14) */}
+            <ClassAIChatbot classId={id} />
         </div>
     );
 }
