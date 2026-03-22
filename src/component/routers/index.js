@@ -42,6 +42,7 @@ import QuizReviewAttempt from "component/pages/teacher/QuizReviewAttempt";
 import TeacherGradebook from "component/pages/teacher/TeacherGradebook";
 import QuizList from "component/pages/teacher/QuizList";
 import ClassStream from "component/pages/common/stream/ClassStream";
+import StreamNotificationPanel from "component/pages/common/stream/StreamNotificationPanel";
 
 // Student
 import StudentDashboard from "component/pages/student/StudentDashboard";
@@ -59,7 +60,16 @@ import StudentQuizResult from "component/pages/student/StudentQuizResult";
 // Wrapper to pass classId from URL params to ClassStream
 function ClassStreamWrapper() {
   const { classId } = useParams();
-  return <ClassStream classId={classId} />;
+  return (
+    <div className="grid grid-cols-12 gap-6">
+      <div className="col-span-12 lg:col-span-8 xl:col-span-9">
+        <ClassStream classId={classId} />
+      </div>
+      <div className="hidden lg:block lg:col-span-4 xl:col-span-3">
+        <StreamNotificationPanel />
+      </div>
+    </div>
+  );
 }
 
 function ProtectedRoute({ children }) {

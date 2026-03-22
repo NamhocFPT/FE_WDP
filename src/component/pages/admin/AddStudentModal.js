@@ -26,7 +26,7 @@ export default function AddStudentModal({ isOpen, onClose, classId, enrolledStud
             })
             .catch(err => {
                 console.error("Error fetching students:", err);
-                toast.error("Lỗi tải danh sách sinh viên.");
+                toast.error("Lỗi tải danh sách học sinh.");
             })
             .finally(() => setFetching(false));
     }, [isOpen, enrolledStudentIds]);
@@ -51,14 +51,14 @@ export default function AddStudentModal({ isOpen, onClose, classId, enrolledStud
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (selectedIds.length === 0) {
-            toast.error("Vui lòng chọn ít nhất một sinh viên.");
+            toast.error("Vui lòng chọn ít nhất một học sinh.");
             return;
         }
 
         setLoading(true);
         try {
             await adminApi.enrollStudents(classId, selectedIds);
-            toast.success("Đăng ký sinh viên vào lớp thành công!");
+            toast.success("Đăng ký học sinh vào lớp thành công!");
             onSuccess();
             onClose();
         } catch (error) {
@@ -74,8 +74,8 @@ export default function AddStudentModal({ isOpen, onClose, classId, enrolledStud
                 {/* Header */}
                 <div className="flex justify-between items-start p-6 pb-4 shrink-0">
                     <div>
-                        <h3 className="text-xl font-bold text-slate-900">Thêm sinh viên</h3>
-                        <p className="text-sm text-slate-500 mt-1">Tìm kiếm và chọn sinh viên để đăng ký vào lớp học này</p>
+                        <h3 className="text-xl font-bold text-slate-900">Thêm học sinh</h3>
+                        <p className="text-sm text-slate-500 mt-1">Tìm kiếm và chọn học sinh để đăng ký vào lớp học này</p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition-colors">
                         <X size={20} />
@@ -101,7 +101,7 @@ export default function AddStudentModal({ isOpen, onClose, classId, enrolledStud
                     {fetching ? (
                         <div className="flex flex-col items-center justify-center py-12 text-slate-400">
                             <Loader2 className="animate-spin mb-2" size={24} />
-                            <p className="text-sm">Đang tải danh sách sinh viên...</p>
+                            <p className="text-sm">Đang tải danh sách học sinh...</p>
                         </div>
                     ) : filteredStudents.length > 0 ? (
                         <div className="space-y-1">
@@ -125,7 +125,7 @@ export default function AddStudentModal({ isOpen, onClose, classId, enrolledStud
                         </div>
                     ) : (
                         <div className="text-center py-8 text-slate-500 text-sm">
-                            {searchQuery ? "Không tìm thấy sinh viên nào khớp với tìm kiếm." : "Tất cả sinh viên đã được đăng ký vào lớp này."}
+                            {searchQuery ? "Không tìm thấy học sinh nào khớp với tìm kiếm." : "Tất cả học sinh đã được đăng ký vào lớp này."}
                         </div>
                     )}
                 </div>
@@ -146,7 +146,7 @@ export default function AddStudentModal({ isOpen, onClose, classId, enrolledStud
                         className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {loading && <Loader2 className="animate-spin" size={16} />}
-                        Thêm sinh viên đã chọn
+                        Thêm học sinh đã chọn
                     </button>
                 </div>
             </div>

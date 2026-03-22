@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge, Modal } from "component/ui";
-import { Eye, EyeOff, MoreVertical, CheckCircle2, AlertCircle, RefreshCw, ChevronLeft } from "lucide-react";
+import { Eye, EyeOff, MoreVertical, CheckCircle2, AlertCircle, RefreshCw, ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
 import * as TeacherQuizService from "service/TeacherQuizService";
 import { toast } from "sonner";
 
@@ -11,13 +11,26 @@ export default function TeacherGradebook() {
     
     const [assessments, setAssessments] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [publishModal, setPublishModal] = useState({ open: false, assessment: null });
-    const [publishMode, setPublishMode] = useState("graded_only");
-    const [processing, setProcessing] = useState(false);
+    const [className, setClassName] = useState(`lớp ${classId}`);
+    
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     const fetchAssessments = async () => {
         setLoading(true);
         try {
+            // Fetch classes to get class name
+            try {
+                const classesRes = await TeacherQuizService.getTeacherClasses();
+                if (classesRes.success && classesRes.data) {
+                    const cls = classesRes.data.find(c => String(c.id) === String(classId));
+                    if (cls) setClassName(cls.name || cls.courseName || `Lớp ${classId}`);
+                }
+            } catch (err) {
+                console.error("Lỗi lấy thông tin lớp:", err);
+            }
+
             const token = localStorage.getItem("smartedu_token");
             const res = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/assessments`, {
                 headers: { "Authorization": `Bearer ${token}` }
@@ -38,44 +51,11 @@ export default function TeacherGradebook() {
         if (classId) fetchAssessments();
     }, [classId]);
 
-    const handleOpenPublish = (assessment) => {
-        setPublishModal({ open: true, assessment });
-        setPublishMode("graded_only");
-    };
-
-    const handlePublish = async (is_published) => {
-        const { assessment } = publishModal;
-        setProcessing(true);
-        try {
-            const payload = {
-                is_published,
-                publish_mode: is_published ? publishMode : undefined
-            };
-            const res = await TeacherQuizService.publishGrades(classId, assessment.id, payload);
-            if (res.success || res.code === 200) {
-                toast.success(is_published ? "Đã công bố điểm thành công" : "Đã ẩn điểm thành công");
-                setPublishModal({ open: false, assessment: null });
-                fetchAssessments();
-            } else {
-                toast.error(res.message || "Thao tác thất bại");
-            }
-        } catch (error) {
-            console.error("Publish error:", error);
-            if (error?.status === 400) {
-                toast.error(error.body?.message || "Chưa có sinh viên nào được chấm điểm để công bố");
-            } else {
-                toast.error("Lỗi khi cập nhật trạng thái công bố");
-            }
-        } finally {
-            setProcessing(false);
-        }
-    };
-
     return (
         <div className="space-y-6">
             <PageHeader 
                 title="Bảng điểm lớp học" 
-                subtitle={`Quản lý trạng thái công bố điểm cho lớp ${classId}`}
+                subtitle={`Quản lý trạng thái công bố điểm cho ${className}`}
                 onBack={() => navigate("/teacher/classes")}
             />
 
@@ -102,18 +82,18 @@ export default function TeacherGradebook() {
                                         </Td>
                                     </tr>
                                 ) : (Array.isArray(assessments) ? assessments : []).length > 0 ? (
-                                    (Array.isArray(assessments) ? assessments : []).map((a) => (
+                                    (Array.isArray(assessments) ? assessments : []).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((a) => (
                                         <tr key={a.id} className="hover:bg-slate-50/80 transition-colors group">
                                             <Td className="font-bold text-slate-900">
                                                 <div className="flex items-center gap-2">
-                                                    {!a.is_published && <EyeOff className="h-4 w-4 text-amber-500" title="Đang ẩn với sinh viên" />}
-                                                    {a.is_published && <Eye className="h-4 w-4 text-emerald-500" title="Đã công bố" />}
+                                                    {a.status !== 'published' && <EyeOff className="h-4 w-4 text-amber-500" title="Đang ẩn với sinh viên" />}
+                                                    {a.status === 'published' && <Eye className="h-4 w-4 text-emerald-500" title="Đã công bố" />}
                                                     {a.title}
                                                 </div>
                                             </Td>
                                             <Td>
-                                                <Badge tone={a.type === 'quiz' ? 'blue' : 'indigo'}>
-                                                    {a.type === 'quiz' ? 'Trắc nghiệm' : 'Tự luận'}
+                                                <Badge tone={String(a.type).toUpperCase() === 'QUIZ' ? 'blue' : 'indigo'}>
+                                                    {String(a.type).toUpperCase() === 'QUIZ' ? 'Trắc nghiệm' : 'Tự luận'}
                                                 </Badge>
                                             </Td>
                                             <Td className="text-xs text-slate-600">
@@ -121,7 +101,7 @@ export default function TeacherGradebook() {
                                             </Td>
                                             <Td className="font-semibold text-slate-700">{a.max_score}</Td>
                                             <Td>
-                                                {a.is_published ? (
+                                                {a.status === 'published' ? (
                                                     <Badge tone="green" className="gap-1">
                                                         <CheckCircle2 className="h-3 w-3" /> Công khai
                                                     </Badge>
@@ -132,14 +112,19 @@ export default function TeacherGradebook() {
                                                 )}
                                             </Td>
                                             <Td className="text-right">
-                                                <Button 
-                                                    size="sm" 
-                                                    variant={a.is_published ? "outline" : "primary"}
-                                                    className={a.is_published ? "border-amber-200 text-amber-700 hover:bg-amber-50" : "bg-emerald-600 text-white hover:bg-emerald-700"}
-                                                    onClick={() => handleOpenPublish(a)}
+                                                <button 
+                                                    className="h-8 w-8 inline-flex items-center justify-center rounded border border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer"
+                                                    title="Xem bài nộp/điểm"
+                                                    onClick={() => {
+                                                        if (String(a.type).toUpperCase() === 'QUIZ') {
+                                                            navigate(`/teacher/assessments/${a.id}/quiz-attempts`);
+                                                        } else {
+                                                            navigate(`/teacher/assessments/${a.id}/submissions`);
+                                                        }
+                                                    }}
                                                 >
-                                                    {a.is_published ? "Ẩn điểm" : "Công bố điểm"}
-                                                </Button>
+                                                    <ClipboardList className="h-5 w-5" />
+                                                </button>
                                             </Td>
                                         </tr>
                                     ))
@@ -154,100 +139,35 @@ export default function TeacherGradebook() {
                         </Table>
                     </div>
                 </CardContent>
+                
+                {/* Pagination Controls */}
+                {assessments.length > itemsPerPage && (
+                    <div className="flex items-center justify-between p-4 border-t border-slate-100 bg-slate-50/50">
+                        <div className="text-sm text-slate-500">
+                            Hiển thị {(currentPage - 1) * itemsPerPage + 1} đến {Math.min(currentPage * itemsPerPage, assessments.length)} trong tổng số {assessments.length} bài
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </button>
+                            <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 shadow-sm">
+                                {currentPage} / {Math.ceil(assessments.length / itemsPerPage) || 1}
+                            </span>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(Math.ceil(assessments.length / itemsPerPage), p + 1))}
+                                disabled={currentPage === Math.ceil(assessments.length / itemsPerPage) || assessments.length === 0}
+                                className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </Card>
-
-            {/* Publish Confirmation Modal */}
-            <Modal 
-                open={publishModal.open} 
-                title={publishModal.assessment?.is_published ? "Ẩn điểm bài tập" : "Công bố điểm bài tập"} 
-                onClose={() => !processing && setPublishModal({ open: false, assessment: null })}
-            >
-                <div className="space-y-4">
-                    {publishModal.assessment?.is_published ? (
-                        <>
-                            <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-200">
-                                <AlertCircle className="h-6 w-6 text-amber-600 shrink-0" />
-                                <p className="text-sm text-amber-800">
-                                    Xác nhận <b>ẩn điểm</b> bài tập <b>"{publishModal.assessment?.title}"</b>? 
-                                    Sinh viên sẽ không còn nhìn thấy điểm số và nhận xét cho đến khi được công bố lại.
-                                </p>
-                            </div>
-                            <div className="flex justify-end gap-3 mt-6">
-                                <Button variant="outline" onClick={() => setPublishModal({ open: false, assessment: null })} disabled={processing}>
-                                    Hủy bỏ
-                                </Button>
-                                <Button variant="danger" onClick={() => handlePublish(false)} disabled={processing}>
-                                    {processing ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}
-                                    Xác nhận Ẩn điểm
-                                </Button>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                                <Eye className="h-6 w-6 text-blue-600 shrink-0" />
-                                <p className="text-sm text-blue-800">
-                                    Bạn muốn công bố điểm cho bài tập <b>"{publishModal.assessment?.title}"</b>? 
-                                    Sau khi công bố, sinh viên có thể xem điểm và nhận xét của mình.
-                                </p>
-                            </div>
-
-                            <div className="space-y-3 pt-2">
-                                <p className="text-sm font-bold text-slate-700">Chọn đối tượng công bố:</p>
-                                
-                                <label className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
-                                    <input 
-                                        type="radio" 
-                                        name="publishMode" 
-                                        className="mt-1 h-4 w-4 text-blue-600"
-                                        checked={publishMode === "graded_only"}
-                                        onChange={() => setPublishMode("graded_only")}
-                                    />
-                                    <div>
-                                        <p className="text-sm font-bold text-slate-800">Chỉ những sinh viên đã chấm</p>
-                                        <p className="text-xs text-slate-500">Chỉ công bố cho sinh viên đã có điểm thực tế.</p>
-                                    </div>
-                                </label>
-
-                                <label className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
-                                    <input 
-                                        type="radio" 
-                                        name="publishMode" 
-                                        className="mt-1 h-4 w-4 text-blue-600"
-                                        checked={publishMode === "all_students"}
-                                        onChange={() => setPublishMode("all_students")}
-                                    />
-                                    <div>
-                                        <p className="text-sm font-bold text-slate-800">Toàn bộ sinh viên trong lớp</p>
-                                        <p className="text-xs text-slate-500">Những sinh viên chưa nộp bài sẽ tự động nhận 0 điểm.</p>
-                                    </div>
-                                </label>
-                            </div>
-
-                            {publishMode === "all_students" && (
-                                <div className="p-3 bg-red-50 rounded-lg text-xs text-red-700 border border-red-100 flex gap-2 items-start">
-                                    <AlertCircle className="h-4 w-4 shrink-0" />
-                                    <span><b>Cảnh báo:</b> Những sinh viên chưa nộp bài sẽ bị tính 0 điểm ngay lập tức.</span>
-                                </div>
-                            )}
-
-                            <div className="flex justify-end gap-3 pt-4 border-t">
-                                <Button variant="outline" onClick={() => setPublishModal({ open: false, assessment: null })} disabled={processing}>
-                                    Hủy bỏ
-                                </Button>
-                                <Button 
-                                    className="bg-emerald-600 text-white hover:bg-emerald-700"
-                                    onClick={() => handlePublish(true)} 
-                                    disabled={processing}
-                                >
-                                    {processing ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}
-                                    Xác nhận Công bố
-                                </Button>
-                            </div>
-                        </>
-                    )}
-                </div>
-            </Modal>
         </div>
     );
 }

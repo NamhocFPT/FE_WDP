@@ -111,7 +111,7 @@ export default function TeacherClassHome() {
                                             <div className="text-2xl font-black text-emerald-900">{selectedClass.studentCount || 0} <span className="text-xs font-bold opacity-60">sv</span></div>
                                         </div>
                                         <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl">
-                                            <div className="text-[10px] text-blue-600 font-black uppercase mb-1">Môn học</div>
+                                            <div className="text-[10px] text-blue-600 font-black uppercase mb-1">Khóa học</div>
                                             <div className="text-xs font-black text-blue-900 truncate" title={selectedClass.courseName || selectedClass.course?.name}>
                                                 {selectedClass.courseName || selectedClass.course?.name || "N/A"}
                                             </div>

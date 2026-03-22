@@ -14,10 +14,11 @@ api.interceptors.request.use((config) => {
 export const adminApi = {
     // --- UC_ADM_10: COURSES ---
     getCourses: () => api.get('/courses'),
-    addCourse: (data) => api.post('/courses', data),
-    // Bổ sung để khớp nút Edit/Delete trong Figma
-    updateCourse: (id, data) => api.put(`/courses/${id}`, data),
+    addCourse: (courseData) => api.post('/courses', courseData),
+    updateCourse: (id, courseData) => api.put(`/courses/${id}`, courseData),
     deleteCourse: (id) => api.delete(`/courses/${id}`),
+    validateCourseImport: (rows) => api.post('/courses/import/validate', { rows }),
+    confirmCourseImport: (validRows) => api.post('/courses/import/confirm', { validRows }),
 
     // --- UC_ADM_11: CLASSES ---
     getClasses: () => api.get('/classes'),
@@ -25,7 +26,8 @@ export const adminApi = {
     addClass: (data) => api.post('/classes', data),
     updateClass: (id, data) => api.put(`/classes/${id}`, data),
     getClassDetail: (id) => api.get(`/classes/${id}?t=${Date.now()}`),
-
+    validateClassImport: (rows) => api.post('/classes/import/validate', { rows }),
+    confirmClassImport: (validRows) => api.post('/classes/import/confirm', { validRows }),
     // --- UC_ADM_12: TEACHERS ---
     getTeachers: () => api.get('/teachers'),
     assignTeacher: (classId, teacherId) => api.put(`/classes/${classId}/assign-teacher`, { teacher_id: teacherId }),
@@ -34,6 +36,8 @@ export const adminApi = {
     getStudents: () => api.get('/students'),
     enrollStudents: (classId, studentIds) => api.post(`/classes/${classId}/enroll`, { studentIds }),
     importStudents: (classId, emails) => api.post(`/classes/${classId}/import-students`, { emails }),
+    validateStudentImport: (classId, rows) => api.post(`/classes/${classId}/import-students/validate`, { rows }),
+    confirmStudentImport: (classId, validRows) => api.post(`/classes/${classId}/import-students/confirm`, { validRows }),
     unenrollStudent: (classId, studentId) => api.delete(`/classes/${classId}/students/${studentId}`),
 
     addSession: (classId, sessionData) => api.post(`/classes/${classId}/sessions`, sessionData),
@@ -52,6 +56,8 @@ export const adminApi = {
     updateUser: (id, data) => api.put(`/users/${id}`, data),
     toggleUserStatus: (id) => api.patch(`/users/${id}/status`),
     resetUserPassword: (id) => api.patch(`/users/${id}/reset-password`),
+    validateUserImport: (data) => api.post('/users/import/validate', data),
+    confirmUserImport: (data) => api.post('/users/import/confirm', data),
 
     // --- UC_ADM_15: IMPORT LỊCH HỌC ---
     validateScheduleImport: (rows) => api.post('/schedule/import/validate', { rows }),

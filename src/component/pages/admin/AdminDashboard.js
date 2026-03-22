@@ -44,7 +44,7 @@ export default function AdminDashboard() {
             return (
                 <div className="bg-white p-3 border border-slate-200 rounded-lg shadow-sm">
                     <p className="font-semibold text-slate-800">{`Điểm ${payload[0].name}`}</p>
-                    <p className="text-slate-600">{`${payload[0].value} sinh viên`}</p>
+                    <p className="text-slate-600">{`${payload[0].value} học sinh`}</p>
                 </div>
             );
         }
@@ -71,7 +71,7 @@ export default function AdminDashboard() {
                     <p className="font-semibold text-slate-800 mb-1">{label}</p>
                     <p className="text-slate-600 flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full bg-blue-500"></span>
-                        {`${payload[0].value} Sinh viên`}
+                        {`${payload[0].value} Học sinh`}
                     </p>
                 </div>
             );
@@ -107,14 +107,14 @@ export default function AdminDashboard() {
                 <>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <StatCard 
-                        label="Tổng sinh viên" 
+                        label="Tổng học sinh" 
                         value={data.statsData.totalStudents.toLocaleString()} 
                         hint={<span className="text-green-600 font-medium">↗ +12% so với kỳ trước</span>}
                         icon={<Users size={24} className="text-indigo-600" />}
                         iconBg="bg-indigo-50"
                     />
                     <StatCard 
-                        label="Tổng giảng viên" 
+                        label="Tổng giáo viên" 
                         value={data.statsData.totalTeachers} 
                         hint={<span className="text-green-600 font-medium">↗ +5% so với kỳ trước</span>}
                         icon={<Presentation size={24} className="text-fuchsia-600" />}
@@ -184,8 +184,8 @@ export default function AdminDashboard() {
                     {/* Bar Chart */}
                     <Card className="shadow-sm border-slate-200 flex flex-col" style={{ height: 400 }}>
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-lg">Sinh viên theo khóa học</CardTitle>
-                            <p className="text-sm text-slate-400">Số lượng sinh viên đăng ký theo từng khóa học</p>
+                            <CardTitle className="text-lg">Học sinh theo môn học</CardTitle>
+                            <p className="text-sm text-slate-400">Số lượng học sinh đăng ký theo từng môn học</p>
                         </CardHeader>
                         <CardContent className="flex-1 pt-4">
                             <ResponsiveContainer width="100%" height={300}>

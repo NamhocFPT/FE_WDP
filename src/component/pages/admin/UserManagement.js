@@ -2,7 +2,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { PageHeader, Card, CardContent, Input, Button, Badge, Table, Th, Td, Modal } from "component/ui";
 import { adminApi } from "service/adminApi";
-import { Search, UserPlus, Edit2, Lock, Unlock, KeyRound, ChevronLeft, ChevronRight, User } from "lucide-react";
+import { Search, UserPlus, Edit2, Lock, Unlock, KeyRound, ChevronLeft, ChevronRight, FileSpreadsheet, Upload, Download, User } from "lucide-react";
+import { toast } from "sonner";
+import * as XLSX from "xlsx";
+import ImportUserModal from "./ImportUserModal";
 
 export default function UserManagement() {
     // ── State ──
@@ -21,6 +24,7 @@ export default function UserManagement() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
 
     // Form data
     const [createForm, setCreateForm] = useState({ email: "", full_name: "", role_code: "STUDENT" });
@@ -138,6 +142,45 @@ export default function UserManagement() {
         }
     };
 
+    // ── UC_ADM_05: Download Template (.xlsx) ──
+    const handleDownloadTemplate = () => {
+        const templateData = [
+            { "Email": "gv_example@smartedu.vn", "Họ tên": "Nguyễn Văn A", "Vai trò": "Giáo viên" },
+            { "Email": "hv_example@smartedu.vn", "Họ tên": "Trần Thị B", "Vai trò": "Học sinh" }
+        ];
+        const ws = XLSX.utils.json_to_sheet(templateData);
+        ws["!cols"] = [{ wch: 25 }, { wch: 20 }, { wch: 15 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Template");
+        XLSX.writeFile(wb, "Template_Import_User.xlsx");
+    };
+
+    const handleExportData = async () => {
+        try {
+            const res = await adminApi.getUsers({ search, role: roleFilter, status: statusFilter, page: 1, limit: 10000 });
+            if (res.data.success) {
+                const exportData = res.data.data.users.map(u => {
+                    const code = u.role?.code || "";
+                    const roleNameMap = { ADMIN: "Quản trị viên", TEACHER: "Giáo viên", STUDENT: "Học sinh" };
+                    return {
+                        "Họ tên": u.full_name,
+                        "Email": u.email,
+                        "Số điện thoại": u.phone || "",
+                        "Vai trò": roleNameMap[code] || code,
+                        "Trạng thái": u.status === "active" ? "Đang hoạt động" : "Bị khóa"
+                    };
+                });
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                ws["!cols"] = [{ wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Danh_sach_Nguoi_Dung");
+                XLSX.writeFile(wb, "Danh_sach_Nguoi_Dung.xlsx");
+            }
+        } catch (err) {
+            toast.error("Không thể xuất danh sách người dùng.");
+        }
+    };
+
     const openConfirm = (type, user) => {
         setConfirmAction({ type, user });
         setShowConfirmModal(true);
@@ -145,7 +188,7 @@ export default function UserManagement() {
 
     const getRoleBadge = (user) => {
         const code = user.role?.code || "";
-        const roleNameMap = { ADMIN: "Quản trị viên", TEACHER: "Giảng viên", STUDENT: "Học viên" };
+        const roleNameMap = { ADMIN: "Quản trị viên", TEACHER: "Giáo viên", STUDENT: "Học sinh" };
         const toneMap = { ADMIN: "red", TEACHER: "blue", STUDENT: "green" };
         return <Badge tone={toneMap[code] || "slate"}>{roleNameMap[code] || code}</Badge>;
     };
@@ -156,8 +199,17 @@ export default function UserManagement() {
                 title="Quản lý Người dùng"
                 subtitle={`Tổng cộng ${total} tài khoản trong hệ thống.`}
                 right={[
-                    <Button key="add" onClick={() => setShowCreateModal(true)}>
-                        <UserPlus className="h-4 w-4 mr-2" /> Thêm mới
+                    <Button key="export" variant="outline" size="sm" className="border-cyan-200 text-cyan-600 hover:bg-cyan-50" onClick={handleExportData}>
+                        <Download className="h-4 w-4 mr-1.5" /> Xuất Excel
+                    </Button>,
+                    <Button key="template" variant="outline" size="sm" onClick={handleDownloadTemplate} className="border-blue-200 text-blue-600 hover:bg-blue-50">
+                        <FileSpreadsheet className="h-4 w-4 mr-1.5" /> Tải về File mẫu
+                    </Button>,
+                    <Button key="import" variant="outline" size="sm" className="border-emerald-200 text-emerald-600 hover:bg-emerald-50" onClick={() => setShowImportModal(true)}>
+                        <Upload className="h-4 w-4 mr-1.5" /> Import danh sách
+                    </Button>,
+                    <Button key="add" size="sm" onClick={() => setShowCreateModal(true)}>
+                        <UserPlus className="h-4 w-4 mr-1.5" /> Thêm mới
                     </Button>,
                 ]}
             />
@@ -185,8 +237,8 @@ export default function UserManagement() {
                         <select className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}>
                             <option value="all">Tất cả Vai trò</option>
                             <option value="ADMIN">Quản trị viên</option>
-                            <option value="TEACHER">Giảng viên</option>
-                            <option value="STUDENT">Học viên</option>
+                            <option value="TEACHER">Giáo viên</option>
+                            <option value="STUDENT">Học sinh</option>
                         </select>
                         <select className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
                             <option value="all">Tất cả Trạng thái</option>
@@ -215,7 +267,7 @@ export default function UserManagement() {
                                 <Table>
                                     <thead>
                                         <tr>
-                                            <Th>Họ tên</Th>
+                                            <Th>Người dùng</Th>
                                             <Th>Email</Th>
                                             <Th>Số điện thoại</Th>
                                             <Th>Vai trò</Th>
@@ -304,8 +356,8 @@ export default function UserManagement() {
                     <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-1">Vai trò</label>
                         <select className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" value={createForm.role_code} onChange={(e) => setCreateForm(f => ({ ...f, role_code: e.target.value }))}>
-                            <option value="TEACHER">Giảng viên</option>
-                            <option value="STUDENT">Học viên</option>
+                            <option value="TEACHER">Giáo viên</option>
+                            <option value="STUDENT">Học sinh</option>
                         </select>
                     </div>
                     <div className="p-3 bg-blue-50 rounded-lg text-xs text-blue-700 border border-blue-100">
@@ -380,6 +432,14 @@ export default function UserManagement() {
                     </div>
                 </div>
             </Modal>
+
+            {/* ── Modal: Review Import (A1) ── */}
+            <ImportUserModal
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                onSuccess={fetchUsers}
+                onDownloadTemplate={handleDownloadTemplate}
+            />
         </div>
     );
 }

@@ -602,7 +602,7 @@ export default function MaterialsManagement() {
                             value={sessionId}
                             onChange={(e) => setSessionId(e.target.value)}
                         >
-                            <option value="">📁 Tài liệu chung (Xuyên suốt môn học)</option>
+                            <option value="">📁 Tài liệu chung (Xuyên suốt khóa học)</option>
                             {bySession.map(s => (
                                 <option key={s.session.id} value={s.session.id}>
                                     Buổi {s.session.index} — {formatDate(s.session.start_time)} — {s.session.topic || "Chưa rõ CĐ"}

@@ -46,11 +46,13 @@ export default function MySchedule() {
 
     // Nav Helpers
     const handlePrev = () => {
-        if (viewMode === 'week') setCurrentDate(subDays(currentDate, 7));
+        if (viewMode === 'day') setCurrentDate(subDays(currentDate, 1));
+        else if (viewMode === 'week') setCurrentDate(subDays(currentDate, 7));
         else if (viewMode === 'month') setCurrentDate(subMonths(currentDate, 1));
     };
     const handleNext = () => {
-        if (viewMode === 'week') setCurrentDate(addDays(currentDate, 7));
+        if (viewMode === 'day') setCurrentDate(addDays(currentDate, 1));
+        else if (viewMode === 'week') setCurrentDate(addDays(currentDate, 7));
         else if (viewMode === 'month') setCurrentDate(addMonths(currentDate, 1));
     };
     const handleToday = () => setCurrentDate(new Date());
@@ -69,23 +71,51 @@ export default function MySchedule() {
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
     const monthDates = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-    const getSlotFromTime = (timeStr) => {
-        if (!timeStr) return 1;
-        const [start] = timeStr.split('-').map(t => t.trim());
-        const [hours] = start.split(':').map(Number);
+    // Dữ liệu khung giờ động từ Classes list
+    const uniqueTimeSlots = React.useMemo(() => {
+        const slots = new Set();
+        classes.forEach(c => {
+            (c.schedule || []).forEach(s => {
+                if (s.time && s.rawDate) {
+                    const sDate = new Date(s.rawDate);
+                    const isInCurrentWeek = weekDates.some(wd => isSameDay(sDate, wd));
+                    if (isInCurrentWeek) {
+                        slots.add(s.time.trim());
+                    }
+                }
+            });
+        });
         
-        if (hours < 9) return 1;
-        if (hours < 12) return 2;
-        if (hours < 15) return 3;
-        if (hours < 18) return 4;
-        return 5;
-    };
+        return Array.from(slots).sort((a, b) => {
+            const getHour = (str) => {
+                const [start] = str.split('-').map(t => t.trim());
+                if (!start || !start.includes(':')) return 0;
+                const [h, m] = start.split(':').map(Number);
+                return h + (m || 0) / 60;
+            };
+            return getHour(a) - getHour(b);
+        });
+    }, [classes, weekDates]);
 
-    const getSessionForSlotWeek = (slotNum, targetDate) => {
+    const morningSlots = uniqueTimeSlots.filter(timeStr => {
+        const [start] = timeStr.split('-').map(t => t.trim());
+        if (!start || !start.includes(':')) return false;
+        const [h] = start.split(':').map(Number);
+        return h < 12;
+    });
+
+    const afternoonSlots = uniqueTimeSlots.filter(timeStr => {
+        const [start] = timeStr.split('-').map(t => t.trim());
+        if (!start || !start.includes(':')) return false;
+        const [h] = start.split(':').map(Number);
+        return h >= 12;
+    });
+
+    const getSessionForSlotWeek = (timeStr, targetDate) => {
         const found = [];
         classes.forEach(c => {
             (c.schedule || []).forEach(s => {
-                if (s.rawDate && isSameDay(new Date(s.rawDate), targetDate) && getSlotFromTime(s.time) === slotNum) {
+                if (s.rawDate && isSameDay(new Date(s.rawDate), targetDate) && s.time?.trim() === timeStr) {
                     found.push({ ...s, className: c.name, classId: c.id });
                 }
             });
@@ -125,27 +155,48 @@ export default function MySchedule() {
         return list.sort((a,b) => new Date(a.rawDate) - new Date(b.rawDate));
     };
 
+    // Kiểm tra có buổi học nào trong tuần không để hiện thông báo
+    const hasMorningSessionsWeek = React.useMemo(() => {
+        return morningSlots.some(timeStr => 
+            weekDates.some(date => getSessionForSlotWeek(timeStr, date) !== null)
+        );
+    }, [morningSlots, weekDates]);
+
+    const hasAfternoonSessionsWeek = React.useMemo(() => {
+        return afternoonSlots.some(timeStr => 
+            weekDates.some(date => getSessionForSlotWeek(timeStr, date) !== null)
+        );
+    }, [afternoonSlots, weekDates]);
+
     return (
         <div className="space-y-6">
             {/* TOOLBAR NAV BAR */}
             <div className="flex items-center justify-between flex-wrap gap-4 border-b pb-4 border-slate-100">
                 <PageHeader 
                     title="Lịch học của tôi" 
-                    subtitle={viewMode === 'week' ? `Tuần: ${format(weekDates[0], 'dd/MM')} - ${format(weekDates[6], 'dd/MM')}` : viewMode === 'month' ? `Tháng ${format(currentDate, 'MM/yyyy')}` : "Tùy chỉnh khoảng thời gian"} 
+                    subtitle={viewMode === 'day' ? `Ngày ${format(currentDate, 'dd/MM/yyyy')}` : viewMode === 'week' ? `Tuần: ${format(weekDates[0], 'dd/MM')} - ${format(weekDates[6], 'dd/MM')}` : viewMode === 'month' ? `Tháng ${format(currentDate, 'MM/yyyy')}` : "Tùy chỉnh khoảng thời gian"} 
                 />
                 
                 <div className="flex items-center gap-3">
                     {/* Prev/Next Buttons */}
                     {viewMode !== 'custom' && (
-                        <div className="flex items-center bg-slate-100 rounded-xl p-0.5 shadow-inner-sm">
-                            <button onClick={handlePrev} className="p-2 hover:bg-white rounded-lg transition-all text-slate-600 font-bold">◀</button>
-                            <button onClick={handleToday} className="px-3 py-1.5 hover:bg-white rounded-lg transition-all text-xs font-bold text-slate-700">Hôm nay</button>
-                            <button onClick={handleNext} className="p-2 hover:bg-white rounded-lg transition-all text-slate-600 font-bold">▶</button>
+                        <div className="flex items-center space-x-1.5 bg-slate-100 rounded-xl p-0.5 shadow-inner-sm">
+                            <button onClick={handlePrev} className="p-1.5 hover:bg-white rounded-lg transition-all text-slate-600 font-bold text-[10px]">◀</button>
+                            <div className="font-bold text-slate-800 min-w-[140px] text-center text-xs">
+                                {viewMode === 'day' ? format(currentDate, 'dd/MM/yyyy') : `Từ ${format(weekDates[0], 'dd/MM')} đến ${format(weekDates[6], 'dd/MM')}`}
+                            </div>
+                            <button onClick={handleNext} className="p-1.5 hover:bg-white rounded-lg transition-all text-slate-600 font-bold text-[10px]">▶</button>
                         </div>
                     )}
 
                     {/* View Switch */}
                     <div className="flex bg-slate-100 p-1 rounded-xl shadow-inner-sm">
+                        <button 
+                            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${viewMode === 'day' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`} 
+                            onClick={() => setViewMode('day')}
+                        >
+                            Ngày
+                        </button>
                         <button 
                             className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${viewMode === 'week' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`} 
                             onClick={() => setViewMode('week')}
@@ -172,6 +223,91 @@ export default function MySchedule() {
                 <div className="text-center p-10 text-slate-500 animate-pulse">Đang tải lịch học...</div>
             ) : error ? (
                 <div className="text-center p-10 bg-red-50 text-red-500 rounded-xl">{error}</div>
+            ) : viewMode === 'day' ? (
+                /* ---------------- DAY VIEW ---------------- */
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden min-h-[400px]">
+                    <div className="bg-slate-50 py-3 px-4 border-b border-slate-200">
+                        <div className="text-sm font-semibold text-slate-500 uppercase">
+                            {format(currentDate, "EEEE", { locale: vi })}
+                        </div>
+                        <div className="text-xl font-bold text-slate-900">
+                            {format(currentDate, "dd/MM/yyyy")}
+                        </div>
+                    </div>
+                    <div className="p-4 max-w-3xl">
+                        {getSessionsForDate(currentDate).length === 0 ? (
+                            <div className="text-center text-slate-500 py-10">Không có lịch trong ngày này.</div>
+                        ) : (
+                            <div className="border border-slate-200 rounded-lg overflow-hidden flex flex-col divide-y divide-slate-200">
+                                {/* ☀️ BUỔI SÁNG */}
+                                <div className="bg-slate-50/80 px-4 py-2 font-black text-rose-600 text-xs flex items-center gap-1.5 border-b border-slate-200">☀️ BUỔI SÁNG</div>
+                                {getSessionsForDate(currentDate).filter(s => {
+                                    const [h] = s.time.split('-')[0].split(':').map(Number);
+                                    return h < 12;
+                                }).length === 0 ? (
+                                    <div className="p-4 text-center text-slate-500 text-sm">Hôm nay bạn không có lịch học buổi sáng.</div>
+                                ) : (
+                                    morningSlots.map((timeStr, idx) => {
+                                        const s = getSessionForSlotWeek(timeStr, currentDate);
+                                        if (!s) return null;
+                                        return (
+                                            <div key={idx} className="flex flex-col md:flex-row bg-white">
+                                                <div className="w-full md:w-32 shrink-0 bg-slate-50/30 p-4 font-bold text-slate-700 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-200">
+                                                    <div className="text-sm">{timeStr}</div>
+                                                </div>
+                                                <div className="flex-1 p-4">
+                                                    <div 
+                                                        onClick={() => nav(`/student/classes/${s.classId}`)}
+                                                        className="bg-amber-50/40 p-3 rounded-lg border-l-4 border-l-amber-500 border border-amber-100 shadow-sm hover:shadow-md cursor-pointer hover:-translate-y-0.5 transition-all flex flex-col max-w-sm"
+                                                    >
+                                                        <div className="flex items-center gap-1 text-xs text-amber-700 font-bold">
+                                                            <AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> {s.time}
+                                                        </div>
+                                                        <div className="text-sm font-black text-slate-800 mt-1.5">{s.className}</div>
+                                                        <div className="text-xs text-slate-500 font-bold mt-2 bg-white/80 px-1.5 py-0.5 rounded-md self-start border border-amber-100/50">📍 P.{s.room}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+
+                                {/* 🌤️ BUỔI CHIỀU */}
+                                <div className="bg-slate-50/80 px-4 py-2 font-black text-amber-600 text-xs flex items-center gap-1.5 border-y border-slate-200">🌤️ BUỔI CHIỀU</div>
+                                {getSessionsForDate(currentDate).filter(s => {
+                                    const [h] = s.time.split('-')[0].split(':').map(Number);
+                                    return h >= 12;
+                                }).length === 0 ? (
+                                    <div className="p-4 text-center text-slate-500 text-sm">Hôm nay bạn không có lịch học buổi chiều.</div>
+                                ) : (
+                                    afternoonSlots.map((timeStr, idx) => {
+                                        const s = getSessionForSlotWeek(timeStr, currentDate);
+                                        if (!s) return null;
+                                        return (
+                                            <div key={idx} className="flex flex-col md:flex-row bg-white">
+                                                <div className="w-full md:w-32 shrink-0 bg-slate-50/30 p-4 font-bold text-slate-700 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-200">
+                                                    <div className="text-sm">{timeStr}</div>
+                                                </div>
+                                                <div className="flex-1 p-4">
+                                                    <div 
+                                                        onClick={() => nav(`/student/classes/${s.classId}`)}
+                                                        className="bg-amber-50/40 p-3 rounded-lg border-l-4 border-l-amber-500 border border-amber-100 shadow-sm hover:shadow-md cursor-pointer hover:-translate-y-0.5 transition-all flex flex-col max-w-sm"
+                                                    >
+                                                        <div className="flex items-center gap-1 text-xs text-amber-700 font-bold">
+                                                            <AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> {s.time}
+                                                        </div>
+                                                        <div className="text-sm font-black text-slate-800 mt-1.5">{s.className}</div>
+                                                        <div className="text-xs text-slate-500 font-bold mt-2 bg-white/80 px-1.5 py-0.5 rounded-md self-start border border-amber-100/50">📍 P.{s.room}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
             ) : viewMode === 'week' ? (
                 /* ---------------- WEEK VIEW ---------------- */
                 <div className="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
@@ -184,30 +320,75 @@ export default function MySchedule() {
                             </div>
                         ))}
 
-                        {[1, 2, 3, 4, 5].map(slot => (
-                            <React.Fragment key={slot}>
-                                <div className="p-4 flex items-center justify-center bg-slate-50/30 font-extrabold text-slate-700 text-sm">Slot {slot}</div>
-                                {weekDates.map((date, idx) => {
-                                    const s = getSessionForSlotWeek(slot, date);
-                                    return (
-                                        <div key={idx} className="p-2.5 min-h-[110px] flex items-stretch">
-                                            {s ? (
-                                                <div 
-                                                    onClick={() => nav(`/student/classes/${s.classId}`)}
-                                                    className="bg-amber-50/40 p-2.5 rounded-lg border-l-4 border-l-amber-500 border border-amber-100 shadow-sm hover:shadow-md cursor-pointer hover:-translate-y-0.5 transition-all flex flex-col w-full"
-                                                >
-                                                    <div className="flex items-center gap-1 text-[10px] text-amber-700 font-bold">
-                                                        <AlertTriangle className="h-3 w-3 text-amber-500" /> {s.time}
+                        {/* ☀️ BUỔI SÁNG */}
+                        <div className="col-span-8 bg-slate-50/80 p-2.5 font-black text-rose-600 uppercase tracking-wider text-xs border-y border-slate-100 flex items-center gap-2">
+                            <span>☀️ BUỔI SÁNG</span>
+                        </div>
+                        {!hasMorningSessionsWeek ? (
+                            <div className="col-span-8 p-6 text-center text-slate-500 font-medium text-sm border-b border-slate-100">Bạn không có lịch học buổi sáng trong tuần này.</div>
+                        ) : (
+                            morningSlots.map((timeStr, idx) => (
+                                <React.Fragment key={idx}>
+                                    <div className="p-3 flex items-center justify-center bg-slate-50/30 font-bold text-slate-700 text-[11px] leading-tight text-center">
+                                        <span>{timeStr}</span>
+                                    </div>
+                                    {weekDates.map((date, dIdx) => {
+                                        const s = getSessionForSlotWeek(timeStr, date);
+                                        return (
+                                            <div key={dIdx} className="p-2.5 min-h-[110px] flex items-stretch">
+                                                {s ? (
+                                                    <div 
+                                                        onClick={() => nav(`/student/classes/${s.classId}`)}
+                                                        className="bg-amber-50/40 p-2.5 rounded-lg border-l-4 border-l-amber-500 border border-amber-100 shadow-sm hover:shadow-md cursor-pointer hover:-translate-y-0.5 transition-all flex flex-col w-full"
+                                                    >
+                                                        <div className="flex items-center gap-1 text-[10px] text-amber-700 font-bold">
+                                                            <AlertTriangle className="h-3 w-3 text-amber-500" /> {s.time}
+                                                        </div>
+                                                        <div className="text-xs font-black text-slate-800 mt-1.5 line-clamp-2 leading-tight">{s.className}</div>
+                                                        <div className="text-[10px] text-slate-500 font-bold mt-2 bg-white/80 px-1.5 py-0.5 rounded-md self-start border border-amber-100/50">📍 P.{s.room}</div>
                                                     </div>
-                                                    <div className="text-xs font-black text-slate-800 mt-1.5 line-clamp-2 leading-tight">{s.className}</div>
-                                                    <div className="text-[10px] text-slate-500 font-bold mt-2 bg-white/80 px-1.5 py-0.5 rounded-md self-start border border-amber-100/50">📍 P.{s.room}</div>
-                                                </div>
-                                            ) : null}
-                                        </div>
-                                    );
-                                })}
-                            </React.Fragment>
-                        ))}
+                                                ) : null}
+                                            </div>
+                                        );
+                                    })}
+                                </React.Fragment>
+                            ))
+                        )}
+
+                        {/* 🌤️ BUỔI CHIỀU */}
+                        <div className="col-span-8 bg-slate-50/80 p-2.5 font-black text-amber-600 uppercase tracking-wider text-xs border-y border-slate-100 flex items-center gap-2">
+                            <span>🌤️ BUỔI CHIỀU</span>
+                        </div>
+                        {!hasAfternoonSessionsWeek ? (
+                            <div className="col-span-8 p-6 text-center text-slate-500 font-medium text-sm border-b border-slate-100">Bạn không có lịch học buổi chiều trong tuần này.</div>
+                        ) : (
+                            afternoonSlots.map((timeStr, idx) => (
+                                <React.Fragment key={idx}>
+                                    <div className="p-3 flex items-center justify-center bg-slate-50/30 font-bold text-slate-700 text-[11px] leading-tight text-center">
+                                        <span>{timeStr}</span>
+                                    </div>
+                                    {weekDates.map((date, dIdx) => {
+                                        const s = getSessionForSlotWeek(timeStr, date);
+                                        return (
+                                            <div key={dIdx} className="p-2.5 min-h-[110px] flex items-stretch">
+                                                {s ? (
+                                                    <div 
+                                                        onClick={() => nav(`/student/classes/${s.classId}`)}
+                                                        className="bg-amber-50/40 p-2.5 rounded-lg border-l-4 border-l-amber-500 border border-amber-100 shadow-sm hover:shadow-md cursor-pointer hover:-translate-y-0.5 transition-all flex flex-col w-full"
+                                                    >
+                                                        <div className="flex items-center gap-1 text-[10px] text-amber-700 font-bold">
+                                                            <AlertTriangle className="h-3 w-3 text-amber-500" /> {s.time}
+                                                        </div>
+                                                        <div className="text-xs font-black text-slate-800 mt-1.5 line-clamp-2 leading-tight">{s.className}</div>
+                                                        <div className="text-[10px] text-slate-500 font-bold mt-2 bg-white/80 px-1.5 py-0.5 rounded-md self-start border border-amber-100/50">📍 P.{s.room}</div>
+                                                    </div>
+                                                ) : null}
+                                            </div>
+                                        );
+                                    })}
+                                </React.Fragment>
+                            ))
+                        )}
                     </div>
                 </div>
             ) : viewMode === 'month' ? (

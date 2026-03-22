@@ -312,7 +312,7 @@ export default function StudentAssignmentDetail() {
         <div className="space-y-6">
             <PageHeader 
                 title={assessment.title} 
-                subtitle={`Môn học: ${assessment.Course?.name || "SmartEdu Course"}`} 
+                subtitle={`Khóa học: ${assessment.Course?.name || "SmartEdu Course"}`} 
                 right={[<Button key="back" variant="outline" onClick={() => navigate(-1)}>Quay lại</Button>]}
             />
 

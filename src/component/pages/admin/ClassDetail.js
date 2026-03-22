@@ -9,7 +9,9 @@ import EditSessionModal from "./EditSessionModal";
 import AddStudentModal from "./AddStudentModal";
 import ImportStudentsModal from "./ImportStudentsModal";
 import ConfirmModal from "./ConfirmModal";
+import ImportScheduleModal from "./ImportScheduleModal";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 export default function ClassDetail() {
     const { id } = useParams();
@@ -27,6 +29,7 @@ export default function ClassDetail() {
     const [isAddSessionOpen, setIsAddSessionOpen] = useState(false);
     const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
     const [isImportStudentsOpen, setIsImportStudentsOpen] = useState(false);
+    const [isImportScheduleOpen, setIsImportScheduleOpen] = useState(false);
     const [editSessionGroup, setEditSessionGroup] = useState(null);
 
     const fetchDetail = useCallback(async () => {
@@ -39,6 +42,19 @@ export default function ClassDetail() {
             setLoading(false);
         }
     }, [id]);
+
+    const handleDownloadStudentTemplate = () => {
+        const templateData = [
+            { "Họ tên": "Nguyễn Văn A", "Email": "nguyenvana@school.edu.vn" },
+            { "Họ tên": "Trần Thị B", "Email": "tranthib@school.edu.vn" },
+            { "Họ tên": "Lê Văn C", "Email": "levanc@school.edu.vn" }
+        ];
+        const ws = XLSX.utils.json_to_sheet(templateData);
+        ws["!cols"] = [{ wch: 25 }, { wch: 35 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "DanhSachHocSinh");
+        XLSX.writeFile(wb, "Student_Import_Template.xlsx");
+    };
 
     useEffect(() => {
         fetchDetail();
@@ -56,7 +72,7 @@ export default function ClassDetail() {
                 <PageHeader 
                     title={cl.name} 
                     subtitle={cl.course?.name} 
-                    right={[<Badge key="cap" tone="indigo" className="px-3 py-1">{cl.enrollments?.length || 0}/40 Sinh viên</Badge>]}
+                    right={[<Badge key="cap" tone="indigo" className="px-3 py-1">{cl.enrollments?.length || 0}/40 Học sinh</Badge>]}
                 />
             </div>
 
@@ -69,6 +85,7 @@ export default function ClassDetail() {
                 {activeTab === "Schedule" && <ScheduleTab 
                     cl={cl} 
                     onAddSessionClick={() => setIsAddSessionOpen(true)} 
+                    onImportScheduleClick={() => setIsImportScheduleOpen(true)}
                     onEditSessionClick={(group) => setEditSessionGroup(group)}
                     onDeleteSessionSuccess={fetchDetail}
                 />}
@@ -115,6 +132,14 @@ export default function ClassDetail() {
                 onClose={() => setIsImportStudentsOpen(false)}
                 classId={cl.id}
                 onSuccess={fetchDetail}
+                onDownloadTemplate={handleDownloadStudentTemplate}
+            />
+
+            <ImportScheduleModal
+                isOpen={isImportScheduleOpen}
+                onClose={() => setIsImportScheduleOpen(false)}
+                onSuccess={fetchDetail}
+                prefilledClassCode={cl.name}
             />
         </div>
     );
@@ -127,19 +152,19 @@ const OverviewTab = ({ cl, onAssignClick }) => (
             <CardContent className="grid grid-cols-2 gap-4 text-sm">
                 <div><label className="text-slate-400 block font-medium">Học kỳ</label><span className="font-bold text-slate-700">{cl.semester}</span></div>
                 <div><label className="text-slate-400 block font-medium">Ngày bắt đầu</label><span className="font-bold text-slate-700">{cl.start_date ? new Date(cl.start_date).toLocaleDateString("vi-VN") : "---"}</span></div>
-                <div><label className="text-slate-400 block font-medium">Sĩ số</label><span className="font-bold text-slate-700">{cl.enrollments?.length || 0}/{cl.max_capacity} sinh viên</span></div>
+                <div><label className="text-slate-400 block font-medium">Sĩ số</label><span className="font-bold text-slate-700">{cl.enrollments?.length || 0}/{cl.max_capacity} học sinh</span></div>
                 <div><label className="text-slate-400 block font-medium">Trạng thái</label><Badge tone="green">{cl.status === "active" ? "Đang hoạt động" : cl.status}</Badge></div>
             </CardContent>
         </Card>
         <Card>
-            <CardHeader className="flex justify-between items-center"><CardTitle>Giảng viên phụ trách</CardTitle><Button variant="outline" size="sm" onClick={onAssignClick}>Thay đổi</Button></CardHeader>
+            <CardHeader className="flex justify-between items-center"><CardTitle>Giáo viên phụ trách</CardTitle><Button variant="outline" size="sm" onClick={onAssignClick}>Thay đổi</Button></CardHeader>
             <CardContent className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 font-bold">
                     {cl.teacher?.full_name?.charAt(0) || "T"}
                 </div>
                 <div>
                     <div className="font-bold text-slate-900">{cl.teacher?.full_name || "Chưa phân công"}</div>
-                    <div className="text-xs text-slate-500">Giảng viên chính</div>
+                    <div className="text-xs text-slate-500">Giáo viên chính</div>
                 </div>
             </CardContent>
         </Card>
@@ -150,7 +175,7 @@ const TeachersTab = ({ cl, onAssignClick, onUnassignSuccess }) => {
     const [removing, setRemoving] = useState(false);
 
     const handleUnassign = async () => {
-        if (!window.confirm("Bạn có chắc chắn muốn bỏ phân công giảng viên này?")) return;
+        if (!window.confirm("Bạn có chắc chắn muốn bỏ phân công giáo viên này?")) return;
         setRemoving(true);
         try {
             await adminApi.assignTeacher(cl.id, null);
@@ -166,8 +191,8 @@ const TeachersTab = ({ cl, onAssignClick, onUnassignSuccess }) => {
     return (
         <Card>
             <CardHeader className="flex justify-between items-center">
-                <CardTitle>Danh sách giảng viên</CardTitle>
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onAssignClick}><UserPlus size={16} className="mr-2"/> Phân công giảng viên</Button>
+                <CardTitle>Danh sách giáo viên</CardTitle>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onAssignClick}><UserPlus size={16} className="mr-2"/> Phân công giáo viên</Button>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -191,7 +216,7 @@ const TeachersTab = ({ cl, onAssignClick, onUnassignSuccess }) => {
                             </tr>
                         ) : (
                             <tr>
-                                <Td colSpan={4} className="text-center text-slate-500 py-6 italic">Chưa có giảng viên được phân công.</Td>
+                                <Td colSpan={4} className="text-center text-slate-500 py-6 italic">Chưa có giáo viên được phân công.</Td>
                             </tr>
                         )}
                     </tbody>
@@ -213,11 +238,11 @@ const StudentsTab = ({ cl, onAddStudentClick, onImportClick, onUnenrollSuccess }
         setIsUnenrolling(true);
         try {
             await adminApi.unenrollStudent(cl.id, confirmModalState.studentId);
-            toast.success("Đã hủy đăng ký sinh viên thành công!");
+            toast.success("Đã hủy đăng ký học sinh thành công!");
             setConfirmModalState({ isOpen: false, studentId: null, studentName: "" });
             if (onUnenrollSuccess) onUnenrollSuccess();
         } catch (error) {
-            toast.error(error.response?.data?.message || "Lỗi khi hủy đăng ký sinh viên");
+            toast.error(error.response?.data?.message || "Lỗi khi hủy đăng ký học sinh");
         } finally {
             setIsUnenrolling(false);
         }
@@ -227,10 +252,10 @@ const StudentsTab = ({ cl, onAddStudentClick, onImportClick, onUnenrollSuccess }
         <>
             <Card>
                 <CardHeader className="flex justify-between items-center">
-                <CardTitle>Sinh viên đã đăng ký</CardTitle>
+                <CardTitle>Học sinh đã đăng ký</CardTitle>
                 <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={onImportClick}><Upload size={16} className="mr-2"/> Nhập Excel</Button>
-                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onAddStudentClick}><Plus size={16} className="mr-2"/> Thêm sinh viên</Button>
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onAddStudentClick}><Plus size={16} className="mr-2"/> Thêm học sinh</Button>
                 </div>
             </CardHeader>
             <CardContent>
@@ -266,7 +291,7 @@ const StudentsTab = ({ cl, onAddStudentClick, onImportClick, onUnenrollSuccess }
                     </table>
                 ) : (
                     <div className="text-center text-slate-500 py-8 italic">
-                        Chưa có sinh viên nào đăng ký lớp này.
+                        Chưa có học sinh nào đăng ký lớp này.
                     </div>
                 )}
             </CardContent>
@@ -277,7 +302,7 @@ const StudentsTab = ({ cl, onAddStudentClick, onImportClick, onUnenrollSuccess }
             onClose={() => setConfirmModalState({ isOpen: false, studentId: null, studentName: "" })}
             onConfirm={confirmUnenroll}
             title="Xác nhận hủy đăng ký"
-            message={<span>Bạn có chắc chắn muốn hủy đăng ký cho sinh viên <strong className="text-slate-900">{confirmModalState.studentName}</strong> khỏi lớp học này? Hành động này không thể hoàn tác.</span>}
+            message={<span>Bạn có chắc chắn muốn hủy đăng ký cho học sinh <strong className="text-slate-900">{confirmModalState.studentName}</strong> khỏi lớp học này? Hành động này không thể hoàn tác.</span>}
             confirmText="Xác nhận hủy"
             cancelText="Quay lại"
             isDestructive={true}
@@ -287,7 +312,7 @@ const StudentsTab = ({ cl, onAddStudentClick, onImportClick, onUnenrollSuccess }
     );
 };
 
-const ScheduleTab = ({ cl, onAddSessionClick, onEditSessionClick, onDeleteSessionSuccess }) => {
+const ScheduleTab = ({ cl, onAddSessionClick, onImportScheduleClick, onEditSessionClick, onDeleteSessionSuccess }) => {
     const [deletingId, setDeletingId] = useState(null);
 
     const formatTime = (dateStr) => {
@@ -345,7 +370,10 @@ const ScheduleTab = ({ cl, onAddSessionClick, onEditSessionClick, onDeleteSessio
         <Card>
             <CardHeader className="flex justify-between items-center">
                 <CardTitle>Lịch học chi tiết</CardTitle>
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onAddSessionClick}><Plus size={16} className="mr-2"/> Thêm buổi học</Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={onImportScheduleClick}><Upload size={16} className="mr-2"/> Nhập Excel</Button>
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onAddSessionClick}><Plus size={16} className="mr-2"/> Thêm buổi học</Button>
+                </div>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -354,7 +382,7 @@ const ScheduleTab = ({ cl, onAddSessionClick, onEditSessionClick, onDeleteSessio
                             <Th>Thứ</Th>
                             <Th>Thời gian</Th>
                             <Th>Phòng</Th>
-                            <Th>Giảng viên</Th>
+                            <Th>Giáo viên</Th>
                             <Th className="text-right">Thao tác</Th>
                         </tr>
                     </thead>

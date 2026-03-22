@@ -50,6 +50,7 @@ export default function StudentQuizTake() {
     const [isScreenHidden, setIsScreenHidden] = useState(false);
     const [cheatWarning, setCheatWarning] = useState("");
     const violationCountRef = useRef(0);
+    const isAutoSubmittingRef = useRef(false);
 
     // Keep stable reference to avoid stale closures
     const stateRef = useRef({ submissionId, answers });
@@ -147,18 +148,25 @@ export default function StudentQuizTake() {
     // -------------------------------------------------------
     // Auto-submit when time expires
     // -------------------------------------------------------
-    const handleTimeUp = async () => {
-        if (timeExpired) return;
+    const handleTimeUp = async (reason = "Đã hết thời gian") => {
+        if (timeExpired || isAutoSubmittingRef.current) return;
+        isAutoSubmittingRef.current = true;
         setTimeExpired(true);
         clearInterval(timerRef.current);
         try {
             setSubmitting(true);
             const { post } = await import("../../../utils/request");
-            const res = await post(`api/student/attempts/${stateRef.current.submissionId}/submit`);
+            
+            // If the reason includes "gian lận", we signal the backend to force-publish the immediate result
+            const isCheat = reason.toLowerCase().includes("gian lận");
+            const res = await post(`api/student/attempts/${stateRef.current.submissionId}/submit`, {
+                cheat_detected: isCheat
+            });
+
             nav("/student/quiz-result", {
                 state: {
                     success: res?.success !== false,
-                    result: { ...res?.data, message: "Đã hết thời gian. Bài làm của bạn đã được tự động nộp." }
+                    result: { ...res?.data, message: `${reason}. Bài làm của bạn đã được tự động nộp.` }
                 },
                 replace: true
             });
@@ -253,7 +261,8 @@ export default function StudentQuizTake() {
     };
 
     // -------------------------------------------------------
-    // Anti-Cheat Logic
+    // Anti-Cheat Logic (no fullscreen required)
+    // Detection: tab switching & screenshot attempts
     // -------------------------------------------------------
     useEffect(() => {
         // Prevent accidental tab closing or navigation
@@ -271,14 +280,23 @@ export default function StudentQuizTake() {
         };
 
         const handleViolation = (reason) => {
+            if (isAutoSubmittingRef.current) return;
+            
             violationCountRef.current += 1;
             const count = violationCountRef.current;
+            
             if (count >= 2) {
+                // Double violation: LOCK DOWN and SUBMIT
                 setIsScreenHidden(true);
-                setCheatWarning(`Vi phạm quy chế lần 2 (${reason}). Bài thi đang bị nộp tự động...`);
+                setCheatWarning(`PHÁT HIỆN GIAN LẬN: ${reason}. Vi phạm lần 2, hệ thống sẽ tự động thu bài và chấm điểm ngay lập tức.`);
+                
+                // Cleanup all listeners immediately to prevent multiple triggers
+                cleanupListeners();
+                
+                // Trigger auto-submit with short delay for UI feedback
                 setTimeout(() => {
-                    handleTimeUp();
-                }, 2000);
+                    handleTimeUp("Phát hiện gian lận (vi phạm lần 2)");
+                }, 1500);
             } else {
                 setIsScreenHidden(true);
                 setCheatWarning(`CẢNH BÁO LẦN 1: ${reason}. Vi phạm lần nữa bài thi sẽ bị thu lại ngay lập tức!`);
@@ -286,13 +304,11 @@ export default function StudentQuizTake() {
         };
 
         const handleVisibilityChange = () => {
-            if (document.hidden) {
-                handleViolation("Chuyển tab hoặc Ẩn ứng dụng");
-            }
+            if (document.hidden) handleViolation("Chuyển tab hoặc ẩn cửa sổ trình duyệt");
         };
 
         const handleWindowBlur = () => {
-            handleViolation("Mất tiêu điểm (Chụp màn hình hoặc Mở ứng dụng khác)");
+            handleViolation("Rời khỏi cửa sổ bài thi (chụp màn hình hoặc chuyển ứng dụng)");
         };
 
         const handleWindowFocus = () => {
@@ -302,25 +318,24 @@ export default function StudentQuizTake() {
             }
         };
 
-        const handleFullscreenChange = () => {
-            if (!document.fullscreenElement && !document.webkitIsFullScreen && !document.mozFullScreen && !document.msFullscreenElement) {
-                setIsScreenHidden(true);
-                setCheatWarning("Thoát chế độ Toàn màn hình. Tính năng này bắt buộc khi làm bài.");
-            }
-        };
-
         const handleKeyDown = (e) => {
             if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
                 e.preventDefault();
                 navigator.clipboard.writeText("Cấm chụp màn hình").catch(()=>{});
                 handleViolation("Sử dụng phím Chụp màn hình (PrintScreen)");
             }
-            if ((e.ctrlKey || e.metaKey) && ['s', 'p', 'c'].includes(e.key.toLowerCase())) {
-                e.preventDefault();
-            }
-            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
-                e.preventDefault();
-            }
+            if ((e.ctrlKey || e.metaKey) && ['s', 'p', 'c'].includes(e.key.toLowerCase())) e.preventDefault();
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) e.preventDefault();
+        };
+
+        const cleanupListeners = () => {
+            window.removeEventListener("contextmenu", handleContextMenu);
+            window.removeEventListener("copy", handleCopy);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            window.removeEventListener("blur", handleWindowBlur);
+            window.removeEventListener("focus", handleWindowFocus);
+            window.removeEventListener("keydown", handleKeyDown);
+            window.removeEventListener("beforeunload", handleBeforeUnload);
         };
 
         window.addEventListener("contextmenu", handleContextMenu);
@@ -328,37 +343,13 @@ export default function StudentQuizTake() {
         document.addEventListener("visibilitychange", handleVisibilityChange);
         window.addEventListener("blur", handleWindowBlur);
         window.addEventListener("focus", handleWindowFocus);
-        document.addEventListener("fullscreenchange", handleFullscreenChange);
-        document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
-        document.addEventListener("mozfullscreenchange", handleFullscreenChange);
-        document.addEventListener("MSFullscreenChange", handleFullscreenChange);
         window.addEventListener("keydown", handleKeyDown);
         window.addEventListener("beforeunload", handleBeforeUnload);
 
-        return () => {
-            window.removeEventListener("contextmenu", handleContextMenu);
-            window.removeEventListener("copy", handleCopy);
-            document.removeEventListener("visibilitychange", handleVisibilityChange);
-            window.removeEventListener("blur", handleWindowBlur);
-            window.removeEventListener("focus", handleWindowFocus);
-            document.removeEventListener("fullscreenchange", handleFullscreenChange);
-            document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
-            document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
-            document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
-            window.removeEventListener("keydown", handleKeyDown);
-            window.removeEventListener("beforeunload", handleBeforeUnload);
-        };
+        return cleanupListeners;
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    useEffect(() => {
-        if (!loading && questions.length > 0 && !timeExpired && !submitting) {
-            if (!document.fullscreenElement && !document.webkitIsFullScreen && !document.mozFullScreen && !document.msFullscreenElement) {
-                setIsScreenHidden(true);
-                setCheatWarning("Bạn phải làm bài ở chế độ toàn màn hình. Nhấn vào phần màu đen này để bắt đầu/tiếp tục làm bài.");
-            }
-        }
-    }, [loading, questions.length, timeExpired, submitting]);
 
     // -------------------------------------------------------
     // Render
@@ -402,16 +393,18 @@ export default function StudentQuizTake() {
                 <div 
                     className="fixed inset-0 z-[99999] bg-black flex flex-col items-center justify-center text-white p-8 text-center cursor-pointer"
                     onClick={() => {
-                        setIsScreenHidden(false);
-                        if (!document.fullscreenElement) {
-                            document.documentElement.requestFullscreen().catch(()=>{});
+                        if (violationCountRef.current < 2) {
+                            setIsScreenHidden(false);
+                            setCheatWarning("");
                         }
                     }}
                 >
                     <div className="text-8xl mb-6">⚠️</div>
                     <h2 className="text-4xl font-black text-red-500 mb-4">HỆ THỐNG PHÁT HIỆN GIAN LẬN</h2>
                     <p className="text-2xl mb-8 font-medium">{cheatWarning}</p>
-                    <p className="text-lg text-slate-400">Nhấn vào đây hoặc quay lại tab này để tiếp tục làm bài.</p>
+                    {violationCountRef.current < 2 && (
+                        <p className="text-lg text-slate-400">Nhấn vào đây hoặc quay lại tab này để tiếp tục làm bài.</p>
+                    )}
                 </div>
             )}
 

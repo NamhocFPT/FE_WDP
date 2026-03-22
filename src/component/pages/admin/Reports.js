@@ -102,7 +102,7 @@ export default function Reports() {
                     <p className="font-semibold text-slate-800 mb-1">{`Điểm ${label}`}</p>
                     <p className="text-slate-600 flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full" style={{ backgroundColor: payload[0].fill }}></span>
-                        {`${payload[0].value} Học viên`}
+                        {`${payload[0].value} Học sinh`}
                     </p>
                 </div>
             );
@@ -113,7 +113,7 @@ export default function Reports() {
     // Build a common data structure for all export formats
     const buildReportSections = () => {
         const now = new Date();
-        const filtersLabel = `Học kỳ: ${semester || 'Tất cả'} | Khóa học: ${course || 'Tất cả'} | Khoảng thời gian: ${
+        const filtersLabel = `Học kỳ: ${semester || 'Tất cả'} | Môn học: ${course || 'Tất cả'} | Khoảng thời gian: ${
             dateRange === 'This Week' ? 'Tuần này' : 
             dateRange === 'This Month' ? 'Tháng này' : 
             dateRange === 'This Semester' ? 'Học kỳ này' : 'Tùy chỉnh'
@@ -130,7 +130,7 @@ export default function Reports() {
             [`Bộ lọc: ${filtersLabel}`],
             [],
             [`PHÂN BỐ ĐIỂM SỐ`],
-            [`Điểm`, `Số lượng học viên`],
+            [`Điểm`, `Số lượng học sinh`],
             ...data.gradeDistributionData.map(r => [r.name, r.students]),
             [],
             [`TỶ LỆ PHẦN TRĂM ĐIỂM`],
@@ -140,7 +140,7 @@ export default function Reports() {
                 : data.gradePercentageData.map(r => [r.name, r.value])),
             [],
             [`THỐNG KÊ GHI DANH KHÓA HỌC`],
-            [`Khóa học`, `Số lượng học viên`],
+            [`Môn học`, `Số lượng học sinh`],
             ...data.courseEnrollmentData.map(r => [r.name, r.students]),
         ];
         const csv = rows.map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -172,7 +172,7 @@ export default function Reports() {
                 : data.gradePercentageData.map(r => `${r.name.padEnd(20)} ${String(r.value + '%').padStart(10)}`)),
             '',
             `--- GHI DANH KHÓA HỌC ---`,
-            `${'Khóa học'.padEnd(30)} ${'Số lượng'.padStart(10)}`,
+            `${'Môn học'.padEnd(30)} ${'Số lượng'.padStart(10)}`,
             '-'.repeat(45),
             ...data.courseEnrollmentData.map(r => `${r.name.padEnd(30)} ${String(r.students).padStart(10)}`),
             '',
@@ -194,7 +194,7 @@ export default function Reports() {
             [`Bộ lọc: ${filtersLabel}`],
             [],
             ['PHÂN BỐ ĐIỂM SỐ'],
-            ['Điểm', 'Số lượng học viên'],
+            ['Điểm', 'Số lượng học sinh'],
             ...data.gradeDistributionData.map(r => [r.name, r.students]),
         ];
         const ws1 = XLSX.utils.aoa_to_sheet(ws1Data);
@@ -216,12 +216,12 @@ export default function Reports() {
         // Sheet 3: Course Enrollment
         const ws3Data = [
             ['THỐNG KÊ GHI DANH KHÓA HỌC'],
-            ['Khóa học', 'Số lượng học viên'],
+            ['Môn học', 'Số lượng học sinh'],
             ...data.courseEnrollmentData.map(r => [r.name, r.students]),
         ];
         const ws3 = XLSX.utils.aoa_to_sheet(ws3Data);
         ws3['!cols'] = [{ wch: 50 }, { wch: 20 }];
-        XLSX.utils.book_append_sheet(wb, ws3, 'Ghi danh khóa học');
+        XLSX.utils.book_append_sheet(wb, ws3, 'Ghi danh môn học');
 
         XLSX.writeFile(wb, `baocao_${dateStr}.xlsx`);
         toast.success('Đã xuất Excel thành công!');
@@ -308,14 +308,14 @@ export default function Reports() {
                             </select>
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Khóa học</label>
+                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Môn học</label>
                             <select 
                                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors"
                                 value={course}
                                 onChange={e => setCourse(e.target.value)}
                                 disabled={filtersLoading}
                             >
-                                <option value="">Tất cả Khóa học</option>
+                                <option value="">Tất cả Môn học</option>
                                 {filters.courses.map(c => (
                                     <option key={c.id} value={`${c.code} - ${c.name}`}>{c.code} - {c.name}</option>
                                 ))}
@@ -360,7 +360,7 @@ export default function Reports() {
                     }`}
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                    Hoạt động Giảng viên
+                    Hoạt động Giáo viên
                 </button>
             </div>
 
@@ -463,8 +463,8 @@ export default function Reports() {
                 {/* Course Enrollment Statistics Bar */}
                 <Card className="shadow-sm border-slate-200 mb-8 mt-6">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-base text-slate-800">Thống kê Ghi danh Khóa học</CardTitle>
-                        <p className="text-sm text-slate-500">Số lượng học viên ghi danh theo từng khóa học</p>
+                        <CardTitle className="text-base text-slate-800">Thống kê Ghi danh Môn học</CardTitle>
+                        <p className="text-sm text-slate-500">Số lượng học sinh ghi danh theo từng môn học</p>
                     </CardHeader>
                     <CardContent className="pt-6">
                         <ResponsiveContainer width="100%" height={350}>
@@ -512,16 +512,16 @@ export default function Reports() {
                             color: data.summaryStats.passRate >= 70 ? 'text-green-600' : 'text-amber-500'
                         },
                         {
-                            label: 'Tổng Học viên',
+                            label: 'Tổng Học sinh',
                             value: data.summaryStats.totalStudents,
-                            sub: 'Trên tất cả khóa học',
+                            sub: 'Trên tất cả môn học',
                             color: 'text-purple-600'
                         },
                         {
-                            label: 'Học viên loại A',
+                            label: 'Học sinh loại A',
                             value: data.summaryStats.gradeTotal > 0 ? `${data.summaryStats.aPercent}%` : 'N/A',
                             sub: data.summaryStats.gradeTotal > 0
-                                ? `${data.summaryStats.aStudents} trên tổng số ${data.summaryStats.gradeTotal} học viên`
+                                ? `${data.summaryStats.aStudents} trên tổng số ${data.summaryStats.gradeTotal} học sinh`
                                 : 'Chưa có dữ liệu',
                             color: 'text-emerald-600'
                         }
@@ -548,7 +548,7 @@ export default function Reports() {
                     {/* Line Chart */}
                     <Card className="shadow-sm border-slate-200 mt-4">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-slate-800">Cường độ hoạt động Giảng viên</CardTitle>
+                            <CardTitle className="text-base text-slate-800">Cường độ hoạt động Giáo viên</CardTitle>
                             <p className="text-sm text-slate-500">
                                 Chỉ số hoạt động theo {dateRange === 'Tuần này' ? 'ngày' : 'tuần'} dựa trên bộ lọc
                             </p>

@@ -113,11 +113,11 @@ export default function QuizCreation() {
                     const cid = classIdFromQuery || selectedClassId;
                     const resQuiz = await getQuizDetail(cid, quizIdFromQuery);
                     const quizData = resQuiz.data || resQuiz;
-                    
+
                     if (quizData) {
                         const settings = quizData.settings_json || {};
                         const parsedInstruct = quizData.instructions ? quizData.instructions.split("\n\n---")[0] : "";
-                        
+
                         setForm(prev => ({
                             ...prev,
                             classId: quizData.class_id || prev.classId,
@@ -218,7 +218,7 @@ export default function QuizCreation() {
                 res = await createQuiz({ classId: form.classId, payload });
                 data = res.data || res;
             }
-            
+
             // Postcondition: quiz created/updated
             if (goNext) {
                 const next = data?.next || `/teacher/classes/${form.classId}/quizzes/${data.id || quizIdFromQuery}/questions`;
@@ -329,11 +329,11 @@ export default function QuizCreation() {
                     {/* Timing */}
                     <Card className="hover:shadow-xl transition-all duration-300 border-white hover:border-blue-200 hover:-translate-y-1 bg-white/70 backdrop-blur-sm">
                         <CardContent className="space-y-3">
-                            <div className="text-sm font-bold text-slate-900">Thời gian (Timing)</div>
+                            <div className="text-sm font-bold text-slate-900">Thời gian</div>
 
                             <div className="grid gap-3 sm:grid-cols-2">
                                 <div>
-                                    <div className="mb-1 text-xs font-semibold text-slate-600">Thời gian mở (openAt)</div>
+                                    <div className="mb-1 text-xs font-semibold text-slate-600">Thời gian mở</div>
                                     <Input
                                         type="datetime-local"
                                         value={form.openAtLocal}
@@ -346,7 +346,7 @@ export default function QuizCreation() {
                                 </div>
 
                                 <div>
-                                    <div className="mb-1 text-xs font-semibold text-slate-600">Thời gian đóng (closeAt)</div>
+                                    <div className="mb-1 text-xs font-semibold text-slate-600">Thời gian đóng</div>
                                     <Input
                                         type="datetime-local"
                                         value={form.closeAtLocal}
@@ -378,7 +378,7 @@ export default function QuizCreation() {
                     {/* Grade & Behavior */}
                     <Card className="hover:shadow-xl transition-all duration-300 border-white hover:border-blue-200 hover:-translate-y-1 bg-white/70 backdrop-blur-sm">
                         <CardContent className="space-y-3">
-                            <div className="text-sm font-bold text-slate-900">Điểm số & Hành vi (Grade & Behavior)</div>
+                            <div className="text-sm font-bold text-slate-900">Điểm số & Hành vi</div>
 
                             <div className="grid gap-3 sm:grid-cols-2">
                                 <div>
@@ -414,7 +414,7 @@ export default function QuizCreation() {
                                     checked={form.shuffleQuestions}
                                     onChange={(e) => setField("shuffleQuestions", e.target.checked)}
                                 />
-                                Trộn câu hỏi (Shuffle within questions)
+                                Trộn câu hỏi
                             </label>
                         </CardContent>
                     </Card>
@@ -422,7 +422,7 @@ export default function QuizCreation() {
                     {/* Review Options */}
                     <Card className="hover:shadow-xl transition-all duration-300 border-white hover:border-blue-200 hover:-translate-y-1 bg-white/70 backdrop-blur-sm">
                         <CardContent className="space-y-3">
-                            <div className="text-sm font-bold text-slate-900">Tuỳ chọn xem lại (Review options)</div>
+                            <div className="text-sm font-bold text-slate-900">Tuỳ chọn xem lại</div>
 
                             <div className="space-y-2 text-sm text-slate-700">
                                 <label className="flex items-start gap-2">
@@ -461,7 +461,12 @@ export default function QuizCreation() {
                             <span className="font-bold">Tóm tắt cấu hình</span>
                         </div>
                         <CardContent className="space-y-4 pt-4">
-
+                            {!isEditMode && (
+                                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 shadow-sm">
+                                    <div className="font-bold flex items-center gap-1.5"><Clock size={16} /> Lưu ý quan trọng:</div>
+                                    <div className="mt-1 opacity-90 leading-snug">Sau khi <b className="font-semibold">Lưu cấu hình</b>, hệ thống sẽ tạo một Quiz <b>trống</b> và tự động chuyển bạn sang giao diện Soạn Câu Hỏi.</div>
+                                </div>
+                            )}
 
                             <div className="space-y-3.5 text-sm">
                                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
@@ -471,16 +476,16 @@ export default function QuizCreation() {
 
                                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                                     <span className="text-slate-500 font-medium">Thời gian mở</span>
-                                    <span className="font-bold text-slate-800">{form.openAtLocal ? new Date(form.openAtLocal).toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'}) : "Tự do chờ mở"}</span>
+                                    <span className="font-bold text-slate-800">{form.openAtLocal ? new Date(form.openAtLocal).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : "Tự do chờ mở"}</span>
                                 </div>
 
                                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                                    <span className="text-slate-500 font-medium flex items-center gap-1.5"><Clock size={14}/> Giới hạn làm</span>
+                                    <span className="text-slate-500 font-medium flex items-center gap-1.5"><Clock size={14} /> Giới hạn làm</span>
                                     <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">{form.timeLimitMinutes || "-"} phút</span>
                                 </div>
 
                                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                                    <span className="text-slate-500 font-medium flex items-center gap-1.5"><Users size={14}/> Số lần làm</span>
+                                    <span className="text-slate-500 font-medium flex items-center gap-1.5"><Users size={14} /> Số lần làm</span>
                                     <span className="font-semibold text-slate-800">
                                         {form.attemptLimit === "0" ? "Không giới hạn" : `${form.attemptLimit} lần`}
                                     </span>
@@ -494,7 +499,7 @@ export default function QuizCreation() {
                                         {form.gradeMethod === "last" && "Lần cuối"}
                                     </span>
                                 </div>
-                                
+
                                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                                     <span className="text-slate-500 font-medium">Trộn câu hỏi</span>
                                     <span className="font-semibold text-slate-800">{form.shuffleQuestions ? "Có" : "Không"}</span>

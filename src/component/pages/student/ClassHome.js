@@ -3,13 +3,14 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { studentApi } from "service/studentApi";
 import { cn, Button, PageHeader, Card, CardHeader, CardTitle, CardContent, Badge, Table, Th, Td } from "component/ui";
-import { 
+import {
     Lock, CheckCircle2, AlertCircle, HelpCircle,
     FileText, File, MonitorPlay, Table as TableIcon,
     Image, Film, Archive, Link as LinkIcon, Text as TextIcon,
-    ChevronDown, ChevronUp, FolderOpen, Download
+    ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FolderOpen, Download
 } from "lucide-react";
 import ClassStream from "component/pages/common/stream/ClassStream";
+import StreamNotificationPanel from "component/pages/common/stream/StreamNotificationPanel";
 import { format } from "date-fns";
 
 const getTypeIcon = (type) => {
@@ -49,7 +50,7 @@ export default function ClassHome() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    
+
     // Đồng bộ tab từ URL query param, mặc định là overview
     const currentTab = searchParams.get("tab") || "stream";
 
@@ -63,6 +64,11 @@ export default function ClassHome() {
     const [materialsData, setMaterialsData] = useState({ general: [], bySession: [] });
     const [isMaterialsLoading, setIsMaterialsLoading] = useState(false);
     const [expandedSections, setExpandedSections] = useState({ general: true });
+
+    // Pagination state
+    const ITEMS_PER_PAGE = 10;
+    const [quizPage, setQuizPage] = useState(1);
+    const [assignPage, setAssignPage] = useState(1);
 
     const toggleSection = (sectionId) => {
         setExpandedSections(prev => ({ ...prev, [sectionId]: !prev[sectionId] }));
@@ -184,8 +190,8 @@ export default function ClassHome() {
                     </div>
                 </div>
                 <div className="flex items-center gap-1 mt-4 sm:mt-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                    <Button 
-                        variant="ghost" 
+                    <Button
+                        variant="ghost"
                         title="Tải về"
                         className="px-2 py-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                         onClick={() => window.open(m.file_url, "_blank")}
@@ -209,7 +215,14 @@ export default function ClassHome() {
 
             {/* TAB: STREAM */}
             {currentTab === "stream" && (
-                <ClassStream classId={id} />
+                <div className="grid grid-cols-12 gap-6">
+                    <div className="col-span-12 lg:col-span-8 xl:col-span-9">
+                        <ClassStream classId={id} />
+                    </div>
+                    <div className="hidden lg:block lg:col-span-4 xl:col-span-3">
+                        <StreamNotificationPanel />
+                    </div>
+                </div>
             )}
 
             {/* TAB: OVERVIEW */}
@@ -253,9 +266,9 @@ export default function ClassHome() {
             {currentTab === "materials" && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                     <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <LinkIcon className="text-slate-400" /> Tài liệu môn học
+                        <LinkIcon className="text-slate-400" /> Tài liệu khóa học
                     </h3>
-                    
+
                     {isMaterialsLoading ? (
                         <div className="p-8 text-center text-slate-500 animate-pulse bg-white rounded-xl shadow-sm border border-slate-200">
                             Đang tải danh sách tài liệu...
@@ -265,7 +278,7 @@ export default function ClassHome() {
                             <div className="flex flex-col items-center justify-center text-slate-500">
                                 <FolderOpen className="text-slate-300 mb-3" size={48} />
                                 <h3 className="text-lg font-medium text-slate-700">Chưa có tài liệu nào</h3>
-                                <p className="text-sm">Giảng viên chưa đăng tải tài liệu cho môn học này.</p>
+                                <p className="text-sm">Giảng viên chưa đăng tải tài liệu cho khóa học này.</p>
                             </div>
                         </Card>
                     ) : (
@@ -273,7 +286,7 @@ export default function ClassHome() {
                             {/* GENERAL MATERIALS */}
                             {materialsData.general.length > 0 && (
                                 <section>
-                                    <div 
+                                    <div
                                         className="flex items-center justify-between px-3 py-3 cursor-pointer bg-white rounded-xl mb-3 shadow-sm border border-slate-200 hover:border-slate-300 transition-all"
                                         onClick={() => toggleSection('general')}
                                     >
@@ -285,7 +298,7 @@ export default function ClassHome() {
                                             {expandedSections['general'] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                         </Button>
                                     </div>
-                                    
+
                                     {expandedSections['general'] && (
                                         <Card className="border shadow-none">
                                             <div className="divide-y divide-slate-100">
@@ -304,7 +317,7 @@ export default function ClassHome() {
 
                                 return (
                                     <section key={session.id}>
-                                        <div 
+                                        <div
                                             className="flex items-center justify-between px-3 py-3 cursor-pointer bg-white rounded-xl mb-3 shadow-sm border border-slate-200 hover:border-slate-300 transition-all"
                                             onClick={() => toggleSection(sectionId)}
                                         >
@@ -316,7 +329,7 @@ export default function ClassHome() {
                                                 {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                             </Button>
                                         </div>
-                                        
+
                                         {isExpanded && (
                                             <Card className="border shadow-none">
                                                 {materials && materials.length > 0 ? (
@@ -348,26 +361,83 @@ export default function ClassHome() {
                                 <thead>
                                     <tr>
                                         <Th>Tiêu đề</Th>
+                                        <Th>Lượt làm</Th>
                                         <Th>Hạn nộp</Th>
-                                        <Th>Điểm tối đa</Th>
+                                        <Th>Điểm / Tối đa</Th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {cl.assignments?.filter(a => a.type === 'QUIZ' || String(a.type).toUpperCase() === 'QUIZ').length > 0 ? 
-                                        cl.assignments.filter(a => a.type === 'QUIZ' || String(a.type).toUpperCase() === 'QUIZ').map((a) => (
-                                        <tr key={a.id} className="hover:bg-slate-50 transition-colors group">
-                                            <Td>
-                                                <div
-                                                    className="font-bold text-blue-600 cursor-pointer group-hover:underline"
-                                                    onClick={() => navigate(`/student/quizzes/${a.id}/start`)}
-                                                >
-                                                    {a.title}
-                                                </div>
-                                            </Td>
-                                            <Td className="text-slate-600 text-sm font-medium">{a.due}</Td>
-                                            <Td><Badge tone="amber">{a.points}</Badge></Td>
-                                        </tr>
-                                    )) : <tr><Td colSpan="3" className="text-center py-8 text-slate-500 italic">Không có bài trắc nghiệm nào.</Td></tr>}
+                                    {(() => {
+                                        const quizList = cl.assignments?.filter(a => (a.type === 'QUIZ' || String(a.type).toUpperCase() === 'QUIZ') && a.status !== 'draft') || [];
+                                        const totalQuizPages = Math.ceil(quizList.length / ITEMS_PER_PAGE);
+                                        const paginatedQuizzes = quizList.slice((quizPage - 1) * ITEMS_PER_PAGE, quizPage * ITEMS_PER_PAGE);
+                                        if (quizList.length === 0) return <tr><Td colSpan="4" className="text-center py-8 text-slate-500 italic">Không có bài trắc nghiệm nào.</Td></tr>;
+                                        return (
+                                            <>
+                                                {paginatedQuizzes.map((a) => (
+                                                    <tr key={a.id} className={cn("hover:bg-slate-50 transition-colors group", a.status === 'closed' ? "bg-slate-50" : "")}>
+                                                        <Td>
+                                                            {a.status === 'published' ? (
+                                                                <div
+                                                                    className="font-bold text-blue-600 cursor-pointer group-hover:underline"
+                                                                    onClick={() => navigate(`/student/quizzes/${a.id}/start`)}
+                                                                >
+                                                                    {a.title}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="font-bold text-slate-500 flex items-center gap-2" title={a.attemptCount >= a.attemptLimit ? "Đã hết lượt làm bài" : "Bài kiểm tra đã đóng"}>
+                                                                    <Lock size={14} className="text-slate-400" />
+                                                                    {a.title}
+                                                                </div>
+                                                            )}
+                                                        </Td>
+                                                        <Td className="text-slate-600 text-sm font-medium">
+                                                            {a.attemptCount} / {a.attemptLimit || "∞"}
+                                                        </Td>
+                                                        <Td className="text-slate-600 text-sm font-medium">{a.due}</Td>
+                                                        <Td>
+                                                            {a.status === 'closed' ? (
+                                                                <div className="flex items-center gap-1 font-bold text-slate-700">
+                                                                    <span className={a.studentScore !== null && a.studentScore !== undefined ? "text-blue-600 text-base" : ""}>{a.studentScore !== null && a.studentScore !== undefined ? a.studentScore : '--'}</span>
+                                                                    <span className="text-slate-400 font-normal">/ {a.points}</span>
+                                                                </div>
+                                                            ) : (
+                                                                <Badge tone="amber">{a.points}</Badge>
+                                                            )}
+                                                        </Td>
+                                                    </tr>
+                                                ))}
+                                                {totalQuizPages > 1 && (
+                                                    <tr>
+                                                        <Td colSpan="4">
+                                                            <div className="flex items-center justify-between pt-1">
+                                                                <span className="text-sm text-slate-500">
+                                                                    Hiển thị {(quizPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(quizPage * ITEMS_PER_PAGE, quizList.length)} / {quizList.length}
+                                                                </span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        disabled={quizPage === 1}
+                                                                        onClick={() => setQuizPage(p => Math.max(1, p - 1))}
+                                                                        className="h-7 w-7 flex items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 disabled:opacity-40 hover:bg-slate-50 transition"
+                                                                    >
+                                                                        <ChevronLeft size={14} />
+                                                                    </button>
+                                                                    <span className="text-sm font-semibold text-slate-700">{quizPage} / {totalQuizPages}</span>
+                                                                    <button
+                                                                        disabled={quizPage === totalQuizPages}
+                                                                        onClick={() => setQuizPage(p => Math.min(totalQuizPages, p + 1))}
+                                                                        className="h-7 w-7 flex items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 disabled:opacity-40 hover:bg-slate-50 transition"
+                                                                    >
+                                                                        <ChevronRight size={14} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </Td>
+                                                    </tr>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
                                 </tbody>
                             </Table>
                         </div>
@@ -385,26 +455,83 @@ export default function ClassHome() {
                                 <thead>
                                     <tr>
                                         <Th>Tiêu đề</Th>
+                                        <Th>Lượt nộp</Th>
                                         <Th>Hạn nộp</Th>
-                                        <Th>Điểm tối đa</Th>
+                                        <Th>Điểm / Tối đa</Th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {cl.assignments?.filter(a => a.type !== 'QUIZ' && String(a.type).toUpperCase() !== 'QUIZ').length > 0 ? 
-                                        cl.assignments.filter(a => a.type !== 'QUIZ' && String(a.type).toUpperCase() !== 'QUIZ').map((a) => (
-                                        <tr key={a.id} className="hover:bg-slate-50 transition-colors group">
-                                            <Td>
-                                                <div
-                                                    className="font-bold text-blue-600 cursor-pointer group-hover:underline"
-                                                    onClick={() => navigate(`/student/assessments/${a.id}`)}
-                                                >
-                                                    {a.title}
-                                                </div>
-                                            </Td>
-                                            <Td className="text-slate-600 text-sm font-medium">{a.due}</Td>
-                                            <Td><Badge tone="amber">{a.points}</Badge></Td>
-                                        </tr>
-                                    )) : <tr><Td colSpan="3" className="text-center py-8 text-slate-500 italic">Không có bài tự luận nào.</Td></tr>}
+                                    {(() => {
+                                        const assignList = cl.assignments?.filter(a => a.type !== 'QUIZ' && String(a.type).toUpperCase() !== 'QUIZ' && a.status !== 'draft') || [];
+                                        const totalAssignPages = Math.ceil(assignList.length / ITEMS_PER_PAGE);
+                                        const paginatedAssigns = assignList.slice((assignPage - 1) * ITEMS_PER_PAGE, assignPage * ITEMS_PER_PAGE);
+                                        if (assignList.length === 0) return <tr><Td colSpan="4" className="text-center py-8 text-slate-500 italic">Không có bài tự luận nào.</Td></tr>;
+                                        return (
+                                            <>
+                                                {paginatedAssigns.map((a) => (
+                                                    <tr key={a.id} className={cn("hover:bg-slate-50 transition-colors group", a.status === 'closed' ? "bg-slate-50" : "")}>
+                                                        <Td>
+                                                            {a.status === 'published' ? (
+                                                                <div
+                                                                    className="font-bold text-blue-600 cursor-pointer group-hover:underline"
+                                                                    onClick={() => navigate(`/student/assessments/${a.id}`)}
+                                                                >
+                                                                    {a.title}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="font-bold text-slate-500 flex items-center gap-2" title={a.attemptCount >= a.attemptLimit ? "Đã hết lượt nộp bài" : "Bài tập đã đóng"}>
+                                                                    <Lock size={14} className="text-slate-400" />
+                                                                    {a.title}
+                                                                </div>
+                                                            )}
+                                                        </Td>
+                                                        <Td className="text-slate-600 text-sm font-medium">
+                                                            {a.attemptCount} / {a.attemptLimit || "∞"}
+                                                        </Td>
+                                                        <Td className="text-slate-600 text-sm font-medium">{a.due}</Td>
+                                                        <Td>
+                                                            {a.status === 'closed' ? (
+                                                                <div className="flex items-center gap-1 font-bold text-slate-700">
+                                                                    <span className={a.studentScore !== null && a.studentScore !== undefined ? "text-blue-600 text-base" : ""}>{a.studentScore !== null && a.studentScore !== undefined ? a.studentScore : '--'}</span>
+                                                                    <span className="text-slate-400 font-normal">/ {a.points}</span>
+                                                                </div>
+                                                            ) : (
+                                                                <Badge tone="amber">{a.points}</Badge>
+                                                            )}
+                                                        </Td>
+                                                    </tr>
+                                                ))}
+                                                {totalAssignPages > 1 && (
+                                                    <tr>
+                                                        <Td colSpan="4">
+                                                            <div className="flex items-center justify-between pt-1">
+                                                                <span className="text-sm text-slate-500">
+                                                                    Hiển thị {(assignPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(assignPage * ITEMS_PER_PAGE, assignList.length)} / {assignList.length}
+                                                                </span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        disabled={assignPage === 1}
+                                                                        onClick={() => setAssignPage(p => Math.max(1, p - 1))}
+                                                                        className="h-7 w-7 flex items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 disabled:opacity-40 hover:bg-slate-50 transition"
+                                                                    >
+                                                                        <ChevronLeft size={14} />
+                                                                    </button>
+                                                                    <span className="text-sm font-semibold text-slate-700">{assignPage} / {totalAssignPages}</span>
+                                                                    <button
+                                                                        disabled={assignPage === totalAssignPages}
+                                                                        onClick={() => setAssignPage(p => Math.min(totalAssignPages, p + 1))}
+                                                                        className="h-7 w-7 flex items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 disabled:opacity-40 hover:bg-slate-50 transition"
+                                                                    >
+                                                                        <ChevronRight size={14} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </Td>
+                                                    </tr>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
                                 </tbody>
                             </Table>
                         </div>
@@ -444,7 +571,7 @@ export default function ClassHome() {
                             <div className="lg:col-span-1">
                                 <Card className="bg-slate-900 text-white border-none">
                                     <CardContent className="p-6 text-center">
-                                        <p className="text-slate-400 text-xs font-bold uppercase mb-2">Tổng kết môn học</p>
+                                        <p className="text-slate-400 text-xs font-bold uppercase mb-2">Tổng kết khóa học</p>
                                         <div className="text-4xl font-black">{gradesData.course_total !== null ? Number(gradesData.course_total).toFixed(2) : "--"}</div>
                                         <p className="text-[10px] text-slate-500 mt-2 italic">* Chỉ tính các bài đã công bố</p>
                                     </CardContent>

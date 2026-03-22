@@ -19,7 +19,7 @@ export default function AssignTeacherModal({ isOpen, onClose, classId, currentTe
             .then(res => {
                 setTeachers(res.data.data);
             })
-            .catch(err => toast.error("Không thể tải danh sách giảng viên"))
+            .catch(err => toast.error("Không thể tải danh sách giáo viên"))
             .finally(() => setLoading(false));
     }, [isOpen, currentTeacherId]);
 
@@ -34,14 +34,14 @@ export default function AssignTeacherModal({ isOpen, onClose, classId, currentTe
 
     const handleAssign = async () => {
         if (!selectedTeacher) {
-            toast.error("Vui lòng chọn một giảng viên!");
+            toast.error("Vui lòng chọn một giáo viên!");
             return;
         }
 
         setAssigning(true);
         try {
             await adminApi.assignTeacher(classId, selectedTeacher);
-            toast.success("Phân công giảng viên thành công!");
+            toast.success("Phân công giáo viên thành công!");
             onSuccess();
             onClose();
         } catch (error) {
@@ -60,8 +60,8 @@ export default function AssignTeacherModal({ isOpen, onClose, classId, currentTe
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b border-slate-100 shrink-0">
                     <div>
-                        <h3 className="text-xl font-bold text-slate-900">Phân công giảng viên</h3>
-                        <p className="text-sm text-slate-500 mt-1">Chọn hoặc tìm kiếm giảng viên phù hợp cho lớp học</p>
+                        <h3 className="text-xl font-bold text-slate-900">Phân công giáo viên</h3>
+                        <p className="text-sm text-slate-500 mt-1">Chọn hoặc tìm kiếm giáo viên phù hợp cho lớp học</p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition-colors">
                         <X size={20} />
@@ -89,7 +89,7 @@ export default function AssignTeacherModal({ isOpen, onClose, classId, currentTe
                             </div>
                         ) : filteredTeachers.length === 0 ? (
                             <div className="py-8 text-center text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                Không tìm thấy giảng viên nào phù hợp.
+                                Không tìm thấy giáo viên nào phù hợp.
                             </div>
                         ) : (
                             filteredTeachers.map(teacher => (
