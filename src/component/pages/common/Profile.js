@@ -231,7 +231,7 @@ export default function Profile() {
                                             </div>
                                             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg">
                                                 <Shield className="w-3.5 h-3.5" />
-                                                {u?.role === "ADMIN" ? "Quản trị viên" : u?.role === "TEACHER" ? "Giảng viên" : "Học viên"}
+                                                {(u?.role === "admin" || u?.role === "ADMIN") ? "Quản trị viên" : (u?.role === "teacher" || u?.role === "TEACHER") ? "Giảng viên" : "Học viên"}
                                             </div>
                                         </div>
                                     </div>

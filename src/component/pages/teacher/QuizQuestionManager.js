@@ -383,7 +383,7 @@ export default function QuizQuestionManager() {
                                                         if (mathpadTemp.includes("\\placeholder")) {
                                                             return toast.error("Vui lòng gõ số/chữ vào ô vuông trống trong Bảng nháp cho hoàn chỉnh trước khi Chèn!");
                                                         }
-                                                        const latexToAdd = ` $$${mathpadTemp}$$ `;
+                                                        const latexToAdd = ` $${mathpadTemp}$ `;
 
                                                         if (questionTextRef.current) {
                                                             const start = questionTextRef.current.selectionStart;

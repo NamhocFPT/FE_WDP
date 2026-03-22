@@ -65,7 +65,7 @@ export default function Navbar() {
                         <div className="flex flex-col items-end hidden sm:flex">
                             <span className="text-xs font-black text-slate-900 leading-none mb-0.5">{user?.full_name || user?.fullName}</span>
                             <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">
-                                {user?.role === 'ADMIN' ? 'Quản trị viên' : (user?.role === 'TEACHER' ? 'Giáo viên' : 'Học sinh')}
+                                {(user?.role === 'admin' || user?.role === 'ADMIN') ? 'Quản trị viên' : ((user?.role === 'teacher' || user?.role === 'TEACHER') ? 'Giáo viên' : 'Học sinh')}
                             </span>
                         </div>
                         <div className="h-9 w-9 shrink-0 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-black text-xs border border-white/50 shadow-lg overflow-hidden">
