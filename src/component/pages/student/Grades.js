@@ -49,9 +49,11 @@ export default function Grades() {
                                             <div className="p-2 bg-blue-50 rounded-lg text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                                                 <BookOpen className="h-5 w-5" />
                                             </div>
-                                            <Badge tone={g.course_total >= 5 ? "green" : g.course_total === null ? "slate" : "amber"}>
-                                                {g.course_total !== null ? `TB: ${Number(g.course_total).toFixed(2)}` : "Chưa có điểm"}
-                                            </Badge>
+                                            {g.course_total !== null && (
+                                                <Badge tone={g.course_total >= 5 ? "green" : "amber"}>
+                                                    TB: {Number(g.course_total).toFixed(2)}
+                                                </Badge>
+                                            )}
                                         </div>
                                         <h3 className="font-bold text-slate-900 text-lg line-clamp-1 mb-1">{g.class_name}</h3>
                                         <p className="text-sm text-slate-500 flex items-center gap-1">

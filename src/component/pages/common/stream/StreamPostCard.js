@@ -182,7 +182,7 @@ export default function StreamPostCard({ post, classId, onPostChanged, canCommen
             <span className="text-sm font-bold text-slate-900">{authorName}</span>
             {authorRole === "teacher" && (
               <Badge tone="green" className="text-[10px] py-0">
-                Giảng viên
+                Giáo viên
               </Badge>
             )}
             {authorRole === "student" && (

@@ -172,10 +172,10 @@ export default function StudentQuizTake() {
             });
         } catch (err) {
             console.error("Auto-submit error:", err);
-            setSubmitError("Lỗi tự động nộp bài. Vui lòng báo cáo giảng viên.");
+            setSubmitError("Lỗi tự động nộp bài. Vui lòng báo cáo giáo viên.");
             try {
                 nav("/student/quiz-result", {
-                    state: { success: false, errorMessage: "Lỗi hệ thống khi tự động nộp bài. Báo cáo giảng viên." },
+                    state: { success: false, errorMessage: "Lỗi hệ thống khi tự động nộp bài. Báo cáo giáo viên." },
                     replace: true
                 });
             } catch (e) {

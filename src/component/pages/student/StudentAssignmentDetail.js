@@ -34,22 +34,33 @@ export default function StudentAssignmentDetail() {
         if (assessmentId) fetchData();
     }, [assessmentId]);
 
-    // HÀM TẢI FILE THÔNG MINH (Xử lý cho PDF, Ảnh, Docx,...)
     const handleDownload = async (fileUrl, originalName) => {
+        const BASE_URL = "http://localhost:9999";
         try {
-            const response = await fetch(fileUrl);
+            // Chuẩn hóa URL nếu là đường dẫn tương đối
+            let targetUrl = fileUrl?.startsWith('http') ? fileUrl : `${BASE_URL}${fileUrl}`;
+            
+            const response = await fetch(targetUrl);
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
 
-            // Xử lý đuôi file: Nếu tên gốc thiếu đuôi, lấy đuôi từ link Cloudinary
             let finalName = originalName || "document";
-            if (!finalName.includes('.')) {
-                const ext = fileUrl.split('.').pop().split(/[?#]/)[0]; 
-                const validExts = ['pdf', 'docx', 'doc', 'png', 'jpg', 'jpeg', 'zip', 'rar'];
-                const extension = validExts.includes(ext.toLowerCase()) ? ext.toLowerCase() : 'bin';
-                finalName = `${finalName}.${extension}`;
+            
+            // Kiểm tra đuôi file an toàn
+            if (!/\.(pdf|doc|docx|png|jpg|jpeg|zip|rar)$/i.test(finalName)) {
+                const extMatch = targetUrl.match(/\.(pdf|doc|docx|png|jpg|jpeg|zip|rar)(?:\?|#|$)/i);
+                if (extMatch) {
+                    finalName = `${finalName}${extMatch[0]}`;
+                } else {
+                    const mimeType = blob.type;
+                    if (mimeType === 'application/pdf') finalName += '.pdf';
+                    else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') finalName += '.docx';
+                    else if (mimeType === 'application/msword') finalName += '.doc';
+                    else if (mimeType.startsWith('image/')) finalName += '.png'; 
+                    else finalName += '.zip'; 
+                }
             }
 
             link.setAttribute('download', finalName);
@@ -58,7 +69,17 @@ export default function StudentAssignmentDetail() {
             link.remove();
             window.URL.revokeObjectURL(url);
         } catch (error) {
-            window.open(fileUrl, '_blank');
+            console.error("Lỗi fetch blob, mở link trực tiếp:", error);
+            let finalName = originalName || "document";
+            let downloadUrl = fileUrl;
+            
+            // Fallback hỗ trợ Cloudinary: Ép tải file có tên nếu fetch lỗi CORS
+            if (downloadUrl && downloadUrl.includes('/upload/') && downloadUrl.includes('res.cloudinary.com')) {
+                downloadUrl = downloadUrl.replace('/upload/', `/upload/fl_attachment:${encodeURIComponent(finalName)}/`);
+            } else if (downloadUrl && !downloadUrl.startsWith('http')) {
+                 downloadUrl = `${BASE_URL}${downloadUrl}`;
+            }
+            window.open(downloadUrl, '_blank'); 
         }
     };
 
@@ -312,7 +333,6 @@ export default function StudentAssignmentDetail() {
         <div className="space-y-6">
             <PageHeader 
                 title={assessment.title} 
-                subtitle={`Khóa học: ${assessment.Course?.name || "SmartEdu Course"}`} 
                 right={[<Button key="back" variant="outline" onClick={() => navigate(-1)}>Quay lại</Button>]}
             />
 
@@ -325,7 +345,7 @@ export default function StudentAssignmentDetail() {
                                 Yêu cầu & Hướng dẫn
                             </h3>
                             <div className="text-slate-600 text-sm whitespace-pre-wrap leading-relaxed border-t pt-4 mb-6">
-                                {assessment.instructions || "Giảng viên không có hướng dẫn thêm cho bài tập này."}
+                                {assessment.instructions || "Giáo viên không có hướng dẫn thêm cho bài tập này."}
                             </div>
 
                             {assessment.files && assessment.files.length > 0 && (

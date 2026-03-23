@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, Button, Badge } from "component/ui";
 
 export default function TeacherGradingWorkspace() {
-        const { submissionId } = useParams();
+    const { classId, assessmentId, submissionId } = useParams();
     const navigate = useNavigate();
     const { state } = useLocation();
 
@@ -40,7 +40,6 @@ export default function TeacherGradingWorkspace() {
             
             if (result.success) {
                 setData(result.data);
-                // Nếu đã từng chấm điểm thì fill dữ liệu vào form
                 if (result.data.grade) {
                     setScore(result.data.grade.final_score !== null ? result.data.grade.final_score : "");
                     setFeedback(result.data.grade.final_feedback || "");
@@ -56,8 +55,11 @@ export default function TeacherGradingWorkspace() {
 
     // Hàm tải file thông minh: Tự động đoán và gắn lại đuôi file nếu bị mất
     const handleDownload = async (fileUrl, originalName) => {
+        const BASE_URL = "http://localhost:9999";
         try {
-            const response = await fetch(fileUrl);
+            let targetUrl = fileUrl?.startsWith('http') ? fileUrl : `${BASE_URL}${fileUrl}`;
+            
+            const response = await fetch(targetUrl);
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -66,7 +68,7 @@ export default function TeacherGradingWorkspace() {
             let finalName = originalName || "submission_document";
             
             if (!/\.(pdf|doc|docx|png|jpg|jpeg|zip|rar)$/i.test(finalName)) {
-                const extMatch = fileUrl.match(/\.(pdf|doc|docx|png|jpg|jpeg|zip|rar)(?:\?|#|$)/i);
+                const extMatch = targetUrl.match(/\.(pdf|doc|docx|png|jpg|jpeg|zip|rar)(?:\?|#|$)/i);
                 if (extMatch) {
                     finalName = `${finalName}${extMatch[0]}`;
                 } else {
@@ -86,15 +88,21 @@ export default function TeacherGradingWorkspace() {
             window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error("Lỗi fetch blob, mở link trực tiếp:", error);
-            window.open(fileUrl, '_blank'); 
+            let finalName = originalName || "submission_document";
+            let downloadUrl = fileUrl;
+            
+            if (downloadUrl && downloadUrl.includes('/upload/') && downloadUrl.includes('res.cloudinary.com')) {
+                downloadUrl = downloadUrl.replace('/upload/', `/upload/fl_attachment:${encodeURIComponent(finalName)}/`);
+            } else if (downloadUrl && !downloadUrl.startsWith('http')) {
+                 downloadUrl = `${BASE_URL}${downloadUrl}`;
+            }
+            window.open(downloadUrl, '_blank'); 
         }
     };
 
-// Hàm xem trước file (Preview)
     const handlePreview = (fileUrl, originalName) => {
         if (!fileUrl) return;
 
-        // 1. KIỂM TRA LOCALHOST: Nếu file lưu ở localhost, Microsoft/Google không thể đọc được
         if (fileUrl.includes('localhost') || fileUrl.includes('127.0.0.1')) {
             alert("Môi trường Localhost không hỗ trợ xem trước file Office Online. Hệ thống sẽ tự động tải file về.");
             handleDownload(fileUrl, originalName);
@@ -111,20 +119,16 @@ export default function TeacherGradingWorkspace() {
         }
 
         if (['png', 'jpg', 'jpeg', 'pdf'].includes(ext)) {
-            // Trình duyệt hỗ trợ đọc trực tiếp PDF và Ảnh
             window.open(fileUrl, '_blank');
         } else if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) {
-            // 2. CHUYỂN SANG GOOGLE DOCS VIEWER: Ổn định và đọc link Cloudinary tốt hơn
             const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
             window.open(viewerUrl, '_blank');
         } else {
-            // File Zip, Rar hoặc không xác định thì fallback về Tải xuống
             alert("Định dạng file này không hỗ trợ xem trước trực tiếp trên trình duyệt. Hệ thống sẽ tiến hành tải về.");
             handleDownload(fileUrl, originalName);
         }
     };
 
-    // Hàm lưu điểm (Đã bọc Validation an toàn tuyệt đối)
     const handleSaveGrade = async (isPublished = false) => {
         const scoreNum = parseFloat(score);
         if (isNaN(scoreNum) || scoreNum < 0) {
@@ -158,20 +162,17 @@ export default function TeacherGradingWorkspace() {
             const result = await res.json();
             if (result.success) {
                 alert("Đã lưu điểm thành công!");
-                fetchData(); // Load lại data để cập nhật badge trạng thái
+                fetchData();
             } else {
-                alert("Lỗi khi lưu điểm: " + result.message);
+                alert("Lỗi khi lưu điểm: " + (result.message || "Không rõ nguyên nhân. Hãy kiểm tra Backend log."));
             }
         } catch (error) {
-            alert("Lỗi kết nối khi lưu điểm.");
+            alert("Lỗi kết nối khi lưu điểm: " + error.message);
         } finally {
             setIsSaving(false);
         }
     };
 
-
-
-    // Hàm gọi AI chấm bài
     const handleRunAI = async () => {
         setIsAILoading(true);
         setAiResult(null);
@@ -207,8 +208,7 @@ export default function TeacherGradingWorkspace() {
                     <div>
                         <h1 className="font-bold text-lg text-slate-800">{data.assessment.title}</h1>
                         <p className="text-sm text-slate-500">
-                            Sinh viên: <span className="font-bold text-blue-600">{data.student.full_name}</span> 
-                            <span className="text-xs text-slate-400 ml-2">({data.student.email})</span>
+                            Học sinh: <span className="font-bold text-blue-600">{data.student.full_name}</span> 
                         </p>
                     </div>
                 </div>
@@ -291,8 +291,8 @@ export default function TeacherGradingWorkspace() {
                                 📑 Trình xem tài liệu bài làm
                             </h2>
                             {nextSubmissionId && (
-                                <Button size="sm" variant="outline" onClick={() => navigate(`/teacher/grading/${nextSubmissionId}`, { state: { submissionIds } })}>
-                                    Sinh viên tiếp ➡️
+                                <Button size="sm" variant="outline" onClick={() => navigate(`/teacher/classes/${classId}/assessments/${assessmentId}/submissions/${nextSubmissionId}/grade`, { state: { submissionIds } })}>
+                                    Học sinh tiếp ➡️
                                 </Button>
                             )}
                         </div>
@@ -337,7 +337,7 @@ export default function TeacherGradingWorkspace() {
                         ) : (
                             <div className="bg-white p-12 text-center rounded-2xl border-2 border-dashed border-slate-300 text-slate-500">
                                 <div className="text-4xl mb-3">📝</div>
-                                <p className="font-bold text-slate-700 mb-1">Sinh viên không đính kèm file nào</p>
+                                <p className="font-bold text-slate-700 mb-1">Học sinh không đính kèm file nào</p>
                                 <p className="text-sm">Nội dung text gửi kèm: <span className="italic">"{data.content_text}"</span></p>
                             </div>
                         )}
@@ -397,7 +397,7 @@ export default function TeacherGradingWorkspace() {
                                         Trợ lý SmartEdu
                                     </h4>
                                     <p className="text-sm text-purple-700 mb-5 leading-relaxed">
-                                        AI sẽ phân tích nội dung file đính kèm của sinh viên, đối chiếu với yêu cầu của bài tập và đưa ra điểm số kèm nhận xét chi tiết.
+                                        AI sẽ phân tích nội dung file đính kèm của học sinh, đối chiếu với yêu cầu của bài tập và đưa ra điểm số kèm nhận xét chi tiết.
                                     </p>
                                     <Button 
                                         className="w-full bg-purple-600 hover:bg-purple-700 text-white shadow-purple-200 shadow-xl py-6 font-bold text-md"

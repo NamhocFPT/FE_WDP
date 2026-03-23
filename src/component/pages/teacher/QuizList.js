@@ -82,7 +82,7 @@ export default function QuizList() {
         <div className="space-y-6">
             <PageHeader 
                 title="Quản lý Trắc nghiệm Online" 
-                subtitle={selectedClassId ? `Lớp: ${classes.find(c => c.id === selectedClassId)?.name || selectedClassId}` : "Danh sách bài tập trắc nghiệm của lớp"}
+                subtitle={selectedClassId ? `Lớp: ${classes.find(c => c.id === selectedClassId)?.course?.name || "---"} (${classes.find(c => c.id === selectedClassId)?.name || selectedClassId})` : "Danh sách bài tập trắc nghiệm của lớp"}
                 onBack={() => navigate("/teacher/classes")}
                 right={[
                     <Button 
@@ -117,7 +117,7 @@ export default function QuizList() {
                 >
                     <option value="" disabled>-- Chọn lớp học --</option>
                     {(Array.isArray(classes) ? classes : []).map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
+                        <option key={c.id} value={c.id}>{c.course?.name || "No Course"} ({c.name})</option>
                     ))}
                 </select>
             </div>
@@ -186,7 +186,7 @@ export default function QuizList() {
                                                         size="xs" 
                                                         variant="outline" 
                                                         title="Xem danh sách nộp bài"
-                                                        onClick={() => navigate(`/teacher/assessments/${q.id}/quiz-attempts`)}
+                                                         onClick={() => navigate(`/teacher/classes/${selectedClassId}/assessments/${q.id}/quiz-attempts`)}
                                                     >
                                                         <Eye size={14} />
                                                     </Button>

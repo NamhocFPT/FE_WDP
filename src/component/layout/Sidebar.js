@@ -72,6 +72,7 @@ export default function Sidebar() {
                 ]
             },
             { to: `/teacher/classes/${classId}/materials`, label: "Học liệu" },
+            { to: `/teacher/classes/${classId}/students`, label: "Học sinh" },
             { to: `/teacher/classes/${classId}/gradebook`, label: "Bảng điểm" },
         ];
     } else if (isStudentClassDetail) {

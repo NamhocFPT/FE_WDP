@@ -1,37 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { PageHeader, Card, CardHeader, CardTitle, CardContent, Button, Badge, Input, Modal } from "component/ui";
-import { ChevronLeft, RefreshCw, Edit3, CheckCircle2, XCircle, Info, MessageSquare, Save } from "lucide-react";
-import * as TeacherQuizService from "service/TeacherQuizService";
+import { PageHeader, Card, CardHeader, CardTitle, CardContent, Button, Badge } from "component/ui";
+import { ChevronLeft, RefreshCw, CheckCircle2, XCircle, Info, MessageSquare } from "lucide-react";
+import { studentApi } from "service/studentApi";
 import { toast } from "sonner";
 
-export default function QuizReviewAttempt() {
+export default function StudentQuizReview() {
     const { submissionId } = useParams();
     const navigate = useNavigate();
     
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [overrideModal, setOverrideModal] = useState({ open: false, question: null });
-    const [overrideData, setOverrideData] = useState({ mark: "", comment: "" });
-    const [saving, setSaving] = useState(false);
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await TeacherQuizService.getSubmissionReview(submissionId);
-            if (res.success && res.data) {
-                // Map API response to match exactly what the UI expects
-                const bData = res.data;
+            const res = await studentApi.getSubmissionReview(submissionId);
+            const result = res.data;
+            if (result && (result.success || result.status === "success") && result.data?.questions) {
+                const apiData = result.data;
                 const mappedData = {
                     submission: {
-                        ...bData.submission,
-                        Student: bData.student,
-                        Assessment: bData.quiz,
-                        final_score: bData.grade?.final_score ?? "---"
+                        ...apiData.submission,
+                        Assessment: apiData.quiz,
+                        final_score: apiData.grade?.final_score ?? "---"
                     },
-                    questions: (bData.questions || []).map(q => ({
-                        id: q.question_id || q.id,
-                        answer_id: q.answer_id,
+                    questions: (apiData.questions || []).map(q => ({
+                        id: q.question_id,
                         is_correct: q.is_correct,
                         points_awarded: q.score,
                         max_points: q.max_points,
@@ -48,7 +43,7 @@ export default function QuizReviewAttempt() {
                 };
                 setData(mappedData);
             } else {
-                toast.error(res.message || "Không thể tải chi tiết bài làm");
+                toast.error("Không thể tải chi tiết bài làm");
             }
         } catch (error) {
             console.error("Error fetching submission review:", error);
@@ -61,41 +56,6 @@ export default function QuizReviewAttempt() {
     useEffect(() => {
         if (submissionId) fetchData();
     }, [submissionId]);
-
-    const handleOpenOverride = (question) => {
-        setOverrideModal({ open: true, question });
-        setOverrideData({ 
-            mark: question.points_awarded?.toString() || "0", 
-            comment: question.teacher_comment || "" 
-        });
-    };
-
-    const handleSaveOverride = async () => {
-        const { question } = overrideModal;
-        if (!overrideData.mark || isNaN(overrideData.mark)) {
-            toast.error("Vui lòng nhập số điểm hợp lệ");
-            return;
-        }
-
-        setSaving(true);
-        try {
-            const res = await TeacherQuizService.overrideQuestionMark(submissionId, question.id, {
-                new_score: parseFloat(overrideData.mark),
-                reason: overrideData.comment || "Ghi đè điểm thủ công" // Ensure reason is never empty as it is required by backend validation
-            });
-            if (res.success) {
-                toast.success("Đã cập nhật điểm");
-                setOverrideModal({ open: false, question: null });
-                fetchData(); // Refresh data to show new total score
-            } else {
-                toast.error(res.message || "Cập nhật thất bại");
-            }
-        } catch (error) {
-            toast.error("Lỗi khi ghi đè điểm");
-        } finally {
-            setSaving(false);
-        }
-    };
 
     if (loading && !data) {
         return (
@@ -116,7 +76,7 @@ export default function QuizReviewAttempt() {
         <div className="max-w-5xl mx-auto space-y-6">
             <PageHeader 
                 title="Xem lại bài làm" 
-                subtitle={`Sinh viên: ${submission.Student?.full_name} | Bài: ${submission.Assessment?.title}`}
+                subtitle={`Bài: ${submission.Assessment?.title}`}
                 right={
                     <Button variant="outline" onClick={() => navigate(-1)}>
                         <ChevronLeft className="mr-2 h-4 w-4" /> Quay lại
@@ -129,12 +89,8 @@ export default function QuizReviewAttempt() {
                 <CardContent className="p-6">
                     <div className="flex flex-wrap justify-between items-center gap-6">
                         <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-lg">
-                                {submission.Student?.full_name?.charAt(0)}
-                            </div>
                             <div>
-                                <h3 className="font-bold text-slate-900">{submission.Student?.full_name}</h3>
-                                <p className="text-sm text-slate-500">{submission.Student?.email}</p>
+                                <h3 className="font-bold text-slate-900">Kết quả của bạn</h3>
                             </div>
                         </div>
 
@@ -142,13 +98,13 @@ export default function QuizReviewAttempt() {
                             <div className="text-center">
                                 <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Thời gian làm</p>
                                 <p className="font-semibold text-slate-900">
-                                    {Math.ceil((new Date(submission.submitted_at) - new Date(submission.started_at)) / 60000)} phút
+                                    {submission.duration_minutes ? `${submission.duration_minutes} phút` : "--"}
                                 </p>
                             </div>
                             <div className="text-center">
                                 <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Nộp lúc</p>
                                 <p className="font-semibold text-slate-900">
-                                    {new Date(submission.submitted_at).toLocaleTimeString('vi-VN')} {new Date(submission.submitted_at).toLocaleDateString('vi-VN')}
+                                    {submission.submitted_at ? new Date(submission.submitted_at).toLocaleTimeString('vi-VN') + " " + new Date(submission.submitted_at).toLocaleDateString('vi-VN') : "--"}
                                 </p>
                             </div>
                             <div className="text-center">
@@ -186,14 +142,6 @@ export default function QuizReviewAttempt() {
                                         <span>{q.points_awarded ?? 0}</span>
                                         <span className="text-slate-400">/ {q.max_points} điểm</span>
                                     </div>
-                                    <Button 
-                                        size="sm" 
-                                        variant="outline" 
-                                        className="h-8 text-xs gap-1 py-0 px-2 border-slate-300 hover:bg-white"
-                                        onClick={() => handleOpenOverride(q)}
-                                    >
-                                        <Edit3 className="h-3 w-3" /> Ghi đè điểm
-                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent className="p-6">
@@ -230,14 +178,13 @@ export default function QuizReviewAttempt() {
                                     })}
                                 </div>
 
-                                {(q.teacher_comment || q.teacher_override) && (
+                                {q.teacher_comment && (
                                     <div className="mt-4 p-4 rounded-lg bg-amber-50 border border-amber-200">
                                         <div className="flex items-center gap-2 text-amber-800 font-bold text-xs uppercase mb-2">
                                             <MessageSquare className="h-3 w-3" /> Ghi chú giáo viên
                                         </div>
                                         <p className="text-sm text-amber-900">
-                                            {q.teacher_comment || "Đã thay đổi điểm thủ công."}
-                                            {q.teacher_override && <span className="ml-2 font-bold">(Ghi đè: {q.points_awarded}đ)</span>}
+                                            {q.teacher_comment}
                                         </p>
                                     </div>
                                 )}
@@ -246,51 +193,6 @@ export default function QuizReviewAttempt() {
                     );
                 })}
             </div>
-
-            {/* Override Points Modal */}
-            <Modal 
-                open={overrideModal.open} 
-                title="Nhận xét hoặc Ghi đè điểm" 
-                onClose={() => !saving && setOverrideModal({ open: false, question: null })}
-            >
-                <div className="space-y-4">
-                    <div className="p-3 bg-blue-50 rounded-lg text-xs text-blue-800 mb-2 border border-blue-100 italic">
-                        "Điểm mới sẽ thay thế hoàn toàn điểm hệ thống tự chấm cho câu hỏi này."
-                    </div>
-                    
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Số điểm mới (Tối đa: {overrideModal.question?.max_points})</label>
-                        <Input 
-                            type="number" 
-                            step="0.01"
-                            max={overrideModal.question?.max_points}
-                            value={overrideData.mark}
-                            onChange={(e) => setOverrideData({...overrideData, mark: e.target.value})}
-                            placeholder="Nhập số điểm..."
-                        />
-                    </div>
-                    
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Lý do thay đổi</label>
-                        <textarea 
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200 min-h-[100px]"
-                            value={overrideData.comment}
-                            onChange={(e) => setOverrideData({...overrideData, comment: e.target.value})}
-                            placeholder="VD: Lỗi đề bài không rõ ràng, cộng điểm cho sinh viên..."
-                        />
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4">
-                        <Button variant="outline" onClick={() => setOverrideModal({ open: false, question: null })} disabled={saving}>
-                            Hủy bỏ
-                        </Button>
-                        <Button variant="primary" onClick={handleSaveOverride} disabled={saving} className="bg-blue-600 text-white">
-                            {saving ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                            Lưu thay đổi
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
         </div>
     );
 }

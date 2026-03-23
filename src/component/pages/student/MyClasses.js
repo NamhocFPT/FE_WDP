@@ -59,7 +59,7 @@ export default function MyClasses() {
                                             {c.name}
                                         </div>
                                         <div className="mt-1 text-sm text-slate-600">
-                                            Giảng viên: <span className="font-medium text-slate-800">{c.teacher || "Chưa phân công"}</span>
+                                            Giáo viên: <span className="font-medium text-slate-800">{c.teacher || "Chưa phân công"}</span>
                                         </div>
                                     </div>
                                     <Badge tone="blue" className="shrink-0 whitespace-nowrap">

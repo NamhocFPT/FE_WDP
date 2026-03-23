@@ -28,6 +28,14 @@ export default function Profile() {
     const [pwdSuccess, setPwdSuccess] = useState(false);
     const [isSavingPwd, setIsSavingPwd] = useState(false);
 
+    // Forgot Password State (Inside Profile)
+    const [forgotMode, setForgotMode] = useState(false);
+    const [forgotStep, setForgotStep] = useState("init"); 
+    const [forgotOtp, setForgotOtp] = useState("");
+    const [forgotNewP, setForgotNewP] = useState("");
+    const [forgotError, setForgotError] = useState("");
+    const [forgotLoading, setForgotLoading] = useState(false);
+
     useEffect(() => {
         api.getProfile().then(({ ok, data }) => {
             if (ok && data.success) {
@@ -147,6 +155,51 @@ export default function Profile() {
         }
     };
 
+    const handleForgotFromProfile = async () => {
+        setPwdMsg("");
+        setForgotError("");
+        setForgotLoading(true);
+        setForgotMode(true);
+        setForgotStep("init");
+        try {
+            const { ok, data } = await api.forgotPassword(email);
+            if (!ok || !data.success) {
+                setForgotError(data.message || "Tài khoản không hỗ trợ khôi phục qua Mail hiện tại.");
+                setForgotMode(false);
+                return;
+            }
+            setForgotStep("otp");
+        } catch { 
+            setForgotError("Lỗi kết nối máy chủ."); 
+            setForgotMode(false);
+        } finally { 
+            setForgotLoading(false); 
+        }
+    };
+
+    const handleVerifyOtpFromProfile = (e) => {
+        e.preventDefault();
+        setForgotError("");
+        if (forgotOtp.length !== 6) return setForgotError("Mã OTP gồm 6 chữ số.");
+        setForgotStep("reset");
+    };
+
+    const handleResetFromProfile = async (e) => {
+        e.preventDefault();
+        setForgotError("");
+        setForgotLoading(true);
+        try {
+            const { ok, data } = await api.resetPassword({ email, otp: forgotOtp, newPassword: forgotNewP });
+            if (!ok || !data.success) return setForgotError(data.message || "Đặt lại mật khẩu thất bại.");
+            alert("Đặt lại mật khẩu thành công!");
+            setForgotMode(false);
+            setForgotStep("init");
+            setForgotOtp("");
+            setForgotNewP("");
+        } catch { setForgotError("Lỗi kết nối máy chủ."); }
+        finally { setForgotLoading(false); }
+    };
+
     return (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
             <PageHeader 
@@ -231,7 +284,7 @@ export default function Profile() {
                                             </div>
                                             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg">
                                                 <Shield className="w-3.5 h-3.5" />
-                                                {(u?.role === "admin" || u?.role === "ADMIN") ? "Quản trị viên" : (u?.role === "teacher" || u?.role === "TEACHER") ? "Giảng viên" : "Học viên"}
+                                                {(u?.role === "admin" || u?.role === "ADMIN") ? "Quản trị viên" : (u?.role === "teacher" || u?.role === "TEACHER") ? "Giáo viên" : "Học sinh"}
                                             </div>
                                         </div>
                                     </div>
@@ -338,71 +391,126 @@ export default function Profile() {
                         <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 px-6 md:px-10 py-10">
                             <div className="mb-10 max-w-xl">
                                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">Mật khẩu & Bảo mật</h3>
-                                <p className="text-slate-500 mt-2 font-medium">Bảo vệ tài khoản của bạn bằng cách sử dụng mật khẩu mạnh và thường xuyên thay đổi.</p>
+                                <p className="text-slate-500 mt-2 font-medium">Bảo vệ tài khoản của bạn và dễ dàng khôi phục khi cần.</p>
                             </div>
 
-                            <form onSubmit={onChangePassword} className="space-y-8 max-w-lg">
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Mật khẩu hiện tại</label>
-                                        <Input 
-                                            type="password" 
-                                            value={oldP} 
-                                            onChange={(e) => setOldP(e.target.value)} 
-                                            className="h-12 border-slate-200 focus:ring-blue-500 rounded-xl"
-                                            placeholder="••••••••"
-                                        />
-                                    </div>
-                                    
-                                    <div className="h-px bg-slate-100"></div>
+                            {!forgotMode ? (
+                                <form onSubmit={onChangePassword} className="space-y-8 max-w-lg">
+                                    {forgotLoading && <p className="text-sm text-blue-600 font-bold animate-pulse">Đang yêu cầu mã OTP...</p>}
+                                    {forgotError && <p className="p-3 bg-red-50 border border-red-100 rounded-xl text-xs font-bold text-red-600">{forgotError}</p>}
+                                    <div className="space-y-6">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Mật khẩu hiện tại</label>
+                                            <Input 
+                                                type="password" 
+                                                value={oldP} 
+                                                onChange={(e) => setOldP(e.target.value)} 
+                                                className="h-12 border-slate-200 focus:ring-blue-500 rounded-xl"
+                                                placeholder="••••••••"
+                                            />
+                                        </div>
+                                        
+                                        <div className="h-px bg-slate-100"></div>
 
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Mật khẩu mới</label>
-                                        <Input 
-                                            type="password" 
-                                            value={newP} 
-                                            onChange={(e) => setNewP(e.target.value)} 
-                                            placeholder="Tối thiểu 6 ký tự"
-                                            className="h-12 border-slate-200 focus:ring-blue-500 rounded-xl"
-                                        />
-                                    </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Mật khẩu mới</label>
+                                            <Input 
+                                                type="password" 
+                                                value={newP} 
+                                                onChange={(e) => setNewP(e.target.value)} 
+                                                placeholder="Tối thiểu 6 ký tự"
+                                                className="h-12 border-slate-200 focus:ring-blue-500 rounded-xl"
+                                            />
+                                        </div>
 
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Xác nhận mật khẩu</label>
-                                        <Input 
-                                            type="password" 
-                                            value={cfm} 
-                                            onChange={(e) => setCfm(e.target.value)} 
-                                            className="h-12 border-slate-200 focus:ring-blue-500 rounded-xl"
-                                            placeholder="Nhập lại mật khẩu mới"
-                                        />
-                                    </div>
-                                </div>
-
-                                {pwdMsg && (
-                                    <div className={`text-sm font-bold p-4 rounded-2xl border ${pwdSuccess ? 'text-emerald-700 bg-emerald-50 border-emerald-100' : 'text-red-600 bg-red-50 border-red-100 animate-in shake-in'}`}>
-                                        <div className="flex items-center gap-2">
-                                            {pwdSuccess ? <CheckCircle2 className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
-                                            {pwdMsg}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Xác nhận mật khẩu</label>
+                                            <Input 
+                                                type="password" 
+                                                value={cfm} 
+                                                onChange={(e) => setCfm(e.target.value)} 
+                                                className="h-12 border-slate-200 focus:ring-blue-500 rounded-xl"
+                                                placeholder="Nhập lại mật khẩu mới"
+                                            />
                                         </div>
                                     </div>
-                                )}
 
-                                <div className="pt-6">
-                                    <Button 
-                                        type="submit" 
-                                        className="w-full sm:w-auto h-12 px-10 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-xl shadow-slate-200 transition-all active:scale-95"
-                                        disabled={isSavingPwd}
-                                    >
-                                        {isSavingPwd ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                ĐANG XỬ LÝ
-                                            </>
-                                        ) : "ĐỔI MẬT KHẨU"}
-                                    </Button>
+                                    {pwdMsg && (
+                                        <div className={`text-sm font-bold p-4 rounded-2xl border ${pwdSuccess ? 'text-emerald-700 bg-emerald-50 border-emerald-100' : 'text-red-600 bg-red-50 border-red-100 animate-in shake-in'}`}>
+                                            <div className="flex items-center gap-2">
+                                                {pwdSuccess ? <CheckCircle2 className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
+                                                {pwdMsg}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                        <Button 
+                                            type="submit" 
+                                            className="w-full sm:w-auto h-12 px-10 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-xl shadow-slate-200 transition-all active:scale-95"
+                                            disabled={isSavingPwd || forgotLoading}
+                                        >
+                                            {isSavingPwd ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                    ĐANG XỬ LÝ
+                                                </>
+                                            ) : "ĐỔI MẬT KHẨU"}
+                                        </Button>
+                                        
+                                        <button 
+                                            type="button" 
+                                            onClick={handleForgotFromProfile}
+                                            className="text-xs font-bold text-blue-600 hover:underline select-none"
+                                            disabled={forgotLoading}
+                                        >
+                                            Quên mật khẩu? Gửi OTP
+                                        </button>
+                                    </div>
+                                </form>
+                            ) : (
+                                <div className="space-y-6 max-w-lg border border-slate-100 p-6 rounded-2xl bg-slate-50/50 animate-in zoom-in-95 duration-200">
+                                    {forgotStep === "otp" && (
+                                        <form onSubmit={handleVerifyOtpFromProfile} className="space-y-4">
+                                            <div>
+                                                <h4 className="text-lg font-bold text-slate-800 mb-1">Xác thực OTP</h4>
+                                                <p className="text-xs text-slate-500">Mã được gửi về Email của bạn. Nhập 6 chữ số:</p>
+                                            </div>
+                                            <Input 
+                                                value={forgotOtp} 
+                                                onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} 
+                                                className="h-12 border-slate-200 text-center text-xl font-bold tracking-widest rounded-xl"
+                                                placeholder="000000"
+                                            />
+                                            {forgotError && <p className="text-xs font-bold text-red-500">{forgotError}</p>}
+                                            <div className="flex justify-between items-center">
+                                                <button type="button" onClick={() => setForgotMode(false)} className="text-xs text-slate-500 font-semibold hover:text-slate-700">Hủy</button>
+                                                <Button type="submit" size="sm" className="bg-blue-600">Xác minh</Button>
+                                            </div>
+                                        </form>
+                                    )}
+
+                                    {forgotStep === "reset" && (
+                                        <form onSubmit={handleResetFromProfile} className="space-y-4">
+                                            <div>
+                                                <h4 className="text-lg font-bold text-slate-800 mb-1">Đặt lại mật khẩu</h4>
+                                                <p className="text-xs text-slate-500">Đặt mật khẩu mới để bảo vệ tài khoản.</p>
+                                            </div>
+                                            <Input 
+                                                type="password"
+                                                value={forgotNewP} 
+                                                onChange={(e) => setForgotNewP(e.target.value)} 
+                                                className="h-12 border-slate-200 rounded-xl"
+                                                placeholder="Nhập mật khẩu mới"
+                                            />
+                                            {forgotError && <p className="text-xs font-bold text-red-500">{forgotError}</p>}
+                                            <Button type="submit" className="w-full bg-slate-900" disabled={forgotLoading}>
+                                                {forgotLoading ? "Đang đặt lại..." : "Đặt lại mật khẩu"}
+                                            </Button>
+                                        </form>
+                                    )}
                                 </div>
-                            </form>
+                            )}
                         </div>
                     )}
                 </div>

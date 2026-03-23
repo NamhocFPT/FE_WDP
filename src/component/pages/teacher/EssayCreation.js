@@ -14,6 +14,7 @@ export default function EssayCreation() {
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState({ text: "", type: "" });
     const [selectedFiles, setSelectedFiles] = useState([]);
+    const [existingFiles, setExistingFiles] = useState([]);
 
     const initialFormState = {
         title: "",
@@ -33,6 +34,14 @@ export default function EssayCreation() {
 
     const [formData, setFormData] = useState(initialFormState);
 
+    const formatDateForInput = (dateStr) => {
+        if (!dateStr) return "";
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return "";
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().substring(0, 16);
+    };
+
     useEffect(() => {
         if (isEditMode) {
             const fetchDetail = async () => {
@@ -43,18 +52,20 @@ export default function EssayCreation() {
                     });
                     const data = await res.json();
                     if (data.success) {
-                        const essay = data.data.find(a => a.id === essayId);
+                        const assessments = data.data.assessments || [];
+                        const essay = assessments.find(a => a.id === essayId);
                         if (essay) {
                             setFormData({
                                 title: essay.title,
                                 instructions: essay.instructions || "",
-                                allow_from: essay.allow_from ? essay.allow_from.substring(0, 16) : "",
-                                due_at: essay.due_at ? essay.due_at.substring(0, 16) : "",
-                                cutoff_at: essay.cutoff_at ? essay.cutoff_at.substring(0, 16) : "",
+                                allow_from: formatDateForInput(essay.allow_from),
+                                due_at: formatDateForInput(essay.due_at),
+                                cutoff_at: formatDateForInput(essay.cutoff_at),
                                 max_score: essay.max_score || 100,
                                 status: essay.status || "published",
                                 settings: essay.settings_json || essay.settings || initialFormState.settings
                             });
+                            setExistingFiles(essay.files || []);
                         }
                     }
                 } catch (error) {
@@ -147,14 +158,21 @@ export default function EssayCreation() {
                         ? formData.settings.allowed_exts.split(',').map(ext => ext.trim())
                         : (formData.settings?.allowed_exts || [".pdf", ".docx", ".zip"])
                 },
-                files: uploadedFileUrls.map((urlInfo, index) => {
-                    const isStr = typeof urlInfo === 'string';
-                    return {
-                        file_url: isStr ? urlInfo : (urlInfo.url || urlInfo.file_url),
-                        original_name: isStr || !urlInfo.original_name ? selectedFiles[index]?.name || "file" : urlInfo.original_name,
-                        mime_type: isStr || !urlInfo.mime_type ? selectedFiles[index]?.type || "application/octet-stream" : urlInfo.mime_type,
-                    };
-                })
+                files: [
+                    ...existingFiles.map(f => ({
+                        file_url: f.file_url,
+                        original_name: f.original_name,
+                        mime_type: f.mime_type || "application/octet-stream"
+                    })),
+                    ...uploadedFileUrls.map((urlInfo, index) => {
+                        const isStr = typeof urlInfo === 'string';
+                        return {
+                            file_url: isStr ? urlInfo : (urlInfo.url || urlInfo.file_url),
+                            original_name: isStr || !urlInfo.original_name ? selectedFiles[index]?.name || "file" : urlInfo.original_name,
+                            mime_type: isStr || !urlInfo.mime_type ? selectedFiles[index]?.type || "application/octet-stream" : urlInfo.mime_type,
+                        };
+                    })
+                ]
             };
 
             const url = isEditMode 
@@ -230,6 +248,14 @@ export default function EssayCreation() {
                                             <span className="text-blue-600 font-semibold">Tải lên</span> hoặc kéo thả file vào đây (Tối đa 50MB)
                                         </div>
                                     </div>
+                                    
+                                    {/* Hiển thị file cũ */}
+                                    {existingFiles.map((f) => (
+                                        <div key={f.id} className="flex justify-between p-2 mt-2 bg-slate-100 rounded-lg text-sm border border-slate-200 items-center">
+                                            <span className="font-medium text-slate-700">📎 {f.original_name} <span className="text-xs text-slate-400">(File cũ)</span></span>
+                                            <button type="button" onClick={() => setExistingFiles(prev => prev.filter(x => x.id !== f.id))} className="text-red-500 hover:text-red-700 font-bold p-1">Xóa</button>
+                                        </div>
+                                    ))}
                                     {selectedFiles.map((f, i) => (
                                         <div key={i} className="flex justify-between p-2 mt-2 bg-blue-50 rounded-lg text-sm border border-blue-100 items-center">
                                             <span className="font-medium text-slate-700">{f.name} ({(f.size/1024/1024).toFixed(2)} MB)</span>
@@ -249,7 +275,7 @@ export default function EssayCreation() {
                                     <div>
                                         <label className="mb-1 block text-sm font-semibold text-slate-700">Mở cổng nộp bài từ</label>
                                         <input type="datetime-local" name="allow_from" value={formData.allow_from} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400" />
-                                        <p className="text-xs text-slate-400 mt-1">SV không thể nộp bài trước thời điểm này</p>
+                                        <p className="text-xs text-slate-400 mt-1">Học sinh không thể nộp bài trước thời điểm này</p>
                                     </div>
                                     <div>
                                         <label className="mb-1 block text-sm font-semibold text-slate-700">Hạn nộp (Due Date) <span className="text-red-500">*</span></label>
@@ -257,14 +283,14 @@ export default function EssayCreation() {
                                         <p className="text-xs text-slate-400 mt-1">Nộp sau hạn sẽ bị đánh dấu là nộp muộn</p>
                                     </div>
                                     <div>
-                                        <label className="mb-1 block text-sm font-semibold text-slate-700">Thời gian đóng cổng tuyệt đối</label>
+                                        <label className="mb-1 block text-sm font-semibold text-slate-700">Thời gian đóng cổng nộp bài</label>
                                         <input type="datetime-local" name="cutoff_at" value={formData.cutoff_at} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400" />
                                         <p className="text-xs text-slate-400 mt-1">Hệ thống chặn nộp bài sau thời gian này</p>
                                     </div>
                                     <div>
                                         <label className="mb-1 block text-sm font-semibold text-slate-700">Thang điểm tối đa</label>
                                         <Input type="number" name="max_score" value={formData.max_score} onChange={handleInputChange} min="0" step="0.5" />
-                                        <p className="text-xs text-slate-400 mt-1">Mặc định là 100</p>
+
                                     </div>
                                 </div>
                             </CardContent>

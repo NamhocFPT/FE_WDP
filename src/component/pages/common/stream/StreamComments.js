@@ -179,7 +179,7 @@ function CommentItem({ comment, classId, depth = 0, onCommentChanged, onReply, o
             <span className="text-sm font-bold text-slate-800">{authorName}</span>
             {authorRole === "teacher" && (
               <Badge tone="green" className="text-[10px] py-0">
-                Giảng viên
+                Giáo viên
               </Badge>
             )}
             <span className="text-xs text-slate-400">{formatTime(comment.created_at)}</span>

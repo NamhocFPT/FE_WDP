@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge, Input, cn } from "component/ui";
+import * as XLSX from "xlsx";
 
 export default function SubmissionList() {
-    const { assessmentId } = useParams();
+    const { classId, assessmentId } = useParams();
     const navigate = useNavigate();
     
     const [assessment, setAssessment] = useState(null); // Thêm state lưu thông tin bài tập
@@ -37,7 +38,7 @@ const fetchSubmissions = async () => {
                 const gradedCount = submissionsList.filter(s => s.status === 'graded' || (s.grade && s.grade.final_score !== null && s.grade.final_score !== undefined)).length;
                 
                 setStats({ 
-                    total: submissionsList.length, 
+                    total: result.data.studentCount || 0, 
                     submitted: submittedCount, 
                     graded: gradedCount 
                 });
@@ -52,6 +53,87 @@ const fetchSubmissions = async () => {
     useEffect(() => { 
         if (assessmentId) fetchSubmissions(); 
     }, [assessmentId]);
+
+    // Hàm tải file thông minh: Tự động đoán và gắn lại đuôi file nếu bị mất
+    const handleDownload = async (fileUrl, originalName) => {
+        const BASE_URL = "http://localhost:9999";
+        try {
+            let targetUrl = fileUrl?.startsWith('http') ? fileUrl : `${BASE_URL}${fileUrl}`;
+            
+            const response = await fetch(targetUrl);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+
+            let finalName = originalName || "document";
+            
+            if (!/\.(pdf|doc|docx|png|jpg|jpeg|zip|rar)$/i.test(finalName)) {
+                const extMatch = targetUrl.match(/\.(pdf|doc|docx|png|jpg|jpeg|zip|rar)(?:\?|#|$)/i);
+                if (extMatch) {
+                    finalName = `${finalName}${extMatch[0]}`;
+                } else {
+                    const mimeType = blob.type;
+                    if (mimeType === 'application/pdf') finalName += '.pdf';
+                    else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') finalName += '.docx';
+                    else if (mimeType === 'application/msword') finalName += '.doc';
+                    else if (mimeType.startsWith('image/')) finalName += '.png'; 
+                    else finalName += '.zip'; 
+                }
+            }
+
+            link.setAttribute('download', finalName);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Lỗi fetch blob, mở link trực tiếp:", error);
+            let finalName = originalName || "document";
+            let downloadUrl = fileUrl;
+            
+            if (downloadUrl && downloadUrl.includes('/upload/') && downloadUrl.includes('res.cloudinary.com')) {
+                downloadUrl = downloadUrl.replace('/upload/', `/upload/fl_attachment:${encodeURIComponent(finalName)}/`);
+            } else if (downloadUrl && !downloadUrl.startsWith('http')) {
+                 downloadUrl = `${BASE_URL}${downloadUrl}`;
+            }
+            window.open(downloadUrl, '_blank'); 
+        }
+    };
+
+    const handleExportExcel = () => {
+        if (!submissions || submissions.length === 0) return;
+
+        const data = [
+            ["Học sinh", "Email", "Trạng thái nộp", "Trạng thái chấm", "Điểm số", "Thời gian nộp"]
+        ];
+
+        submissions.forEach(s => {
+            const hasSubmitted = ['submitted', 'submitted_late', 'graded'].includes(s.status);
+            const isGraded = s.status === 'graded' || (s.grade && s.grade.final_score !== null);
+            const isLate = s.status === 'submitted_late' || (assessment?.due_at && s.submitted_at && new Date(s.submitted_at) > new Date(assessment.due_at));
+
+            const statusNop = !hasSubmitted ? 'Chưa nộp' : (isLate ? 'Nộp muộn' : 'Đúng hạn');
+            const statusCham = !hasSubmitted ? '-' : (isGraded ? 'Đã chấm' : 'Chưa chấm');
+            const diem = isGraded ? s.grade.final_score : '---';
+            const thoiGian = s.submitted_at ? new Date(s.submitted_at).toLocaleString('vi-VN') : '-';
+
+            data.push([
+                s.student?.full_name || '-',
+                s.student?.email || '-',
+                statusNop,
+                statusCham,
+                diem,
+                thoiGian
+            ]);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Danh sách nộp bài");
+
+        XLSX.writeFile(wb, `${assessment?.title || 'Diem_Bai_Tap'}_Bang_Diem.xlsx`);
+    };
 
     // BỘ LỌC THÔNG MINH
     const filteredData = submissions.filter(s => {
@@ -73,10 +155,9 @@ const fetchSubmissions = async () => {
         <div className="space-y-6">
             <PageHeader 
                 title="Danh sách bài nộp" 
-                subtitle={`Mã bài tập: ${assessmentId.substring(0, 8)}...`}
                 right={[
                     <Button key="back" variant="outline" onClick={() => navigate(-1)}>Quay lại</Button>,
-                    <Button key="dl" className="bg-slate-800 text-white">Tải xuống tất cả (.zip)</Button>
+                    <Button key="dl" className="bg-emerald-600 text-white hover:bg-emerald-700" onClick={handleExportExcel}>Xuất điểm Excel</Button>
                 ]}
             />
 
@@ -85,11 +166,7 @@ const fetchSubmissions = async () => {
                 <Card className="border-blue-100 shadow-sm bg-white">
                     <CardContent className="p-6">
                         <h2 className="text-xl font-bold text-slate-800 mb-4">{assessment.title}</h2>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4 border-b pb-4">
-                            <div>
-                                <p className="text-slate-500 font-semibold mb-1">Khóa học</p>
-                                <p className="font-medium">{assessment.Course?.name || '---'}</p>
-                            </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4 border-b pb-4">
                             <div>
                                 <p className="text-slate-500 font-semibold mb-1">Hạn nộp bài</p>
                                 <p className="font-medium text-red-600">
@@ -121,7 +198,7 @@ const fetchSubmissions = async () => {
             {assessment.files.map((file) => (
                 <button 
                     key={file.id}
-                    onClick={() => window.open(file.file_url, '_blank')}
+                    onClick={() => handleDownload(file.file_url, file.original_name)}
                     className="flex items-center text-left gap-3 p-3 rounded-xl border border-blue-50 bg-blue-50/20 hover:bg-blue-50 hover:border-blue-200 transition-all group w-full"
                 >
                     <span className="text-2xl group-hover:scale-110 transition-transform">📄</span>
@@ -141,23 +218,35 @@ const fetchSubmissions = async () => {
             )}
 
             {/* KHỐI THỐNG KÊ NHANH */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 <Card className="bg-blue-50 border-blue-100 shadow-sm">
                     <CardContent className="p-4 text-center">
-                        <p className="text-xs text-blue-600 font-bold uppercase mb-1">Tổng sinh viên</p>
-                        <p className="text-3xl font-black text-blue-700">{stats.total}</p>
+                        <p className="text-xs text-blue-600 font-bold uppercase mb-1">Tổng học sinh lớp</p>
+                        <p className="text-2xl font-black text-blue-700">{stats.total}</p>
                     </CardContent>
                 </Card>
                 <Card className="bg-green-50 border-green-100 shadow-sm">
                     <CardContent className="p-4 text-center">
                         <p className="text-xs text-green-600 font-bold uppercase mb-1">Đã nộp bài</p>
-                        <p className="text-3xl font-black text-green-700">{stats.submitted}</p>
+                        <p className="text-2xl font-black text-green-700">{stats.submitted}</p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-red-50 border-red-100 shadow-sm">
+                    <CardContent className="p-4 text-center">
+                        <p className="text-xs text-red-600 font-bold uppercase mb-1">Chưa nộp bài</p>
+                        <p className="text-2xl font-black text-red-700">{Math.max(0, stats.total - stats.submitted)}</p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-emerald-50 border-emerald-100 shadow-sm">
+                    <CardContent className="p-4 text-center">
+                        <p className="text-xs text-emerald-600 font-bold uppercase mb-1">Đã chấm điểm</p>
+                        <p className="text-2xl font-black text-emerald-700">{stats.graded}</p>
                     </CardContent>
                 </Card>
                 <Card className="bg-amber-50 border-amber-100 shadow-sm">
                     <CardContent className="p-4 text-center">
-                        <p className="text-xs text-amber-600 font-bold uppercase mb-1">Cần chấm điểm</p>
-                        <p className="text-3xl font-black text-amber-700">{Math.max(0, stats.submitted - stats.graded)}</p>
+                        <p className="text-xs text-amber-600 font-bold uppercase mb-1">Chưa chấm điểm</p>
+                        <p className="text-2xl font-black text-amber-700">{Math.max(0, stats.submitted - stats.graded)}</p>
                     </CardContent>
                 </Card>
             </div>
@@ -184,7 +273,7 @@ const fetchSubmissions = async () => {
                         <Table>
                             <thead>
                                 <tr>
-                                    <Th>Sinh viên</Th>
+                                    <Th>Học sinh</Th>
                                     <Th>Trạng thái nộp</Th>  
                                     <Th>Trạng thái chấm</Th>  
                                     <Th>Điểm số</Th>
@@ -263,14 +352,15 @@ const fetchSubmissions = async () => {
 
                                             {/* NÚT THAO TÁC */}
                                             <Td className="text-right">
-                                                <Button 
-                                                    size="sm" 
-                                                    className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-                                                    onClick={() => navigate(`/teacher/grading/${s.id}`, { state: { submissionIds: filteredData.map(sub => sub.id) } })}
-                                                    disabled={!hasSubmitted}
-                                                >
-                                                    {isGraded ? 'Xem / Sửa điểm' : 'Chấm điểm'}
-                                                </Button>
+                                                {hasSubmitted && (
+                                                    <Button 
+                                                        size="sm" 
+                                                        className="bg-blue-600 text-white hover:bg-blue-700"
+                                                        onClick={() => navigate(`/teacher/classes/${classId}/assessments/${assessmentId}/submissions/${s.id}/grade`, { state: { submissionIds: filteredData.map(sub => sub.id) } })}
+                                                    >
+                                                        {isGraded ? 'Xem / Sửa điểm' : 'Chấm điểm'}
+                                                    </Button>
+                                                )}
                                             </Td>
                                         </tr>
                                     );

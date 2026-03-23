@@ -45,7 +45,7 @@ export default function StudentQuizResult() {
                         <div className="text-6xl mb-4">❌</div>
                         <h2 className="text-2xl font-black text-red-600 mb-3">Nộp bài thất bại</h2>
                         <p className="text-slate-600 mb-6 leading-relaxed">
-                            {errorMsg || "Đã xảy ra lỗi khi nộp bài. Vui lòng thử lại hoặc liên hệ giảng viên."}
+                            {errorMsg || "Đã xảy ra lỗi khi nộp bài. Vui lòng thử lại hoặc liên hệ giáo viên."}
                         </p>
                         <div className="flex justify-center gap-3">
                             <Button variant="outline" onClick={() => nav(-1)}>
@@ -108,23 +108,32 @@ export default function StudentQuizResult() {
                             <div className="text-xl mb-1">⏳</div>
                             <div className="font-bold text-amber-800 text-sm">Điểm sẽ được công bố sau</div>
                             <div className="text-xs text-amber-600 mt-1">
-                                {message || "Giảng viên sẽ công bố điểm khi đóng đề thi."}
+                                {message || "Giáo viên sẽ công bố điểm khi đóng đề thi."}
                             </div>
                         </div>
                     )}
 
                     {/* Actions */}
                     <div className="flex flex-col gap-3 pt-2">
+                        {result.submissionId && (
+                            <Button
+                                variant="primary"
+                                className="w-full py-3 text-base"
+                                onClick={() => nav(`/student/attempts/${result.submissionId}/review`)}
+                            >
+                                Xem chi tiết bài làm
+                            </Button>
+                        )}
                         <Button
-                            variant="primary"
-                            className="w-full py-3 text-base"
+                            variant="outline"
+                            className="w-full"
                             onClick={() => nav("/student/grades")}
                         >
                             Xem bảng điểm
                         </Button>
                         <Button
                             variant="outline"
-                            className="w-full"
+                            className="w-full text-slate-500"
                             onClick={() => nav("/student")}
                         >
                             Về trang chủ

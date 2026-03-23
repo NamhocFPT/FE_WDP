@@ -106,9 +106,9 @@ export default function GradingPage() {
                                                     className={g.type === 'QUIZ' ? "bg-purple-600 hover:bg-purple-700 text-white font-semibold" : "bg-blue-600 hover:bg-blue-700 text-white font-semibold"}
                                                     onClick={() => {
                                                         if (g.type === 'QUIZ') {
-                                                            navigate(`/teacher/assessments/${g.id}/quiz-attempts`);
+                                                            navigate(`/teacher/classes/${g.classId}/assessments/${g.id}/quiz-attempts`);
                                                         } else {
-                                                            navigate(`/teacher/assessments/${g.id}/submissions`);
+                                                            navigate(`/teacher/classes/${g.classId}/assessments/${g.id}/submissions`);
                                                         }
                                                     }}
                                                 >
