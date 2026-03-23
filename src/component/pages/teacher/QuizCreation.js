@@ -20,6 +20,13 @@ function fromISOToLocal(isoString) {
     return d.toISOString().slice(0, 16);
 }
 
+function getMinDateTimeLocal() {
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    return new Date(now - offset).toISOString().slice(0, 16);
+}
+
+
 export default function QuizCreation() {
     const nav = useNavigate();
     const [sp] = useSearchParams();
@@ -53,8 +60,10 @@ export default function QuizCreation() {
         gradeMethod: "highest", // highest | average | last
         shuffleQuestions: false,
 
-        // review
         reviewOption: "after_submit", // after_submit | after_close
+
+        // points
+        maxScore: 10,
     });
 
     const [errors, setErrors] = useState({});
@@ -73,10 +82,23 @@ export default function QuizCreation() {
         // E1: title required
         if (!form.title.trim()) e.title = "Vui lòng nhập tên bài kiểm tra";
 
-        // E2: close < open
         const openISO = toISO(form.openAtLocal);
         const closeISO = toISO(form.closeAtLocal);
+
+        const now = Date.now();
+        // Prevent past dates only on creation
+        if (!isEditMode) {
+            if (openISO && new Date(openISO).getTime() < now - 60000) {
+                e.openAtLocal = "Thời gian bắt đầu không thể ở quá khứ";
+            }
+            if (closeISO && new Date(closeISO).getTime() < now - 60000) {
+                e.closeAtLocal = "Thời gian kết thúc không thể ở quá khứ";
+            }
+        }
+
+        // E2: close < open
         if (openISO && closeISO) {
+
             const open = new Date(openISO).getTime();
             const close = new Date(closeISO).getTime();
             if (close <= open) e.closeAtLocal = "Thời gian kết thúc phải diễn ra sau thời gian bắt đầu";
@@ -129,7 +151,8 @@ export default function QuizCreation() {
                             attemptLimit: quizData.attempt_limit === null ? "0" : String(quizData.attempt_limit || "1"),
                             gradeMethod: settings.gradeMethod || "highest",
                             shuffleQuestions: !!settings.shuffleQuestions,
-                            reviewOption: settings.reviewOption || "after_submit"
+                            reviewOption: settings.reviewOption || "after_submit",
+                            maxScore: quizData.max_score || 10
                         }));
                     }
                 }
@@ -190,6 +213,7 @@ export default function QuizCreation() {
 
             openAt,
             closeAt,
+            max_score: Number(form.maxScore),
         };
     };
 
@@ -337,7 +361,9 @@ export default function QuizCreation() {
                                     <Input
                                         type="datetime-local"
                                         value={form.openAtLocal}
+                                        min={!isEditMode ? getMinDateTimeLocal() : undefined}
                                         onChange={(e) => setField("openAtLocal", e.target.value)}
+
                                         className={errors.openAtLocal ? "border-red-400" : ""}
                                     />
                                     {errors.openAtLocal ? (
@@ -350,7 +376,9 @@ export default function QuizCreation() {
                                     <Input
                                         type="datetime-local"
                                         value={form.closeAtLocal}
+                                        min={form.openAtLocal || (!isEditMode ? getMinDateTimeLocal() : undefined)}
                                         onChange={(e) => setField("closeAtLocal", e.target.value)}
+
                                         className={errors.closeAtLocal ? "border-red-400" : ""}
                                     />
                                     {errors.closeAtLocal ? (
@@ -405,6 +433,17 @@ export default function QuizCreation() {
                                         <option value="average">Lấy điểm trung bình</option>
                                         <option value="last">Lấy điểm lần cuối</option>
                                     </select>
+                                </div>
+
+                                <div>
+                                    <div className="mb-1 text-xs font-semibold text-slate-600">Thang điểm tối đa</div>
+                                    <Input
+                                        type="number"
+                                        value={form.maxScore}
+                                        onChange={(e) => setField("maxScore", e.target.value)}
+                                        min="0"
+                                        step="0.5"
+                                    />
                                 </div>
                             </div>
 
@@ -490,6 +529,12 @@ export default function QuizCreation() {
                                         {form.attemptLimit === "0" ? "Không giới hạn" : `${form.attemptLimit} lần`}
                                     </span>
                                 </div>
+
+                                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                                    <span className="text-slate-500 font-medium">Thang điểm tối đa</span>
+                                    <span className="font-bold text-slate-800">{form.maxScore || "10"} điểm</span>
+                                </div>
+
 
                                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                                     <span className="text-slate-500 font-medium">Lấy điểm</span>

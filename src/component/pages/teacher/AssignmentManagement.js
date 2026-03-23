@@ -137,6 +137,7 @@ export default function AssignmentManagement() {
                                 <thead>
                                     <tr>
                                         <Th>Tiêu đề</Th>
+                                        <Th>Thời gian mở</Th>
                                         <Th>Hạn nộp</Th>
                                         <Th>Thang điểm</Th>
                                         <Th>Trạng thái</Th>
@@ -161,6 +162,9 @@ export default function AssignmentManagement() {
                                                     {a.title}
                                                 </div>
                                                 <div className="text-xs text-slate-400 mt-1">{a.type?.toUpperCase() === 'QUIZ' ? '(Trắc nghiệm)' : '(Tự luận)'}</div>
+                                            </Td>
+                                            <Td className="text-sm text-slate-600 font-medium whitespace-nowrap">
+                                                {a.allow_from ? new Date(a.allow_from).toLocaleString('vi-VN') : (a.settings_json?.openAt ? new Date(a.settings_json.openAt).toLocaleString('vi-VN') : "Ngay lập tức")}
                                             </Td>
                                             <Td>{a.due_at ? new Date(a.due_at).toLocaleString('vi-VN') : "Không có hạn"}</Td>
                                             <Td><Badge tone="amber">{a.max_score || 100}</Badge></Td>

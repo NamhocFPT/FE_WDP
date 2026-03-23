@@ -22,13 +22,13 @@ export default function EssayCreation() {
         allow_from: "",
         due_at: "",
         cutoff_at: "",
-        max_score: 100,
+        max_score: 10,
         status: "published",
         settings: {
             file_submission: true,
             max_files: 1,
             max_size_mb: 50,
-            allowed_exts: ".pdf,.docx,.doc,.zip,.rar" 
+            allowed_exts: ".pdf,.docx,.doc,.zip,.rar"
         }
     };
 
@@ -96,7 +96,7 @@ export default function EssayCreation() {
             setMessage({ text: "Một số file vượt quá 50MB đã bị loại bỏ.", type: "error" });
         }
         setSelectedFiles(prev => [...prev, ...validFiles]);
-        e.target.value = null; 
+        e.target.value = null;
     };
 
     const removeFile = (index) => setSelectedFiles(prev => prev.filter((_, i) => i !== index));
@@ -105,6 +105,23 @@ export default function EssayCreation() {
         const allowFromDate = formData.allow_from ? new Date(formData.allow_from) : null;
         const dueAtDate = formData.due_at ? new Date(formData.due_at) : null;
         const cutoffAtDate = formData.cutoff_at ? new Date(formData.cutoff_at) : null;
+
+        const now = Date.now();
+        // E1: Thời gian bắt đầu ở quá khứ
+        if (!isEditMode && allowFromDate && allowFromDate.getTime() < now - 60000) {
+            setMessage({ text: "Thời gian bắt đầu mở cổng không được nằm trong quá khứ. Vui lòng chọn thời điểm hiện tại hoặc tương lai.", type: "error" });
+            return false;
+        }
+
+        if (!isEditMode && dueAtDate && dueAtDate.getTime() < now - 60000) {
+            setMessage({ text: "Hạn nộp không được nằm trong quá khứ.", type: "error" });
+            return false;
+        }
+
+        if (!isEditMode && cutoffAtDate && cutoffAtDate.getTime() < now - 60000) {
+            setMessage({ text: "Thời gian đóng cổng không được nằm trong quá khứ.", type: "error" });
+            return false;
+        }
 
         if (allowFromDate && dueAtDate && allowFromDate > dueAtDate) {
             setMessage({ text: "Thời gian mở cổng nộp bài phải diễn ra trước Hạn nộp.", type: "error" });
@@ -119,7 +136,7 @@ export default function EssayCreation() {
 
     const onSubmit = async (e, customStatus = null) => {
         if (e) e.preventDefault();
-        
+
         if (!validateDates()) return;
 
         setSubmitting(true);
@@ -154,7 +171,7 @@ export default function EssayCreation() {
                     file_submission: true,
                     max_files: Number(formData.settings?.max_files || 1),
                     max_size_mb: Number(formData.settings?.max_size_mb || 50),
-                    allowed_exts: typeof formData.settings?.allowed_exts === 'string' 
+                    allowed_exts: typeof formData.settings?.allowed_exts === 'string'
                         ? formData.settings.allowed_exts.split(',').map(ext => ext.trim())
                         : (formData.settings?.allowed_exts || [".pdf", ".docx", ".zip"])
                 },
@@ -175,10 +192,10 @@ export default function EssayCreation() {
                 ]
             };
 
-            const url = isEditMode 
+            const url = isEditMode
                 ? `http://localhost:9999/api/teacher/classes/${classId}/assessments/essay/${essayId}`
                 : `http://localhost:9999/api/teacher/classes/${classId}/assessments/essay`;
-            
+
             const method = isEditMode ? "PUT" : "POST";
 
             const response = await fetch(url, {
@@ -229,17 +246,17 @@ export default function EssayCreation() {
                         <Card className="hover:shadow-xl transition-all duration-300 border-white hover:border-blue-200 hover:-translate-y-1 bg-white/70 backdrop-blur-sm">
                             <CardContent className="space-y-4 p-5">
                                 <h3 className="text-sm font-bold text-slate-900 border-b pb-2">1. Thông tin chung</h3>
-                                
+
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold text-slate-700">Tiêu đề bài tập <span className="text-red-500">*</span></label>
                                     <Input name="title" value={formData.title} onChange={handleInputChange} placeholder="VD: Bài tập về nhà tuần 1" required />
                                 </div>
-                                
+
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold text-slate-700">Hướng dẫn / Yêu cầu đề bài</label>
                                     <textarea name="instructions" value={formData.instructions} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 p-3 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400" rows="5" placeholder="Nhập nội dung yêu cầu chi tiết..." />
                                 </div>
-                                
+
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold text-slate-700">Tải lên file đính kèm (Cho Sinh viên)</label>
                                     <div className="relative border-2 border-dashed border-slate-300 rounded-xl p-6 text-center bg-slate-50 hover:bg-slate-100 transition-colors">
@@ -248,7 +265,7 @@ export default function EssayCreation() {
                                             <span className="text-blue-600 font-semibold">Tải lên</span> hoặc kéo thả file vào đây (Tối đa 50MB)
                                         </div>
                                     </div>
-                                    
+
                                     {/* Hiển thị file cũ */}
                                     {existingFiles.map((f) => (
                                         <div key={f.id} className="flex justify-between p-2 mt-2 bg-slate-100 rounded-lg text-sm border border-slate-200 items-center">
@@ -258,7 +275,7 @@ export default function EssayCreation() {
                                     ))}
                                     {selectedFiles.map((f, i) => (
                                         <div key={i} className="flex justify-between p-2 mt-2 bg-blue-50 rounded-lg text-sm border border-blue-100 items-center">
-                                            <span className="font-medium text-slate-700">{f.name} ({(f.size/1024/1024).toFixed(2)} MB)</span>
+                                            <span className="font-medium text-slate-700">{f.name} ({(f.size / 1024 / 1024).toFixed(2)} MB)</span>
                                             <button type="button" onClick={() => removeFile(i)} className="text-red-500 hover:text-red-700 font-bold p-1">Xóa</button>
                                         </div>
                                     ))}
@@ -270,21 +287,21 @@ export default function EssayCreation() {
                         <Card className="hover:shadow-xl transition-all duration-300 border-white hover:border-blue-200 hover:-translate-y-1 bg-white/70 backdrop-blur-sm">
                             <CardContent className="space-y-4 p-5">
                                 <h3 className="text-sm font-bold text-slate-900 border-b pb-2">2. Thời hạn & Điểm số</h3>
-                                
+
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div>
                                         <label className="mb-1 block text-sm font-semibold text-slate-700">Mở cổng nộp bài từ</label>
-                                        <input type="datetime-local" name="allow_from" value={formData.allow_from} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400" />
+                                        <input type="datetime-local" name="allow_from" value={formData.allow_from} min={!isEditMode ? new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().substring(0, 16) : undefined} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400" />
                                         <p className="text-xs text-slate-400 mt-1">Học sinh không thể nộp bài trước thời điểm này</p>
                                     </div>
                                     <div>
-                                        <label className="mb-1 block text-sm font-semibold text-slate-700">Hạn nộp (Due Date) <span className="text-red-500">*</span></label>
-                                        <input type="datetime-local" name="due_at" value={formData.due_at} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400" required />
+                                        <label className="mb-1 block text-sm font-semibold text-slate-700">Hạn nộp <span className="text-red-500">*</span></label>
+                                        <input type="datetime-local" name="due_at" value={formData.due_at} min={!isEditMode ? new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().substring(0, 16) : undefined} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400" required />
                                         <p className="text-xs text-slate-400 mt-1">Nộp sau hạn sẽ bị đánh dấu là nộp muộn</p>
                                     </div>
                                     <div>
                                         <label className="mb-1 block text-sm font-semibold text-slate-700">Thời gian đóng cổng nộp bài</label>
-                                        <input type="datetime-local" name="cutoff_at" value={formData.cutoff_at} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400" />
+                                        <input type="datetime-local" name="cutoff_at" value={formData.cutoff_at} min={!isEditMode ? new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().substring(0, 16) : undefined} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400" />
                                         <p className="text-xs text-slate-400 mt-1">Hệ thống chặn nộp bài sau thời gian này</p>
                                     </div>
                                     <div>
@@ -300,7 +317,7 @@ export default function EssayCreation() {
                         <Card className="hover:shadow-xl transition-all duration-300 border-white hover:border-blue-200 hover:-translate-y-1 bg-white/70 backdrop-blur-sm">
                             <CardContent className="space-y-4 p-5">
                                 <h3 className="text-sm font-bold text-slate-900 border-b pb-2">3. Hình thức nộp bài: Định dạng File đính kèm</h3>
-                                
+
                                 <div className="grid gap-4 md:grid-cols-3 mt-4 bg-blue-50 p-4 rounded-xl border border-blue-100">
                                     <div>
                                         <label className="mb-1 block text-xs font-semibold text-slate-600">Số file tối đa</label>
@@ -331,24 +348,24 @@ export default function EssayCreation() {
                             <div className="space-y-3.5 text-sm">
                                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                                     <span className="text-slate-500 font-medium text-xs">Phân loại</span>
-                                    <Badge tone="indigo">Tự luận (Essay)</Badge>
+                                    <Badge tone="indigo">Tự luận</Badge>
                                 </div>
 
                                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                                    <span className="text-slate-500 font-medium text-xs flex items-center gap-1.5"><Clock size={14}/> Mở nhận bài</span>
-                                    <span className="font-bold text-slate-800">{formData.allow_from ? new Date(formData.allow_from).toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'}) : "Mở ngay lập tức"}</span>
+                                    <span className="text-slate-500 font-medium text-xs flex items-center gap-1.5"><Clock size={14} /> Mở nhận bài</span>
+                                    <span className="font-bold text-slate-800">{formData.allow_from ? new Date(formData.allow_from).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : "Mở ngay lập tức"}</span>
                                 </div>
 
                                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                                    <span className="text-slate-500 font-medium text-xs flex items-center gap-1.5"><Clock size={14} className="text-red-500"/> Hạn chót</span>
-                                    <span className="font-bold text-red-600">{formData.due_at ? new Date(formData.due_at).toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'}) : "Chưa cài đặt"}</span>
+                                    <span className="text-slate-500 font-medium text-xs flex items-center gap-1.5"><Clock size={14} className="text-red-500" /> Hạn chót</span>
+                                    <span className="font-bold text-red-600">{formData.due_at ? new Date(formData.due_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : "Chưa cài đặt"}</span>
                                 </div>
 
                                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                                     <span className="text-slate-500 font-medium text-xs">Thang điểm</span>
                                     <span className="font-bold text-slate-800">{formData.max_score} điểm</span>
                                 </div>
-                                
+
                                 <div className="flex flex-col gap-1 pb-2 border-b border-slate-100">
                                     <span className="text-slate-500 font-medium text-xs">Phương thức nộp</span>
                                     <div className="flex flex-col gap-1 mt-1">
@@ -363,12 +380,12 @@ export default function EssayCreation() {
 
                             <div className="pt-2 border-t border-slate-100 flex flex-col gap-3">
                                 <Button type="submit" form="essay-form" className="w-full justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 rounded-xl shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-0.5 transition-all duration-200" disabled={submitting}>
-                                    <CheckCircle size={18} className="mr-1.5" /> 
+                                    <CheckCircle size={18} className="mr-1.5" />
                                     {isEditMode ? "Cập nhật bài tập" : "Lưu & Công bố"}
                                 </Button>
                                 {!isEditMode && (
                                     <Button variant="outline" className="w-full justify-center py-2.5 bg-white shadow-sm hover:bg-slate-50 transition-colors rounded-xl font-medium text-slate-700" onClick={(e) => onSubmit(e, "draft")} disabled={submitting}>
-                                        Lưu nháp (Ẩn với user)
+                                        Lưu nháp
                                     </Button>
                                 )}
                                 <Button variant="ghost" className="w-full justify-center py-2.5 text-slate-500 hover:bg-slate-50 transition-colors rounded-xl" onClick={() => navigate(-1)} disabled={submitting}>

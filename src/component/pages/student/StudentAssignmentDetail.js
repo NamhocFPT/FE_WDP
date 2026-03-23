@@ -177,6 +177,7 @@ export default function StudentAssignmentDetail() {
 
     const now = new Date();
     const isPastCutoff = assessment.cutoff_at && now > new Date(assessment.cutoff_at);
+    const isUpcoming = assessment.allow_from && now < new Date(assessment.allow_from);
     const isQuiz = assessment.type === 'QUIZ';
 
     // ─── QUIZ TYPE: Redirect to quiz flow ───
@@ -191,6 +192,9 @@ export default function StudentAssignmentDetail() {
                 return JSON.parse(assessment.instructions.slice(idx + marker.length).trim());
             } catch { return {}; }
         })();
+
+        const openAt = settings.openAt ? new Date(settings.openAt) : (assessment.allow_from ? new Date(assessment.allow_from) : null);
+        const isQuizUpcoming = openAt && now < openAt;
 
         return (
             <div className="space-y-6">
@@ -282,6 +286,8 @@ export default function StudentAssignmentDetail() {
                         {/* CTA */}
                         {!isPastCutoff && (
                             <>
+                                {!isQuizUpcoming ? (
+                                    <>
                                 {hasInProgress && submission?.id ? (
                                     <Button
                                         className="w-full py-5 text-base font-bold"
@@ -315,7 +321,14 @@ export default function StudentAssignmentDetail() {
                                         <PlayCircle className="h-5 w-5 mr-2" />
                                         {hasFinished ? 'Làm lại bài' : 'Bắt đầu làm bài'}
                                     </Button>
+                                    )}
+                                    </>
+                                ) : (
+                                    <div className="p-4 bg-amber-50 text-amber-600 text-sm font-semibold text-center rounded-xl border border-amber-100">
+                                        Bài kiểm tra sẽ mở vào lúc {openAt ? openAt.toLocaleString('vi-VN') : "---"}
+                                    </div>
                                 )}
+
                             </>
                         )}
                         {isPastCutoff && (
@@ -498,7 +511,7 @@ export default function StudentAssignmentDetail() {
                     )}
 
                     {/* ĐÃ CẬP NHẬT: Thêm điều kiện kiểm tra trạng thái 'graded' */}
-                    {!isEditing && !isPastCutoff && (!submission || submission.status !== 'graded') && (
+                    {!isEditing && !isPastCutoff && !isUpcoming && (!submission || submission.status !== 'graded') && (
                         <Button 
                             className="w-full bg-blue-600 text-white py-6 text-lg font-bold rounded-2xl shadow-blue-200 shadow-xl hover:bg-blue-700 transition-all hover:-translate-y-1"
                             onClick={() => setIsEditing(true)}
@@ -510,6 +523,11 @@ export default function StudentAssignmentDetail() {
                     {/* CẢNH BÁO: Hiển thị nếu đã quá hạn hoặc bài đã được chấm */}
                     {!isEditing && (
                         <>
+                            {isUpcoming && (
+                                <div className="p-4 bg-amber-50 text-amber-600 text-sm font-semibold text-center rounded-xl border border-amber-100">
+                                    Cổng nộp bài sẽ mở vào lúc {new Date(assessment.allow_from).toLocaleString('vi-VN')}
+                                </div>
+                            )}
                             {isPastCutoff && (
                                 <div className="p-4 bg-red-50 text-red-600 text-sm font-semibold text-center rounded-xl border border-red-100">
                                     Hệ thống đã đóng cổng nộp bài.

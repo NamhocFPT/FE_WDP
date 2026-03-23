@@ -9,14 +9,14 @@ import * as XLSX from "xlsx";
 export default function TeacherGradebook() {
     const { classId } = useParams();
     const navigate = useNavigate();
-    
+
     const [activeTab, setActiveTab] = useState("grid"); // "grid" | "assessments"
     const [assessments, setAssessments] = useState([]);
     const [students, setStudents] = useState([]);
     const [grades, setGrades] = useState({}); // { [studentId]: { [assessmentId]: score } }
     const [loading, setLoading] = useState(true);
     const [className, setClassName] = useState(`lớp ${classId}`);
-    
+
     // Pagination for list view
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
@@ -27,22 +27,22 @@ export default function TeacherGradebook() {
 
         await Promise.all(assessmentsData.map(async (a) => {
             try {
-                const url = String(a.type).toUpperCase() === 'QUIZ' 
+                const url = String(a.type).toUpperCase() === 'QUIZ'
                     ? `http://localhost:9999/api/teacher/quizzes/${a.id}/attempts`
                     : `http://localhost:9999/api/teacher/assessments/${a.id}/submissions`;
-                
+
                 const res = await fetch(url, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 const result = await res.json();
-                
+
                 if (result.success && (result.data || result.attempts)) {
-                    const items = Array.isArray(result.data) 
-                        ? result.data 
-                        : (result.data && Array.isArray(result.data.submissions) 
-                            ? result.data.submissions 
+                    const items = Array.isArray(result.data)
+                        ? result.data
+                        : (result.data && Array.isArray(result.data.submissions)
+                            ? result.data.submissions
                             : (result.attempts || []));
-                    
+
                     items.forEach(item => {
                         const studentId = item.user_id || item.student_id || (item.student && item.student.id);
                         const score = (item.score !== undefined && item.score !== null) ? item.score : (item.grade && item.grade.final_score !== undefined && item.grade.final_score !== null ? item.grade.final_score : null);
@@ -74,7 +74,7 @@ export default function TeacherGradebook() {
             }
 
             const token = localStorage.getItem("smartedu_token");
-            
+
             // 1. Fetch Quizzes
             const quizzesRes = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/quizzes`, {
                 headers: { "Authorization": `Bearer ${token}` }
@@ -87,8 +87,8 @@ export default function TeacherGradebook() {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const result = await res.json();
-            const essays = result.success && result.data && Array.isArray(result.data.assessments) 
-                ? result.data.assessments.filter(a => String(a.type).toUpperCase() !== 'QUIZ') 
+            const essays = result.success && result.data && Array.isArray(result.data.assessments)
+                ? result.data.assessments.filter(a => String(a.type).toUpperCase() !== 'QUIZ')
                 : [];
 
             // Combine both
@@ -146,7 +146,7 @@ export default function TeacherGradebook() {
             const studentGrades = grades[studentId] || {};
 
             const row = [s.student?.full_name || 'Unknown', s.student?.email || '-'];
-            
+
             quizAssessments.forEach(a => {
                 const score = studentGrades[a.id];
                 row.push(score !== undefined && score !== null ? score : '-');
@@ -178,8 +178,8 @@ export default function TeacherGradebook() {
                         {/* Sub-header row for Category Grouping */}
                         <tr className="bg-slate-100/80 text-slate-700 text-xs font-bold border-b">
                             <Th className="sticky left-0 bg-slate-100 z-10 w-48 shadow-sm">Học sinh</Th>
-                            {quizAssessments.length > 0 && <Th colSpan={quizAssessments.length} className="text-center bg-blue-50/80 text-blue-800 border-r">Trắc nghiệm (Quiz)</Th>}
-                            {essayAssessments.length > 0 && <Th colSpan={essayAssessments.length} className="text-center bg-indigo-50/80 text-indigo-800">Tự luận (Essay)</Th>}
+                            {quizAssessments.length > 0 && <Th colSpan={quizAssessments.length} className="text-center bg-blue-50/80 text-blue-800 border-r">Trắc nghiệm</Th>}
+                            {essayAssessments.length > 0 && <Th colSpan={essayAssessments.length} className="text-center bg-indigo-50/80 text-indigo-800">Tự luận</Th>}
                         </tr>
                         <tr className="bg-slate-50 border-b">
                             <Th className="sticky left-0 bg-slate-50 z-10 w-48 shadow-sm border-r"></Th>
@@ -187,7 +187,7 @@ export default function TeacherGradebook() {
                                 <Th key={a.id} className="text-center text-xs w-28 min-w-[112px] px-2 py-3 bg-blue-50/30 border-r border-slate-300">
                                     <div className="flex flex-col items-center">
                                         <span className="font-bold text-slate-800 line-clamp-2 break-words text-center">{a.title}</span>
-                                        <span className="text-[10px] text-slate-400">/{parseFloat(a.max_score)}đ</span>
+                                        <span className="text-[10px] text-slate-400">/{parseFloat(a.max_score)}</span>
                                     </div>
                                 </Th>
                             ))}
@@ -195,7 +195,7 @@ export default function TeacherGradebook() {
                                 <Th key={a.id} className="text-center text-xs w-28 min-w-[112px] px-2 py-3 bg-indigo-50/30 border-r border-slate-300">
                                     <div className="flex flex-col items-center">
                                         <span className="font-bold text-slate-800 line-clamp-2 break-words text-center">{a.title}</span>
-                                        <span className="text-[10px] text-slate-400">/{parseFloat(a.max_score)}đ</span>
+                                        <span className="text-[10px] text-slate-400">/{parseFloat(a.max_score)}</span>
                                     </div>
                                 </Th>
                             ))}
@@ -214,7 +214,7 @@ export default function TeacherGradebook() {
                                         </div>
                                         <span className="text-sm font-semibold truncate max-w-[120px]">{s.student?.full_name || "Unknown"}</span>
                                     </Td>
-                                    
+
                                     {quizAssessments.map(a => {
                                         const score = studentGrades[a.id];
                                         const isExpired = a.due_at && new Date(a.due_at) < new Date();
@@ -312,7 +312,7 @@ export default function TeacherGradebook() {
                                         )}
                                     </Td>
                                     <Td className="text-right">
-                                        <button 
+                                        <button
                                             className="h-8 w-8 inline-flex items-center justify-center rounded border border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer"
                                             title="Xem bài nộp/điểm"
                                             onClick={() => {
@@ -343,8 +343,8 @@ export default function TeacherGradebook() {
 
     return (
         <div className="space-y-6">
-            <PageHeader 
-                title="Bảng điểm lớp học" 
+            <PageHeader
+                title="Bảng điểm lớp học"
                 subtitle={`Quản lý trạng thái và bảng tổng hợp cho ${className}`}
                 onBack={() => navigate("/teacher/classes")}
                 right={[
@@ -365,7 +365,7 @@ export default function TeacherGradebook() {
                         renderGridView()
                     )}
                 </CardContent>
-                
+
                 {/* Pagination Removed */}
             </Card>
         </div>

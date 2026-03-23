@@ -144,6 +144,7 @@ export default function QuizList() {
                                 <thead>
                                     <tr>
                                         <Th>Tiêu đề</Th>
+                                        <Th>Thời gian mở</Th>
                                         <Th>Trạng thái</Th>
                                         <Th className="text-center">Số câu hỏi</Th>
                                         <Th className="text-center">Số lượt làm</Th>
@@ -159,6 +160,9 @@ export default function QuizList() {
                                                     {q.title}
                                                 </div>
                                                 <div className="text-xs text-slate-400 mt-1 uppercase tracking-wider">ID: {q.id.substring(0,8)}...</div>
+                                            </Td>
+                                            <Td className="text-sm text-slate-600 font-medium">
+                                                {q.open_at ? new Date(q.open_at).toLocaleString('vi-VN') : "Ngay lập tức"}
                                             </Td>
                                             <Td>
                                                 <Badge tone={q.is_published ? "green" : "slate"}>

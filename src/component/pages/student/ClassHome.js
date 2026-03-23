@@ -365,6 +365,7 @@ export default function ClassHome() {
                                     <tr>
                                         <Th>Tiêu đề</Th>
                                         <Th>Lượt làm</Th>
+                                        <Th>Thời gian mở</Th>
                                         <Th>Hạn nộp</Th>
                                         <Th>Điểm / Tối đa</Th>
                                     </tr>
@@ -387,16 +388,23 @@ export default function ClassHome() {
                                                                 >
                                                                     {a.title}
                                                                 </div>
+                                                            ) : a.status === 'upcoming' ? (
+                                                                <div className="font-bold text-amber-600 flex items-center gap-2" title="Bài kiểm tra sắp diễn ra">
+                                                                    <Badge tone="amber">Sắp diễn ra</Badge>
+                                                                    {a.title}
+                                                                </div>
                                                             ) : (
                                                                 <div className="font-bold text-slate-500 flex items-center gap-2" title={a.attemptCount >= a.attemptLimit ? "Đã hết lượt làm bài" : "Bài kiểm tra đã đóng"}>
                                                                     <Lock size={14} className="text-slate-400" />
                                                                     {a.title}
                                                                 </div>
                                                             )}
+
                                                         </Td>
                                                         <Td className="text-slate-600 text-sm font-medium">
                                                             {a.attemptCount} / {a.attemptLimit || "∞"}
                                                         </Td>
+                                                        <Td className="text-slate-600 text-sm font-medium">{a.openAt || "Ngay lập tức"}</Td>
                                                         <Td className="text-slate-600 text-sm font-medium">{a.due}</Td>
                                                         <Td>
                                                             {a.status === 'closed' ? (
@@ -477,12 +485,13 @@ export default function ClassHome() {
                                                 {paginatedAssigns.map((a) => (
                                                     <tr key={a.id} className={cn("hover:bg-slate-50 transition-colors group", a.status === 'closed' ? "bg-slate-50" : "")}>
                                                         <Td>
-                                                            {a.status === 'published' ? (
+                                                            {a.status === 'published' || a.status === 'upcoming' ? (
                                                                 <div
-                                                                    className="font-bold text-blue-600 cursor-pointer group-hover:underline"
+                                                                    className="font-bold text-blue-600 cursor-pointer group-hover:underline flex items-center gap-2"
                                                                     onClick={() => navigate(`/student/classes/${id}/assessments/${a.id}`)}
                                                                 >
                                                                     {a.title}
+                                                                    {a.status === 'upcoming' && <Badge tone="amber">Sắp mở</Badge>}
                                                                 </div>
                                                             ) : (
                                                                 <div className="font-bold text-slate-500 flex items-center gap-2" title={a.attemptCount >= a.attemptLimit ? "Đã hết lượt nộp bài" : "Bài tập đã đóng"}>
