@@ -15,6 +15,7 @@ export default function EssayCreation() {
     const [message, setMessage] = useState({ text: "", type: "" });
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [existingFiles, setExistingFiles] = useState([]);
+    const [isUpcomingClass, setIsUpcomingClass] = useState(false);
 
     const initialFormState = {
         title: "",
@@ -41,6 +42,29 @@ export default function EssayCreation() {
         d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
         return d.toISOString().substring(0, 16);
     };
+
+    useEffect(() => {
+        const fetchClassStatus = async () => {
+            try {
+                const token = localStorage.getItem("smartedu_token");
+                const res = await fetch(`http://localhost:9999/api/teacher/classes`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success && Array.isArray(data.data)) {
+                    const cls = data.data.find(c => String(c.id) === String(classId));
+                    if (cls && cls.status === "upcoming") {
+                        setIsUpcomingClass(true);
+                    }
+                }
+            } catch (error) {
+                console.error("Lỗi lấy trạng thái lớp:", error);
+            }
+        };
+        if (classId) {
+            fetchClassStatus();
+        }
+    }, [classId]);
 
     useEffect(() => {
         if (isEditMode) {
@@ -238,6 +262,13 @@ export default function EssayCreation() {
                 </div>
             )}
 
+            {isUpcomingClass && (
+                <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-semibold text-blue-700 flex items-center gap-2">
+                    <Clock size={16} />
+                    <span>Lớp học chưa bắt đầu (Sắp tới). Bạn không thể tạo hoặc chỉnh sửa bài tập tự luận cho lớp này.</span>
+                </div>
+            )}
+
             <div className="grid gap-4 lg:grid-cols-3">
                 {/* LEFT: Form */}
                 <div className="lg:col-span-2 space-y-4">
@@ -379,12 +410,12 @@ export default function EssayCreation() {
                             ) : null}
 
                             <div className="pt-2 border-t border-slate-100 flex flex-col gap-3">
-                                <Button type="submit" form="essay-form" className="w-full justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 rounded-xl shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-0.5 transition-all duration-200" disabled={submitting}>
+                                <Button type="submit" form="essay-form" className="w-full justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 rounded-xl shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-0.5 transition-all duration-200" disabled={submitting || isUpcomingClass}>
                                     <CheckCircle size={18} className="mr-1.5" />
                                     {isEditMode ? "Cập nhật bài tập" : "Lưu & Công bố"}
                                 </Button>
                                 {!isEditMode && (
-                                    <Button variant="outline" className="w-full justify-center py-2.5 bg-white shadow-sm hover:bg-slate-50 transition-colors rounded-xl font-medium text-slate-700" onClick={(e) => onSubmit(e, "draft")} disabled={submitting}>
+                                    <Button variant="outline" className="w-full justify-center py-2.5 bg-white shadow-sm hover:bg-slate-50 transition-colors rounded-xl font-medium text-slate-700" onClick={(e) => onSubmit(e, "draft")} disabled={submitting || isUpcomingClass}>
                                         Lưu nháp
                                     </Button>
                                 )}

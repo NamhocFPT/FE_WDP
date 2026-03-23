@@ -58,10 +58,26 @@ export default function TeacherClassHome() {
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-5xl mx-auto">
             <PageHeader 
-                title={selectedClass.name} 
+                title={
+                    <div className="flex items-center gap-2">
+                        <span>{selectedClass.name}</span>
+                        {selectedClass.status === "upcoming" && <Badge tone="blue" className="text-xs">Sắp tới</Badge>}
+                        {selectedClass.status === "closed" && <Badge tone="slate" className="text-xs">Đã đóng</Badge>}
+                    </div>
+                } 
                 subtitle={`Mã học phần: ${selectedClass.courseCode || selectedClass.course?.code || "N/A"}`} 
                 onBack={() => nav("/teacher/classes")}
             />
+
+            {selectedClass.status === "upcoming" && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 shadow-sm flex items-start gap-2 animate-in fade-in duration-300">
+                    <span className="text-blue-500 pt-0.5">ℹ️</span>
+                    <div>
+                        <div className="font-bold">Lớp học chưa bắt đầu (Sắp tới)</div>
+                        <p className="mt-1 opacity-90">Một số chức năng như tạo bài tập, tải tài liệu sẽ bị vô hiệu hóa cho đến khi lớp học chính thức bắt đầu.</p>
+                    </div>
+                </div>
+            )}
 
             <div className="grid gap-6 md:grid-cols-3">
                 <div className="md:col-span-2 space-y-6">
@@ -72,9 +88,16 @@ export default function TeacherClassHome() {
                                     <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Tổng quan</div>
                                     <h3 className="text-2xl font-black tracking-tight">{selectedClass.name}</h3>
                                 </div>
-                                <Badge tone="blue" className="bg-blue-500 text-white border-none py-1.5 px-4 text-sm font-black">
-                                    Phòng: {selectedClass.room || "TBA"}
-                                </Badge>
+                                <div className="flex flex-col items-end gap-2">
+                                    <Badge tone="blue" className="bg-blue-500 text-white border-none py-1.5 px-4 text-sm font-black">
+                                        Phòng: {selectedClass.room || "TBA"}
+                                    </Badge>
+                                    {selectedClass.status === "upcoming" && (
+                                        <Badge tone="indigo" className="bg-indigo-600 text-white border-none py-1 px-3 text-xs font-bold">
+                                            Chưa mở
+                                        </Badge>
+                                    )}
+                                </div>
                             </div>
                             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 blur-3xl rounded-full translate-x-10 -translate-y-10" />
                         </div>

@@ -113,7 +113,7 @@ export default function AssignmentManagement() {
                 icon={pageIcon}
                 onBack={() => navigate("/teacher/classes")}
                 right={[
-                    <Button key="n" onClick={() => {
+                    <Button key="n" disabled={classDetail && classDetail.status === "upcoming"} onClick={() => {
                         if (typeFilter === 'quiz') {
                             navigate(`/teacher/classes/${classId}/quizzes/create`);
                         } else {
@@ -124,6 +124,16 @@ export default function AssignmentManagement() {
                     </Button>
                 ]} 
             />
+
+            {classDetail && classDetail.status === "upcoming" && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 shadow-sm flex items-start gap-2 animate-in fade-in duration-300 mb-4">
+                    <span className="text-blue-500 pt-0.5">ℹ️</span>
+                    <div>
+                        <div className="font-bold">Lớp học chưa bắt đầu (Sắp tới)</div>
+                        <p className="mt-1 opacity-90">Bạn không thể tạo mới bài tập cho đến khi lớp học chính thức bắt đầu.</p>
+                    </div>
+                </div>
+            )}
             {message.text && (
                 <div className={`mb-4 rounded-xl border p-3 text-sm font-semibold ${message.type === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
                     {message.text}

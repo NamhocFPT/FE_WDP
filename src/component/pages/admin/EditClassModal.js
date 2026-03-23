@@ -7,14 +7,19 @@ import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function EditClassModal({ classData, onClose, onSuccess }) {
+    const [metadata, setMetadata] = useState({ teachers: [] });
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(false);
     
-    // Khởi tạo form với dữ liệu cũ từ props (initialData)
+    // Parse combined semester string back to separate values
+    const [semesterVal, yearVal] = classData?.semester ? classData.semester.split(" - ") : ["Học kỳ 1", "2025-2026"];
+    
     const [formData, setFormData] = useState({
         course_id: classData?.course_id || "",
+        teacher_id: classData?.teacher_id || "", // Fetch teacher accurately
         name: classData?.name || "",
-        semester: classData?.semester || "Học kỳ 2 - 2026",
+        semester: semesterVal || "Học kỳ 1",
+        year: yearVal || "2025-2026",
         start_date: classData?.start_date || "",
         end_date: classData?.end_date || "",
         max_capacity: classData?.max_capacity || 30
@@ -22,10 +27,19 @@ export default function EditClassModal({ classData, onClose, onSuccess }) {
     const [dateError, setDateError] = useState("");
 
     useEffect(() => {
-        // Lấy danh sách môn học cho dropdown
         adminApi.getCourses().then(res => {
             if (res.data.success) setCourses(res.data.data.filter(c => !c.is_deleted));
         });
+
+        const fetchMetadata = async () => {
+            try {
+                const metaRes = await adminApi.getCreateClassMetadata();
+                if (metaRes.data.success) {
+                    setMetadata({ teachers: metaRes.data.data.teachers || [] });
+                }
+            } catch (err) { console.error("Lỗi lấy metadata teachers:", err); }
+        };
+        fetchMetadata();
     }, []);
 
     const handleSubmit = async (e) => {
@@ -39,8 +53,33 @@ export default function EditClassModal({ classData, onClose, onSuccess }) {
                 setLoading(false);
                 return;
             }
+
+            // Academic Year Validation
+            const [startYear, endYear] = formData.year.split("-");
+            const startDateObj = new Date(formData.start_date);
+            const endDateObj = new Date(formData.end_date);
             
-            await adminApi.updateClass(classData.id, formData); 
+            if (startDateObj.getFullYear() < parseInt(startYear)) {
+                setDateError(`Ngày bắt đầu phải diễn ra trong năm ${startYear} trở đi.`);
+                toast.error(`Ngày bắt đầu không thể trước năm ${startYear}`);
+                setLoading(false);
+                return;
+            }
+            if (endDateObj.getFullYear() > parseInt(endYear)) {
+                setDateError(`Ngày kết thúc phải diễn ra trước hoặc trong năm ${endYear}.`);
+                toast.error(`Ngày kết thúc không thể sau năm ${endYear}`);
+                setLoading(false);
+                return;
+            }
+            
+            // Combine fully 
+            const submissionData = {
+                ...formData,
+                semester: `${formData.semester} - ${formData.year}`
+            };
+            delete submissionData.year;
+
+            await adminApi.updateClass(classData.id, submissionData); 
             toast.success("Cập nhật thông tin lớp học thành công!");
             onSuccess(); 
         } catch (err) {
@@ -88,19 +127,31 @@ export default function EditClassModal({ classData, onClose, onSuccess }) {
                                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                             />
                         </div>
-                        {/* Semester */}
+                        {/* Semester / Year */}
                         <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase block mb-2 tracking-wider">Học kỳ</label>
-                            <select 
-                                value={formData.semester}
-                                className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 bg-white cursor-pointer"
-                                onChange={(e) => setFormData({...formData, semester: e.target.value})}
-                            >
-                                <option value="Học kỳ 1 - 2026">Học kỳ 1 - 2026</option>
-                                <option value="Học kỳ 2 - 2026">Học kỳ 2 - 2026</option>
-                                <option value="Học kỳ 1 - 2025">Học kỳ 1 - 2025</option>
-                                <option value="Học kỳ 2 - 2025">Học kỳ 2 - 2025</option>
-                            </select>
+                            <label className="text-xs font-bold text-slate-500 uppercase block mb-2 tracking-wider">Học kỳ / Năm học (*)</label>
+                            <div className="flex gap-2">
+                                <select 
+                                    value={formData.semester}
+                                    className="w-1/2 p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 bg-white cursor-pointer"
+                                    onChange={(e) => setFormData({...formData, semester: e.target.value})}
+                                >
+                                    <option value="Học kỳ 1">Học kỳ 1</option>
+                                    <option value="Học kỳ 2">Học kỳ 2</option>
+                                    <option value="Học kỳ 3">Học kỳ 3</option>
+                                </select>
+                                <select 
+                                    value={formData.year}
+                                    className="w-1/2 p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 bg-white cursor-pointer"
+                                    onChange={(e) => setFormData({...formData, year: e.target.value})}
+                                >
+                                    {Array.from({ length: 6 }, (_, i) => {
+                                        const yr = new Date().getFullYear() - 1 + i;
+                                        const op = `${yr}-${yr + 1}`;
+                                        return <option key={op} value={op}>{op}</option>;
+                                    })}
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -129,14 +180,30 @@ export default function EditClassModal({ classData, onClose, onSuccess }) {
                     </div>
                     {dateError && <p className="text-red-500 text-[10px] font-medium -mt-2 italic">{dateError}</p>}
 
-                    <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase block mb-2 tracking-wider">Sĩ số tối đa</label>
-                        <input 
-                            type="number"
-                            value={formData.max_capacity}
-                            className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
-                            onChange={(e) => setFormData({...formData, max_capacity: e.target.value})}
-                        />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase block mb-2 tracking-wider">Sĩ số tối đa</label>
+                            <input 
+                                type="number"
+                                value={formData.max_capacity}
+                                className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
+                                onChange={(e) => setFormData({...formData, max_capacity: e.target.value})}
+                            />
+                        </div>
+                        {/* Teacher Selection */}
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase block mb-2 tracking-wider">Giáo viên phụ trách</label>
+                            <select 
+                                value={formData.teacher_id}
+                                className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 bg-white cursor-pointer"
+                                onChange={(e) => setFormData({...formData, teacher_id: e.target.value})}
+                            >
+                                <option value="">-- Chưa phân công --</option>
+                                {metadata.teachers?.map(t => (
+                                    <option key={t.id} value={t.id}>{t.full_name}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4 border-t border-slate-50">

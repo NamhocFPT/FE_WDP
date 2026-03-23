@@ -31,7 +31,7 @@ export default function ImportClassModal({ isOpen, onClose, onSuccess, onDownloa
         reader.onload = async (e) => {
             try {
                 const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: "array" });
+                const workbook = XLSX.read(data, { type: "array", cellDates: true });
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
                 const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });

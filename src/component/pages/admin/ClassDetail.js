@@ -151,9 +151,17 @@ const OverviewTab = ({ cl, onAssignClick }) => (
             <CardHeader><CardTitle>Thông tin lớp học</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 gap-4 text-sm">
                 <div><label className="text-slate-400 block font-medium uppercase tracking-tighter text-[10px]">Học kỳ</label><span className="font-bold text-slate-700">{cl.semester}</span></div>
-                <div><label className="text-slate-400 block font-medium uppercase tracking-tighter text-[10px]">Ngày bắt đầu</label><span className="font-bold text-slate-700">{cl.start_date ? new Date(cl.start_date).toLocaleDateString("vi-VN") : "---"}</span></div>
                 <div><label className="text-slate-400 block font-medium uppercase tracking-tighter text-[10px]">Sĩ số</label><span className="font-bold text-slate-700">{cl.enrollments?.length || 0}/{cl.max_capacity} sinh viên</span></div>
-                <div><label className="text-slate-400 block font-medium uppercase tracking-tighter text-[10px]">Trạng thái</label><Badge tone="green" className="font-bold">{cl.status === "active" ? "Đang hoạt động" : cl.status}</Badge></div>
+                <div><label className="text-slate-400 block font-medium uppercase tracking-tighter text-[10px]">Ngày bắt đầu</label><span className="font-bold text-slate-700">{cl.start_date ? new Date(cl.start_date).toLocaleDateString("vi-VN") : "---"}</span></div>
+                <div><label className="text-slate-400 block font-medium uppercase tracking-tighter text-[10px]">Ngày kết thúc</label><span className="font-bold text-slate-700">{cl.end_date ? new Date(cl.end_date).toLocaleDateString("vi-VN") : "---"}</span></div>
+                <div><label className="text-slate-400 block font-medium uppercase tracking-tighter text-[10px]">Trạng thái</label>
+                    <Badge 
+                        tone={cl.status === "active" ? "green" : cl.status === "upcoming" ? "blue" : "gray"} 
+                        className="font-bold"
+                    >
+                        {cl.status === "active" ? "Đang hoạt động" : cl.status === "upcoming" ? "Chưa bắt đầu" : cl.status === "closed" ? "Đã kết thúc" : cl.status}
+                    </Badge>
+                </div>
             </CardContent>
         </Card>
         <Card>
@@ -326,38 +334,16 @@ const ScheduleTab = ({ cl, onAddSessionClick, onImportScheduleClick, onEditSessi
         return days[new Date(dateStr).getDay()];
     };
 
-    // Group sessions by Schedule Pattern (Day + Time + Room)
-    const groupedSchedules = [];
-    if (cl.sessions && cl.sessions.length > 0) {
-        const groups = {};
-        cl.sessions.forEach(s => {
-            const day = getDayOfWeek(s.start_time);
-            const startTimeStr = formatTime(s.start_time);
-            const endTimeStr = formatTime(s.end_time);
-            const room = s.room || "Chưa rõ";
-
-            const key = `${day}-${startTimeStr}-${endTimeStr}-${room}`;
-            if (!groups[key]) {
-                groups[key] = {
-                    id: s.id,
-                    sessionIds: [],
-                    day: day,
-                    time: `${startTimeStr} - ${endTimeStr}`,
-                    room: room,
-                    teacher: cl.teacher?.full_name || "Chưa phân công"
-                };
-            }
-            groups[key].sessionIds.push(s.id);
-        });
-        groupedSchedules.push(...Object.values(groups));
-    }
-
-    const handleDelete = async (group) => {
-        if (!window.confirm("Bạn có chắc chắn muốn xóa tất cả buổi học thuộc lịch này không?")) return;
-        setDeletingId(group.id);
+    // Sort sessions by start_time
+    const sortedSessions = cl.sessions ? [...cl.sessions].sort((a, b) => new Date(a.start_time) - new Date(b.start_time)) : [];
+    
+    const handleDelete = async (session) => {
+        const dateStr = new Date(session.start_time).toLocaleDateString("vi-VN");
+        if (!window.confirm(`Bạn có chắc chắn muốn xóa buổi học ngày ${dateStr} không?`)) return;
+        setDeletingId(session.id);
         try {
-            await adminApi.deleteSessions(cl.id, group.sessionIds);
-            toast.success("Đã xóa lịch học thành công!");
+            await adminApi.deleteSessions(cl.id, [session.id]);
+            toast.success("Đã xóa buổi học thành công!");
             onDeleteSessionSuccess();
         } catch (error) {
             toast.error(error.response?.data?.message || "Lỗi khi xóa lịch học");
@@ -376,51 +362,74 @@ const ScheduleTab = ({ cl, onAddSessionClick, onImportScheduleClick, onEditSessi
                 </div>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <thead>
-                        <tr>
-                            <Th>Thứ</Th>
-                            <Th>Thời gian</Th>
-                            <Th>Phòng</Th>
-                            <Th>Giáo viên</Th>
-                            <Th className="text-right">Thao tác</Th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {groupedSchedules.length > 0 ? (
-                            groupedSchedules.map(group => (
-                                <tr key={group.id}>
-                                    <Td className="font-bold text-slate-900">{group.day}</Td>
-                                    <Td className="text-slate-600 font-medium">{group.time}</Td>
-                                    <Td>{group.room}</Td>
-                                    <Td>{group.teacher}</Td>
-                                    <Td className="text-right space-x-2">
-                                        <button
-                                            onClick={() => onEditSessionClick(group)}
-                                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                            title="Sửa lịch học"
-                                        >
-                                            <Edit size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(group)}
-                                            disabled={deletingId === group.id}
-                                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                                            title="Xóa lịch học"
-                                        >
-                                            {deletingId === group.id ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
-                                        </button>
-                                    </Td>
-                                </tr>
-                            ))
-                        ) : (
+                <div className="overflow-x-auto">
+                    <Table>
+                        <thead>
                             <tr>
-                                <Td colSpan={5} className="text-center text-slate-500 py-6 italic">Chưa có lịch học nào được thiết lập.</Td>
+                                <Th>Ngày</Th>
+                                <Th>Thứ</Th>
+                                <Th>Thời gian</Th>
+                                <Th>Phòng</Th>
+                                <Th>Giáo viên</Th>
+                                <Th className="text-right">Thao tác</Th>
                             </tr>
-                        )}
-                    </tbody>
-                </Table>
+                        </thead>
+                        <tbody>
+                            {sortedSessions.length > 0 ? (
+                                sortedSessions.map(s => {
+                                    const day = getDayOfWeek(s.start_time);
+                                    const dateStr = new Date(s.start_time).toLocaleDateString("vi-VN");
+                                    const startTimeStr = formatTime(s.start_time);
+                                    const endTimeStr = formatTime(s.end_time);
+                                    const timeStr = `${startTimeStr} - ${endTimeStr}`;
+                                    const room = s.room || "Chưa rõ";
+                                    
+                                    const group = {
+                                        id: s.id,
+                                        sessionIds: [s.id],
+                                        day: day,
+                                        time: timeStr,
+                                        room: room,
+                                        teacher: cl.teacher?.full_name || "Chưa phân công",
+                                        dateISO: s.start_time.split("T")[0]
+                                    };
+
+                                    return (
+                                        <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <td className="p-3 text-slate-600 font-semibold">{dateStr}</td>
+                                            <td className="p-3 font-bold text-slate-800">{day}</td>
+                                            <td className="p-3 text-slate-600 font-medium">{timeStr}</td>
+                                            <td className="p-3 text-slate-600">{room}</td>
+                                            <td className="p-3 text-slate-600">{cl.teacher?.full_name || "Chưa phân công"}</td>
+                                            <td className="p-3 text-right space-x-1">
+                                                <button
+                                                    onClick={() => onEditSessionClick(group)}
+                                                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Sửa lịch học"
+                                                >
+                                                    <Edit size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(s)}
+                                                    disabled={deletingId === s.id}
+                                                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                                    title="Xóa lịch học"
+                                                >
+                                                    {deletingId === s.id ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            ) : (
+                                <tr>
+                                    <td colSpan={6} className="text-center text-slate-500 py-8 italic">Chưa có lịch học nào được thiết lập.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </Table>
+                </div>
             </CardContent>
         </Card>
     );
-};
+}

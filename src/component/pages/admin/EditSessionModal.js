@@ -54,7 +54,18 @@ export default function EditSessionModal({ isOpen, onClose, classId, sessionGrou
                 teacher_id: formData.teacher_id || null
             };
             
-            await adminApi.editSessions(classId, payload);
+            if (sessionGroup.sessionIds?.length === 1 && sessionGroup.dateISO) {
+                // Single session edit
+                const updatedPayload = {
+                    start_time: `${sessionGroup.dateISO}T${formData.start_time}:00`,
+                    end_time: `${sessionGroup.dateISO}T${formData.end_time}:00`,
+                    room: formData.room,
+                    teacher_id: formData.teacher_id || null
+                };
+                await adminApi.updateSession(classId, sessionGroup.sessionIds[0], updatedPayload);
+            } else {
+                await adminApi.editSessions(classId, payload);
+            }
             toast.success("Cập nhật lịch học thành công!");
             onSuccess();
             onClose();

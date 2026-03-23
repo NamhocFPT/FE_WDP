@@ -69,6 +69,7 @@ export default function QuizCreation() {
     const [errors, setErrors] = useState({});
     const [globalError, setGlobalError] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [isUpcomingClass, setIsUpcomingClass] = useState(false);
 
     const setField = (k, v) => {
         setForm((p) => ({ ...p, [k]: v }));
@@ -167,6 +168,15 @@ export default function QuizCreation() {
         fetchInitialData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isEditMode, quizIdFromQuery, classIdFromQuery]);
+
+    useEffect(() => {
+        if (form.classId && teacherClasses.length > 0) {
+            const cls = teacherClasses.find(c => String(c.id) === String(form.classId));
+            setIsUpcomingClass(cls && cls.status === "upcoming");
+        } else {
+            setIsUpcomingClass(false);
+        }
+    }, [form.classId, teacherClasses]);
 
     const mapServerValidation = (errBody) => {
         const validationErrors = errBody?.error?.validationErrors;
@@ -288,6 +298,13 @@ export default function QuizCreation() {
                     {globalError}
                 </div>
             ) : null}
+
+            {isUpcomingClass && (
+                <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-semibold text-blue-700 flex items-center gap-2">
+                    <Clock size={16} />
+                    <span>Lớp học chưa bắt đầu (Sắp tới). Bạn không thể tạo hoặc chỉnh sửa Quiz cho lớp này.</span>
+                </div>
+            )}
 
             <div className="grid gap-4 lg:grid-cols-3">
                 {/* LEFT: Form */}
@@ -556,7 +573,7 @@ export default function QuizCreation() {
                             ) : null}
 
                             <div className="pt-2 border-t border-slate-100 flex flex-col gap-3">
-                                <Button className="w-full justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 rounded-xl shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-0.5 transition-all duration-200" onClick={() => onSave({ goNext: true })} disabled={submitting}>
+                                <Button className="w-full justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 rounded-xl shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-0.5 transition-all duration-200" onClick={() => onSave({ goNext: true })} disabled={submitting || isUpcomingClass}>
                                     {isEditMode ? "Lưu biên soạn đề" : "Lưu & Bắt đầu soạn đề"} <ArrowRight size={18} className="ml-1.5 animate-pulse" />
                                 </Button>
                                 <Button variant="outline" className="w-full justify-center py-2.5 bg-white shadow-sm hover:bg-slate-50 transition-colors rounded-xl" onClick={onCancel} disabled={submitting}>

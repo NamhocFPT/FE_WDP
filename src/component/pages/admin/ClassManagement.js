@@ -57,8 +57,8 @@ export default function ClassManagement() {
     // File Excel Template Download
     const handleDownloadTemplate = () => {
         const templateData = [
-            { "Mã môn": "TOAN10", "Học kỳ": "Học kỳ 1", "Tên lớp": "10A1", "Ngày bắt đầu": "2026-09-05", "Ngày kết thúc": "2027-01-15", "Sĩ số tối đa": 40, "Email giáo viên": "giaovien@school.edu.vn" },
-            { "Mã môn": "VAN11", "Học kỳ": "Học kỳ 1", "Tên lớp": "11B2", "Ngày bắt đầu": "2026-09-05", "Ngày kết thúc": "2027-01-15", "Sĩ số tối đa": 35, "Email giáo viên": "" }
+            { "Mã môn": "TOAN10", "Học kỳ": "Học kỳ 1 - 2025-2026", "Tên lớp": "10A1", "Ngày bắt đầu": "2025-09-05", "Ngày kết thúc": "2026-01-15", "Sĩ số tối đa": 40, "Email giáo viên": "giaovien@school.edu.vn" },
+            { "Mã môn": "VAN11", "Học kỳ": "Học kỳ 1 - 2025-2026", "Tên lớp": "11B2", "Ngày bắt đầu": "2025-09-05", "Ngày kết thúc": "2026-01-15", "Sĩ số tối đa": 35, "Email giáo viên": "" }
         ];
         const ws = XLSX.utils.json_to_sheet(templateData);
         ws["!cols"] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 25 }];
