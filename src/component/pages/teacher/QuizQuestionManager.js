@@ -4,7 +4,7 @@ import { PageHeader, Card, CardContent, Button, Input, Badge, Modal } from "comp
 import {
     Plus, Trash2, Edit2, Save, X, Sparkles,
     ChevronDown, ChevronUp, CheckCircle2, AlertCircle,
-    FileText, HelpCircle, LayoutList
+    FileText, HelpCircle, LayoutList, Download
 } from "lucide-react";
 import * as TeacherQuizService from "service/TeacherQuizService";
 import { toast } from "sonner";
@@ -24,6 +24,8 @@ export default function QuizQuestionManager() {
     const [aiPrompt, setAiPrompt] = useState("");
     const [aiFile, setAiFile] = useState(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [showExportMenu, setShowExportMenu] = useState(false);
+    const exportMenuRef = useRef(null);
     const [mathpadTemp, setMathpadTemp] = useState("");
     const questionTextRef = useRef(null);
     
@@ -56,6 +58,17 @@ export default function QuizQuestionManager() {
             { option_text: "", is_correct: false }
         ]
     };
+
+    // Close export menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+                setShowExportMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const fetchQuestions = async () => {
         setLoading(true);
@@ -239,12 +252,22 @@ export default function QuizQuestionManager() {
         }
     };
 
+    const handleExport = (format, includeAnswers) => {
+        const url = TeacherQuizService.downloadQuizExport(quizId, format, includeAnswers);
+        window.open(url, "_blank");
+        setShowExportMenu(false);
+        toast.success(`Đang chuẩn bị file ${format.toUpperCase()}...`);
+    };
+
     return (
         <div className="space-y-6">
             {/* Header Redesign */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 p-8 text-white shadow-2xl">
-                <div className="absolute top-0 right-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-white opacity-5 blur-3xl"></div>
-                <div className="absolute bottom-0 left-0 -mb-10 -ml-10 h-48 w-48 rounded-full bg-blue-500 opacity-10 blur-2xl"></div>
+            <div className="relative rounded-3xl bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 p-8 text-white shadow-2xl">
+                {/* Decorative Background */}
+                <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+                    <div className="absolute top-0 right-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-white opacity-5 blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 -mb-10 -ml-10 h-48 w-48 rounded-full bg-blue-500 opacity-10 blur-2xl"></div>
+                </div>
                 
                 <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div>
@@ -277,6 +300,38 @@ export default function QuizQuestionManager() {
                     <Button variant="ghost" className="bg-gradient-to-r from-purple-500 hover:from-purple-400 to-pink-500 hover:to-pink-400 text-white border-none shadow-lg shadow-purple-500/25 rounded-xl h-11 px-5" onClick={() => setShowAIModal(true)}>
                         <Sparkles className="h-5 w-5 mr-2" /> Sáng tạo bằng Gemini AI
                     </Button>
+                    
+                    {/* Export Menu */}
+                    <div className="relative" ref={exportMenuRef}>
+                        <Button 
+                            variant="ghost" 
+                            className="bg-indigo-600/20 backdrop-blur-md text-white border border-indigo-400/30 hover:bg-indigo-600/40 shadow-lg rounded-xl h-11 px-5"
+                            onClick={() => setShowExportMenu(!showExportMenu)}
+                        >
+                            <Download className="h-5 w-5 mr-2" /> Xuất Quiz
+                            <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+                        </Button>
+                        
+                        {showExportMenu && (
+                            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden py-1 animate-in fade-in zoom-in duration-200">
+                                <div className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50">Định dạng PDF</div>
+                                <button onClick={() => handleExport('pdf', false)} className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3">
+                                    <FileText className="h-4 w-4 text-red-500" /> Chỉ đề bài (.pdf)
+                                </button>
+                                <button onClick={() => handleExport('pdf', true)} className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3">
+                                    <FileText className="h-4 w-4 text-red-600" /> Đề bài + Đáp án (.pdf)
+                                </button>
+                                
+                                <div className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 mt-1">Định dạng WORD</div>
+                                <button onClick={() => handleExport('docx', false)} className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3">
+                                    <LayoutList className="h-4 w-4 text-blue-500" /> Chỉ đề bài (.docx)
+                                </button>
+                                <button onClick={() => handleExport('docx', true)} className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3">
+                                    <LayoutList className="h-4 w-4 text-blue-600" /> Đề bài + Đáp án (.docx)
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 

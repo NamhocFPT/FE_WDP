@@ -10,10 +10,12 @@ import * as XLSX from "xlsx";
 export default function Reports() {
     const [semester, setSemester] = useState("");
     const [course, setCourse] = useState("");
+    const [selectedClass, setSelectedClass] = useState("");
     const [dateRange, setDateRange] = useState("This Month");
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
+    const [hasSearched, setHasSearched] = useState(false);
     const [filtersLoading, setFiltersLoading] = useState(true);
-    const [filters, setFilters] = useState({ semesters: [], courses: [] });
+    const [filters, setFilters] = useState({ semesters: [], courses: [], classes: [] });
     const [showExportMenu, setShowExportMenu] = useState(false);
     const exportMenuRef = useRef(null);
     const [activeTab, setActiveTab] = useState('grade'); // 'grade' | 'teacher'
@@ -32,6 +34,7 @@ export default function Reports() {
         gradeDistributionData: [],
         gradePercentageData: [],
         courseEnrollmentData: [],
+        detailedData: [],
         summaryStats: { avgGrade: 'N/A', passRate: 0, totalStudents: 0, aStudents: 0, gradeTotal: 0, aPercent: 0 }
     });
 
@@ -40,14 +43,19 @@ export default function Reports() {
         adminApi.getReportFilters()
             .then(res => {
                 if (res.data.success) {
-                    const { semesters, courses } = res.data.data;
-                    setFilters({ semesters, courses });
+                    const { semesters, courses, classes } = res.data.data;
+                    setFilters({ semesters, courses, classes });
                     if (semesters.length > 0) setSemester(semesters[0]);
                 }
             })
             .catch(err => console.error(err))
             .finally(() => setFiltersLoading(false));
     }, []);
+
+    // Reset selected class when semester or course changes
+    useEffect(() => {
+        setSelectedClass("");
+    }, [semester, course]);
 
     // Close export menu when clicking outside
     useEffect(() => {
@@ -60,39 +68,86 @@ export default function Reports() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    useEffect(() => {
-        let isMounted = true;
+    const handleViewReport = () => {
+        // UC says Mandatory, but Exception E2 implies 'All' can be selected and then warned if too broad.
+        // We will allow the request to go through if 'All' is selected, 
+        // and handle the 'Phạm vi dữ liệu quá lớn' error from the backend.
+
         setLoading(true);
-        adminApi.getReportData(semester, course, dateRange)
+        setHasSearched(true);
+        
+        const reportPromise = adminApi.getReportData(semester, course, dateRange, selectedClass)
             .then(res => {
-                if (isMounted && res.data.success) {
-                    setData(res.data.data);
+                if (res.data.success) {
+                    const receivedData = res.data.data || {};
+                    setData({
+                        gradeDistributionData: receivedData.gradeDistributionData || [],
+                        gradePercentageData: receivedData.gradePercentageData || [],
+                        courseEnrollmentData: receivedData.courseEnrollmentData || [],
+                        detailedData: receivedData.detailedData || [],
+                        summaryStats: receivedData.summaryStats || { avgGrade: 'N/A', passRate: 0, totalStudents: 0, aStudents: 0, gradeTotal: 0, aPercent: 0 }
+                    });
                 }
             })
             .catch(err => {
                 console.error(err);
-                if (isMounted) toast.error("Có lỗi xảy ra khi tải báo cáo thống kê");
-            })
-            .finally(() => {
-                if (isMounted) setLoading(false);
+                if (err.response && err.response.status === 400) {
+                    toast.error(err.response.data.message || "Phạm vi dữ liệu quá lớn để hiển thị cùng lúc.");
+                } else {
+                    toast.error("Có lỗi xảy ra khi tải báo cáo thống kê");
+                }
             });
-        
-        return () => { isMounted = false; };
-    }, [semester, course, dateRange]);
 
-    // Fetch Teacher Activity when tab changes or filters change
+        const activityPromise = activeTab === 'teacher' 
+            ? adminApi.getTeacherActivity(semester, course, dateRange, selectedClass)
+                .then(res => {
+                    if (res.data.success) {
+                        const receivedTeacher = res.data.data || {};
+                        setTeacherData({
+                            activityChartData: receivedTeacher.activityChartData || [],
+                            totals: receivedTeacher.totals || { quizzesCreated: 0, materialsUploaded: 0, assignmentsGraded: 0 }
+                        });
+                    }
+                })
+                .catch(err => console.error(err))
+            : Promise.resolve();
+
+        Promise.all([reportPromise, activityPromise])
+            .finally(() => setLoading(false));
+    };
+
+    const handleExportPDF = () => {
+        try {
+            // Build the export URL with current filter values
+            const params = new URLSearchParams({
+                semester: semester || "",
+                course: course || "",
+                dateRange: dateRange || "This Month",
+                class_id: selectedClass || "",
+                className: (selectedClass && filters?.classes 
+                    ? filters.classes.find(c => String(c.id) === String(selectedClass))?.name || "Lớp" 
+                    : "Tất cả Lớp"),
+                activeTab: activeTab
+            });
+
+            const exportUrl = `http://localhost:9999/api/admin/reports/export/pdf?${params.toString()}`;
+            
+            // Trigger download natively to avoid Axios-CORS conflicts with download managers (IDM)
+            window.location.href = exportUrl;
+            
+            toast.success("Đã bắt đầu xuất PDF!");
+        } catch (error) {
+            console.error("PDF Export error:", error);
+            toast.error("Lỗi khi chuẩn bị xuất PDF");
+        }
+    };
+
+    // Auto-fetch teacher activity if tab changes and we already searched
     useEffect(() => {
-        if (activeTab !== 'teacher') return;
-        let isMounted = true;
-        setTeacherLoading(true);
-        adminApi.getTeacherActivity(semester, course, dateRange)
-            .then(res => {
-                if (isMounted && res.data.success) setTeacherData(res.data.data);
-            })
-            .catch(err => console.error(err))
-            .finally(() => { if (isMounted) setTeacherLoading(false); });
-        return () => { isMounted = false; };
-    }, [activeTab, semester, course, dateRange]);
+        if (activeTab === 'teacher' && hasSearched) {
+            handleViewReport();
+        }
+    }, [activeTab]);
 
     // Tooltip for Bar Charts
     const CustomTooltip = ({ active, payload, label }) => {
@@ -131,17 +186,17 @@ export default function Reports() {
             [],
             [`PHÂN BỐ ĐIỂM SỐ`],
             [`Điểm`, `Số lượng học sinh`],
-            ...data.gradeDistributionData.map(r => [r.name, r.students]),
+            ... (data?.gradeDistributionData || []).map(r => [r.name, r.students]),
             [],
             [`TỶ LỆ PHẦN TRĂM ĐIỂM`],
             [`Loại điểm`, `Phần trăm (%)`],
-            ...(data.gradePercentageData.length === 0
+            ...((data?.gradePercentageData?.length || 0) === 0
                 ? [[`Không có dữ liệu điểm`, ``]]
-                : data.gradePercentageData.map(r => [r.name, r.value])),
+                : (data?.gradePercentageData || []).map(r => [r.name, r.value])),
             [],
             [`THỐNG KÊ GHI DANH KHÓA HỌC`],
             [`Môn học`, `Số lượng học sinh`],
-            ...data.courseEnrollmentData.map(r => [r.name, r.students]),
+            ... (data?.courseEnrollmentData || []).map(r => [r.name, r.students]),
         ];
         const csv = rows.map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
         triggerDownload(`\uFEFF` + csv, `baocao_${dateStr}.csv`, 'text/csv;charset=utf-8;');
@@ -162,14 +217,14 @@ export default function Reports() {
             `--- PHÂN BỐ ĐIỂM SỐ ---`,
             `${'Điểm'.padEnd(10)} ${'Số lượng'.padStart(10)}`,
             '-'.repeat(25),
-            ...data.gradeDistributionData.map(r => `${r.name.padEnd(10)} ${String(r.students).padStart(10)}`),
+            ... (data?.gradeDistributionData || []).map(r => `${r.name.padEnd(10)} ${String(r.students).padStart(10)}`),
             '',
             `--- TỶ LỆ PHẦN TRĂM ĐIỂM ---`,
             `${'Loại điểm'.padEnd(20)} ${'Phần trăm'.padStart(10)}`,
             '-'.repeat(32),
-            ...(data.gradePercentageData.length === 0
+            ...((data?.gradePercentageData?.length || 0) === 0
                 ? ['  Chưa có dữ liệu điểm']
-                : data.gradePercentageData.map(r => `${r.name.padEnd(20)} ${String(r.value + '%').padStart(10)}`)),
+                : (data?.gradePercentageData || []).map(r => `${r.name.padEnd(20)} ${String(r.value + '%').padStart(10)}`)),
             '',
             `--- GHI DANH KHÓA HỌC ---`,
             `${'Môn học'.padEnd(30)} ${'Số lượng'.padStart(10)}`,
@@ -195,7 +250,7 @@ export default function Reports() {
             [],
             ['PHÂN BỐ ĐIỂM SỐ'],
             ['Điểm', 'Số lượng học sinh'],
-            ...data.gradeDistributionData.map(r => [r.name, r.students]),
+            ... (data?.gradeDistributionData || []).map(r => [r.name, r.students]),
         ];
         const ws1 = XLSX.utils.aoa_to_sheet(ws1Data);
         ws1['!cols'] = [{ wch: 20 }, { wch: 20 }];
@@ -205,9 +260,9 @@ export default function Reports() {
         const ws2Data = [
             ['TỶ LỆ PHẦN TRĂM ĐIỂM'],
             ['Loại điểm', 'Phần trăm (%)'],
-            ...(data.gradePercentageData.length === 0
+            ...((data?.gradePercentageData?.length || 0) === 0
                 ? [['Chưa có dữ liệu điểm', '']]
-                : data.gradePercentageData.map(r => [r.name, r.value])),
+                : (data?.gradePercentageData || []).map(r => [r.name, r.value])),
         ];
         const ws2 = XLSX.utils.aoa_to_sheet(ws2Data);
         ws2['!cols'] = [{ wch: 25 }, { wch: 20 }];
@@ -217,11 +272,25 @@ export default function Reports() {
         const ws3Data = [
             ['THỐNG KÊ GHI DANH KHÓA HỌC'],
             ['Môn học', 'Số lượng học sinh'],
-            ...data.courseEnrollmentData.map(r => [r.name, r.students]),
+            ... (data?.courseEnrollmentData || []).map(r => [r.name, r.students]),
         ];
         const ws3 = XLSX.utils.aoa_to_sheet(ws3Data);
         ws3['!cols'] = [{ wch: 50 }, { wch: 20 }];
         XLSX.utils.book_append_sheet(wb, ws3, 'Ghi danh môn học');
+
+        // Sheet 4: Detailed Data (UC Export Requirement)
+        const ws4Data = [
+            ['DANH SÁCH CHI TIẾT ĐIỂM SỐ'],
+            ['Học kỳ', semester || 'Tất cả'],
+            ['Môn học', course || 'Tất cả'],
+            ['Lớp học', filters.classes.find(c => c.id === selectedClass)?.name || 'Tất cả'],
+            [],
+            ['Học sinh', 'Lớp', 'Mã môn', 'Điểm số', 'Xếp loại'],
+            ... (data?.detailedData || []).map(s => [s.student_name, s.class_name, s.course_code, s.score, s.grade_letter]),
+        ];
+        const ws4 = XLSX.utils.aoa_to_sheet(ws4Data);
+        ws4['!cols'] = [{ wch: 30 }, { wch: 20 }, { wch: 15 }, { wch: 10 }, { wch: 10 }];
+        XLSX.utils.book_append_sheet(wb, ws4, 'Dữ liệu chi tiết');
 
         XLSX.writeFile(wb, `baocao_${dateStr}.xlsx`);
         toast.success('Đã xuất Excel thành công!');
@@ -281,6 +350,13 @@ export default function Reports() {
                                 <Sheet size={16} className="text-emerald-600" />
                                 Xuất Excel (.xlsx)
                             </button>
+                            <button
+                                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                                onClick={() => { handleExportPDF(); setShowExportMenu(false); }}
+                            >
+                                <FileText size={16} className="text-red-500" />
+                                Xuất PDF (.pdf)
+                            </button>
                         </div>
                     )}
                 </div>
@@ -292,7 +368,7 @@ export default function Reports() {
                     <CardTitle className="text-base font-semibold">Bộ lọc</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Học kỳ</label>
                             <select 
@@ -322,6 +398,27 @@ export default function Reports() {
                             </select>
                         </div>
                         <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Lớp học</label>
+                            <select 
+                                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors"
+                                value={selectedClass}
+                                onChange={e => setSelectedClass(e.target.value)}
+                                disabled={filtersLoading}
+                            >
+                                <option value="">Tất cả Lớp học</option>
+                                {filters.classes
+                                    .filter(c => {
+                                        const matchSem = !semester || c.semester === semester;
+                                        const matchCourse = !course || filters.courses.find(f => f.id === c.course_id)?.code === course.split(" ")[0];
+                                        return matchSem && matchCourse;
+                                    })
+                                    .map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))
+                                }
+                            </select>
+                        </div>
+                        <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Khoảng thời gian</label>
                             <select 
                                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors"
@@ -333,6 +430,16 @@ export default function Reports() {
                                 <option value="This Semester">Học kỳ này</option>
                                 <option value="Custom Range">Tùy chỉnh</option>
                             </select>
+                        </div>
+                        <div className="space-y-1.5 flex flex-col justify-end">
+                            <Button 
+                                onClick={handleViewReport} 
+                                disabled={loading || filtersLoading}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white h-[42px] rounded-lg shadow-md shadow-indigo-200"
+                            >
+                                {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                                Xem báo cáo
+                            </Button>
                         </div>
                     </div>
                 </CardContent>
@@ -535,6 +642,64 @@ export default function Reports() {
                         </Card>
                     ))}
                 </div>
+
+                {/* Detailed Data Table (UC Step 6 - Part 2) */}
+                <Card className="shadow-sm border-slate-200 mt-6">
+                    <CardHeader className="pb-3 border-b border-slate-50">
+                        <CardTitle className="text-base font-semibold">Bảng dữ liệu chi tiết</CardTitle>
+                        <p className="text-sm text-slate-500">Danh sách học sinh và điểm số cụ thể tương ứng với bộ lọc</p>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+                                    <tr>
+                                        <th className="px-6 py-4 font-bold">Học sinh</th>
+                                        <th className="px-6 py-4 font-bold">Lớp</th>
+                                        <th className="px-6 py-4 font-bold">Mã môn</th>
+                                        <th className="px-6 py-4 font-bold text-center">Điểm số</th>
+                                        <th className="px-6 py-4 font-bold text-center">Xếp loại</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {(data?.detailedData?.length || 0) > 0 ? (
+                                        data.detailedData.map((student, idx) => (
+                                            <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                                <td className="px-6 py-4 font-medium text-slate-900">{student.student_name}</td>
+                                                <td className="px-6 py-4 text-slate-600">{student.class_name}</td>
+                                                <td className="px-6 py-4 text-slate-600">{student.course_code}</td>
+                                                <td className="px-6 py-4 text-center font-bold text-indigo-600">{student.score}</td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                                                        student.grade_letter === 'A' ? 'bg-emerald-100 text-emerald-700' :
+                                                        student.grade_letter === 'B' ? 'bg-blue-100 text-blue-700' :
+                                                        student.grade_letter === 'C' ? 'bg-amber-100 text-amber-700' :
+                                                        student.grade_letter === 'D' ? 'bg-orange-100 text-orange-700' :
+                                                        'bg-red-100 text-red-700'
+                                                    }`}>
+                                                        {student.grade_letter}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="5" className="px-6 py-12 text-center text-slate-400">
+                                                {hasSearched ? (
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <FileText size={40} className="text-slate-200" />
+                                                        <p className="font-medium">Chưa có dữ liệu thống kê cho bộ lọc này.</p>
+                                                        <p className="text-xs">Vui lòng kiểm tra lại cấu hình Lớp học hoặc Học kỳ.</p>
+                                                    </div>
+                                                ) : "Chọn bộ lọc và nhấn 'Xem báo cáo' để hiển thị dữ liệu"}
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
                 </>
                 )
             ) : (

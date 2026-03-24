@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { adminApi } from "service/adminApi";
 import { PageHeader, Card, CardHeader, CardTitle, CardContent, Badge, Button, Table, Th, Td } from "component/ui";
-import { Info, BookOpen, Users, Calendar, ChevronLeft, UserPlus, Upload, Plus, Trash2, Loader2, Edit, Minus } from "lucide-react";
+import { Users, UserPlus, Upload, Plus, Trash2, Loader2, Edit, Minus } from "lucide-react";
 import AssignTeacherModal from "./AssignTeacherModal";
 import AddSessionModal from "./AddSessionModal";
 import EditSessionModal from "./EditSessionModal";
