@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge } from "component/ui";
-import { Eye, EyeOff, FileText, HelpCircle } from "lucide-react";
+import { Eye, EyeOff, FileText, HelpCircle, Share2 } from "lucide-react";
+import ShareAssessmentModal from "./ShareAssessmentModal";
 
 export default function AssignmentManagement() {
     const { classId } = useParams(); 
@@ -14,6 +15,8 @@ export default function AssignmentManagement() {
     const [isFetching, setIsFetching] = useState(true);
     const [message, setMessage] = useState({ text: "", type: "" });
     const [classDetail, setClassDetail] = useState(null);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [assessmentToShare, setAssessmentToShare] = useState(null);
 
     const fetchAssignments = async () => {
         try {
@@ -206,6 +209,20 @@ export default function AssignmentManagement() {
                                                     >
                                                         Xóa
                                                     </Button>
+                                                    <Button 
+                                                        size="xs" 
+                                                        variant="outline"
+                                                        className={`border-blue-200 text-blue-600 hover:bg-blue-50 ${a.status === 'closed' ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                                                        onClick={() => {
+                                                            if (a.status === 'closed') return;
+                                                            setAssessmentToShare(a);
+                                                            setIsShareModalOpen(true);
+                                                        }}
+                                                        title={a.status === 'closed' ? "Không thể chia sẻ bài tập đã đóng" : "Chia sẻ bài tập"}
+                                                    >
+                                                        <Share2 className="w-3 h-3 mr-1" />
+                                                        Chia sẻ
+                                                    </Button>
                                                     {a.type?.toUpperCase() === 'QUIZ' && (
                                                         <Button 
                                                             size="xs" 
@@ -232,6 +249,13 @@ export default function AssignmentManagement() {
                     )}
                 </CardContent>
             </Card>
+
+            <ShareAssessmentModal 
+                open={isShareModalOpen} 
+                onClose={() => setIsShareModalOpen(false)} 
+                assessment={assessmentToShare}
+                currentClassId={classId}
+            />
         </div>
     );
 }
