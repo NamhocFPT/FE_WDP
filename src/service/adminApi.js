@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { store } from './store';
 
-const api = axios.create({ baseURL: 'http://localhost:9998/api/admin' });
+const api = axios.create({ baseURL: 'http://localhost:9999/api/admin' });
 
 api.interceptors.request.use((config) => {
     const token = store.getToken();
