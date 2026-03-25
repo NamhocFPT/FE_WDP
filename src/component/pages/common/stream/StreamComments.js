@@ -89,6 +89,7 @@ function CommentItem({ comment, classId, depth = 0, onCommentChanged, onReply, o
   const [editFiles, setEditFiles] = useState([]);
   const [retainedAttachments, setRetainedAttachments] = useState(comment.attachments || []);
   const [isSaving, setIsSaving] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
   const menuRef = useRef(null);
   const editFileRef = useRef(null);
 
@@ -148,6 +149,7 @@ function CommentItem({ comment, classId, depth = 0, onCommentChanged, onReply, o
   const authorName = comment.author?.full_name || comment.author?.email || "Người dùng";
   const authorRole = comment.author?.role;
   const avatarLetter = authorName.charAt(0).toUpperCase();
+  const avatarUrl = comment.author?.avatar_url || comment.author?.avatarUrl;
 
   return (
     <div className={cn("relative group", depth > 0 ? "mt-3" : "mt-4")}>
@@ -164,13 +166,17 @@ function CommentItem({ comment, classId, depth = 0, onCommentChanged, onReply, o
         {/* Avatar */}
         <div
           className={cn(
-            "h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0",
-            authorRole === "teacher"
+            "h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 overflow-hidden",
+            !avatarUrl && (authorRole === "teacher"
               ? "bg-gradient-to-br from-emerald-500 to-teal-600"
-              : "bg-gradient-to-br from-slate-400 to-slate-500"
+              : "bg-gradient-to-br from-slate-400 to-slate-500")
           )}
         >
-          {avatarLetter}
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={authorName} className="w-full h-full object-cover" />
+          ) : (
+            avatarLetter
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -349,18 +355,36 @@ function CommentItem({ comment, classId, depth = 0, onCommentChanged, onReply, o
 
       {/* Render child replies */}
       {comment.replies?.length > 0 && (
-        <div className="pl-11 mt-1">
-          {comment.replies.map((reply) => (
-            <CommentItem
-              key={reply._id || reply.id}
-              comment={reply}
-              classId={classId}
-              depth={depth + 1}
-              onCommentChanged={onCommentChanged}
-              onReply={onReply}
-              onPreviewImage={onPreviewImage}
-            />
-          ))}
+        <div className="pl-11 mt-2">
+          {!showReplies && (
+            <button
+              onClick={() => setShowReplies(true)}
+              className="text-xs font-semibold text-slate-500 hover:text-blue-600 mb-2 flex items-center gap-1 transition-colors"
+            >
+              <Reply size={12} className="rotate-180" /> Xem {comment.replies.length} phản hồi
+            </button>
+          )}
+          {showReplies && (
+            <div className="space-y-1">
+              {comment.replies.map((reply) => (
+                <CommentItem
+                  key={reply._id || reply.id}
+                  comment={reply}
+                  classId={classId}
+                  depth={depth + 1}
+                  onCommentChanged={onCommentChanged}
+                  onReply={onReply}
+                  onPreviewImage={onPreviewImage}
+                />
+              ))}
+              <button
+                onClick={() => setShowReplies(false)}
+                className="text-xs font-semibold text-slate-500 hover:text-blue-600 mt-2 flex items-center gap-1 transition-colors"
+              >
+                Thu gọn
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

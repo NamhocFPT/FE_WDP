@@ -77,6 +77,7 @@ export default function StreamPostCard({ post, classId, onPostChanged, canCommen
   const authorName = post.author?.full_name || post.author?.email || "Người dùng";
   const authorRole = post.author?.role;
   const avatarLetter = authorName.charAt(0).toUpperCase();
+  const avatarUrl = post.author?.avatar_url || post.author?.avatarUrl;
 
   useEffect(() => {
     const handler = (e) => {
@@ -165,16 +166,19 @@ export default function StreamPostCard({ post, classId, onPostChanged, canCommen
     >
       {/* Header */}
       <div className="flex items-start gap-3 px-5 pt-4 pb-2">
-        {/* Avatar */}
         <div
           className={cn(
-            "h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm",
-            authorRole === "teacher"
+            "h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm overflow-hidden",
+            !avatarUrl && (authorRole === "teacher"
               ? "bg-gradient-to-br from-emerald-500 to-teal-600"
-              : "bg-gradient-to-br from-blue-500 to-indigo-600"
+              : "bg-gradient-to-br from-blue-500 to-indigo-600")
           )}
         >
-          {avatarLetter}
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={authorName} className="w-full h-full object-cover" />
+          ) : (
+            avatarLetter
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
