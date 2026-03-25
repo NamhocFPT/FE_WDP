@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { store } from './store';
 
-const api = axios.create({ baseURL: 'http://localhost:9999/api/admin' });
+const api = axios.create({ baseURL: 'http://localhost:9998/api/admin' });
 
 api.interceptors.request.use((config) => {
     const token = store.getToken();
@@ -47,9 +47,13 @@ export const adminApi = {
 
     // --- DASHBOARD & REPORTS ---
     getDashboardStats: () => api.get('/dashboard/stats'),
-    getReportData: (semester, course, dateRange) => api.get('/reports/data', { params: { semester, course, dateRange } }),
+    getReportData: (semester, course, dateRange, classId) =>
+        api.get('/reports/data', { params: { semester, course, dateRange, class_id: classId } }),
     getReportFilters: () => api.get('/reports/filters'),
-    getTeacherActivity: (semester, course, dateRange) => api.get('/reports/teacher-activity', { params: { semester, course, dateRange } }),
+    getTeacherActivity: (semester, course, dateRange, classId) =>
+        api.get('/reports/teacher-activity', { params: { semester, course, dateRange, class_id: classId } }),
+    exportReportPDF: (semester, course, dateRange, class_id, className) =>
+        api.get('/reports/export/pdf', { params: { semester, course, dateRange, class_id, className }, responseType: 'blob' }),
 
     // --- UC_ADM_05 → UC_ADM_09: USER MANAGEMENT ---
     getUsers: (params) => api.get('/users', { params }),

@@ -252,3 +252,7 @@ export const bulkSaveQuestions = async (quizId, questions) => {
 };
 
 
+export const downloadQuizExport = (quizId, format, includeAnswers) => {
+    const token = localStorage.getItem('smartedu_token');
+    return `${process.env.REACT_APP_API_URL || 'http://localhost:9999/api'}/teacher/quizzes/${quizId}/export?format=${format}&includeAnswers=${includeAnswers}&token=${token}`;
+};
