@@ -25,6 +25,7 @@ export const adminApi = {
     getCreateClassMetadata: () => api.get('/classes/create'),
     addClass: (data) => api.post('/classes', data),
     updateClass: (id, data) => api.put(`/classes/${id}`, data),
+    upgradeClass: (id, data) => api.post(`/classes/${id}/upgrade`, data),
     getClassDetail: (id) => api.get(`/classes/${id}?t=${Date.now()}`),
     validateClassImport: (rows) => api.post('/classes/import/validate', { rows }),
     confirmClassImport: (validRows) => api.post('/classes/import/confirm', { validRows }),

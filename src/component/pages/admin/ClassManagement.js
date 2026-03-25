@@ -4,11 +4,12 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { adminApi } from "service/adminApi"; 
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge } from "component/ui";
-import { ChevronRight, Search, Pencil, Users, Loader2, ToggleLeft, Download } from "lucide-react";
+import { ChevronRight, Search, Pencil, Users, Loader2, ToggleLeft, Download, ArrowUpRight } from "lucide-react";
 // Import Component Modal
 import CreateClassModal from "./CreateClassModal"; 
 import EditClassModal from "./EditClassModal";
 import ImportClassModal from "./ImportClassModal";
+import UpgradeClassModal from "./UpgradeClassModal";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
@@ -21,6 +22,7 @@ export default function ClassManagement() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); 
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [editClass, setEditClass] = useState(null); 
+    const [upgradeModalClass, setUpgradeModalClass] = useState(null);
     const [statusFilter, setStatusFilter] = useState("all"); // Lọc theo trạng thái
     // Status Change Modal
     const [statusModalClass, setStatusModalClass] = useState(null);
@@ -195,6 +197,18 @@ export default function ClassManagement() {
                                             <button onClick={() => { setStatusModalClass(cl); setStatusAction(cl.status); }}>
                                                 <ToggleLeft size={18} className="text-slate-400 hover:text-indigo-600" title="Đổi trạng thái" />
                                             </button>
+                                            <button 
+                                                onClick={() => {
+                                                    const gradeMatch = cl.name.match(/\d+/);
+                                                    if (gradeMatch && parseInt(gradeMatch[0], 10) >= 12) {
+                                                        toast.warning("Lớp 12 là khối cuối cấp, không thể thực hiện lên lớp tự động.");
+                                                    } else {
+                                                        setUpgradeModalClass(cl);
+                                                    }
+                                                }}
+                                            >
+                                                <ArrowUpRight size={18} className="text-emerald-500 hover:text-emerald-700" title="Lên lớp tự động" />
+                                            </button>
                                         </Td>
                                     </tr>
                                 ))}
@@ -232,6 +246,18 @@ export default function ClassManagement() {
                     onClose={() => setEditClass(null)} 
                     onSuccess={() => {
                         setEditClass(null);
+                        fetchClasses(); 
+                    }}
+                />
+            )}
+
+            {/* UPGRADE POPUP */}
+            {upgradeModalClass && (
+                <UpgradeClassModal 
+                    classData={upgradeModalClass}
+                    onClose={() => setUpgradeModalClass(null)} 
+                    onSuccess={() => {
+                        setUpgradeModalClass(null);
                         fetchClasses(); 
                     }}
                 />
