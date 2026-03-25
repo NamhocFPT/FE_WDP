@@ -87,9 +87,8 @@ export default function MaterialsManagement() {
 
     // Loading
     const [isLoading, setIsLoading] = useState(false);
-
-    // Accordion State
     const [expandedSections, setExpandedSections] = useState({ general: true });
+    const [isUpcomingClass, setIsUpcomingClass] = useState(false);
 
     const toggleSection = (id) => {
         setExpandedSections(prev => ({ ...prev, [id]: !prev[id] }));
@@ -133,11 +132,17 @@ export default function MaterialsManagement() {
     useEffect(() => {
         if (selectedClassId) {
             fetchMaterials();
+            
+            if (classes.length > 0) {
+                const cls = classes.find(c => String(c.class_id) === String(selectedClassId));
+                setIsUpcomingClass(cls && cls.status === "upcoming");
+            }
         } else {
             setGeneral([]);
             setBySession([]);
+            setIsUpcomingClass(false);
         }
-    }, [selectedClassId]);
+    }, [selectedClassId, classes]);
 
     const handleToggleVisibility = async (materialId, currentVisibility) => {
         try {
@@ -408,11 +413,21 @@ export default function MaterialsManagement() {
                     )
                 } 
                 right={[
-                    <Button key="up" onClick={() => setIsUploadModalOpen(true)} className="gap-2" disabled={!selectedClassId}>
+                    <Button key="up" onClick={() => setIsUploadModalOpen(true)} className="gap-2" disabled={!selectedClassId || isUpcomingClass} title={isUpcomingClass ? "Lớp học chưa bắt đầu" : ""}>
                         <Upload size={16} /> Tải lên
                     </Button>
                 ]} 
             />
+
+            {isUpcomingClass && (
+                <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 shadow-sm flex items-start gap-2 animate-in fade-in duration-300">
+                    <span className="text-blue-500 pt-0.5">ℹ️</span>
+                    <div>
+                        <div className="font-bold">Lớp học chưa bắt đầu (Sắp tới)</div>
+                        <p className="mt-1 opacity-90">Bạn không thể tải lên hoặc chỉnh sửa tài liệu cho lớp học này cho đến khi lớp học bắt đầu.</p>
+                    </div>
+                </div>
+            )}
 
             <div className="space-y-6">
                 {!selectedClassId ? (

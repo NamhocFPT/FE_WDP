@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 export default function CreateClassModal({ onClose, onSuccess }) {
     // Quản lý danh sách Teachers lấy từ DB
-    const [, setMetadata] = useState({ 
+    const [metadata, setMetadata] = useState({ 
         teachers: [], 
     });
     const [courses, setCourses] = useState([]);
@@ -16,7 +16,8 @@ export default function CreateClassModal({ onClose, onSuccess }) {
         course_id: "",
         teacher_id: "", // Cần gửi trường này để tránh lỗi NOT NULL
         name: "",
-        semester: "Học kỳ 2 - 2026",
+        semester: "Học kỳ 1",
+        year: "2025-2026",
         start_date: "",
         end_date: "",
         max_capacity: 30
@@ -54,7 +55,40 @@ export default function CreateClassModal({ onClose, onSuccess }) {
                 toast.error("Ngày kết thúc phải diễn ra sau Ngày bắt đầu.");
                 return;
             }
-            await adminApi.addClass(formData); 
+
+            // Past Date check
+            const todayN = new Date();
+            todayN.setHours(0, 0, 0, 0);
+            if (new Date(formData.start_date) < todayN) {
+                setDateError("Ngày bắt đầu không được ở quá khứ.");
+                toast.error("Ngày bắt đầu không thể ở quá khứ.");
+                return;
+            }
+            
+            // Academic Year Validation
+            const [startYear, endYear] = formData.year.split("-");
+            const startDateObj = new Date(formData.start_date);
+            const endDateObj = new Date(formData.end_date);
+            
+            if (startDateObj.getFullYear() < parseInt(startYear)) {
+                setDateError(`Ngày bắt đầu phải diễn ra trong năm ${startYear} trở đi.`);
+                toast.error(`Ngày bắt đầu không thể trước năm ${startYear}`);
+                return;
+            }
+            if (endDateObj.getFullYear() > parseInt(endYear)) {
+                setDateError(`Ngày kết thúc phải diễn ra trước hoặc trong năm ${endYear}.`);
+                toast.error(`Ngày kết thúc không thể sau năm ${endYear}`);
+                return;
+            }
+
+            // Combine Semester & Year fully
+            const submissionData = {
+                ...formData,
+                semester: `${formData.semester} - ${formData.year}`
+            };
+            delete submissionData.year;
+
+            await adminApi.addClass(submissionData); 
             toast.success("Tạo lớp học thành công!");
             onSuccess(); 
         } catch (err) {
@@ -98,18 +132,31 @@ export default function CreateClassModal({ onClose, onSuccess }) {
                                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                             />
                         </div>
-                        {/* Semester */}
+                        {/* Semester / Year */}
                         <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase block mb-2 tracking-wider">Học kỳ</label>
-                            <select 
-                                className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 bg-white cursor-pointer"
-                                onChange={(e) => setFormData({...formData, semester: e.target.value})}
-                            >
-                                <option value="Học kỳ 1 - 2026">Học kỳ 1 - 2026</option>
-                                <option value="Học kỳ 2 - 2026">Học kỳ 2 - 2026</option>
-                                <option value="Học kỳ 1 - 2025">Học kỳ 1 - 2025</option>
-                                <option value="Học kỳ 2 - 2025">Học kỳ 2 - 2025</option>
-                            </select>
+                            <label className="text-xs font-bold text-slate-500 uppercase block mb-2 tracking-wider">Học kỳ / Năm học (*)</label>
+                            <div className="flex gap-2">
+                                <select 
+                                    value={formData.semester}
+                                    className="w-1/2 p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 bg-white cursor-pointer"
+                                    onChange={(e) => setFormData({...formData, semester: e.target.value})}
+                                >
+                                    <option value="Học kỳ 1">Học kỳ 1</option>
+                                    <option value="Học kỳ 2">Học kỳ 2</option>
+                                    <option value="Học kỳ 3">Học kỳ 3</option>
+                                </select>
+                                <select 
+                                    value={formData.year}
+                                    className="w-1/2 p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 bg-white cursor-pointer"
+                                    onChange={(e) => setFormData({...formData, year: e.target.value})}
+                                >
+                                    {Array.from({ length: 6 }, (_, i) => {
+                                        const yr = new Date().getFullYear() - 1 + i;
+                                        const op = `${yr}-${yr + 1}`;
+                                        return <option key={op} value={op}>{op}</option>;
+                                    })}
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -136,13 +183,29 @@ export default function CreateClassModal({ onClose, onSuccess }) {
                     </div>
                     {dateError && <p className="text-red-500 text-[10px] font-medium -mt-2 italic">{dateError}</p>}
                     
-                    <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase block mb-2 tracking-wider">Sĩ số tối đa</label>
-                        <input 
-                            type="number" defaultValue={30}
-                            className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
-                            onChange={(e) => setFormData({...formData, max_capacity: e.target.value})}
-                        />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase block mb-2 tracking-wider">Sĩ số tối đa</label>
+                            <input 
+                                type="number" defaultValue={30}
+                                className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
+                                onChange={(e) => setFormData({...formData, max_capacity: e.target.value})}
+                            />
+                        </div>
+                        {/* Teacher Selection */}
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase block mb-2 tracking-wider">Giáo viên phụ trách</label>
+                            <select 
+                                value={formData.teacher_id}
+                                className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 bg-white cursor-pointer"
+                                onChange={(e) => setFormData({...formData, teacher_id: e.target.value})}
+                            >
+                                <option value="">-- Chưa phân công --</option>
+                                {metadata.teachers?.map(t => (
+                                    <option key={t.id} value={t.id}>{t.full_name}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4 border-t border-slate-50">

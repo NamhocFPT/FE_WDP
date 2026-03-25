@@ -16,6 +16,7 @@ export default function TeacherGradebook() {
     const [grades, setGrades] = useState({}); // { [studentId]: { [assessmentId]: score } }
     const [loading, setLoading] = useState(true);
     const [className, setClassName] = useState(`lớp ${classId}`);
+    const [isUpcomingClass, setIsUpcomingClass] = useState(false);
 
     // Pagination for list view
     const [currentPage, setCurrentPage] = useState(1);
@@ -67,7 +68,10 @@ export default function TeacherGradebook() {
                 const classesRes = await TeacherQuizService.getTeacherClasses();
                 if (classesRes.success && classesRes.data) {
                     const cls = classesRes.data.find(c => String(c.id) === String(classId));
-                    if (cls) setClassName(cls.name || cls.courseName || `Lớp ${classId}`);
+                    if (cls) {
+                        setClassName(cls.name || cls.courseName || `Lớp ${classId}`);
+                        setIsUpcomingClass(cls.status === "upcoming");
+                    }
                 }
             } catch (err) {
                 console.error("Lỗi lấy thông tin lớp:", err);
@@ -348,9 +352,19 @@ export default function TeacherGradebook() {
                 subtitle={`Quản lý trạng thái và bảng tổng hợp cho ${className}`}
                 onBack={() => navigate("/teacher/classes")}
                 right={[
-                    <Button key="dl" className="bg-emerald-600 text-white hover:bg-emerald-700" onClick={handleExportExcel}>Xuất điểm Excel</Button>
+                    <Button key="dl" className="bg-emerald-600 text-white hover:bg-emerald-700" onClick={handleExportExcel} disabled={isUpcomingClass}>Xuất điểm Excel</Button>
                 ]}
             />
+
+            {isUpcomingClass && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800 shadow-sm flex items-start gap-2 animate-in fade-in duration-300">
+                    <span className="text-blue-500 pt-0.5">ℹ️</span>
+                    <div>
+                        <div className="font-bold">Lớp học chưa bắt đầu (Sắp tới)</div>
+                        <p className="mt-1 opacity-90">Bảng điểm hiện tại trống vì chưa có hoạt động nào được diễn ra.</p>
+                    </div>
+                </div>
+            )}
 
             {/* Tab Toggle Removed */}
 

@@ -42,6 +42,7 @@ export const adminApi = {
 
     addSession: (classId, sessionData) => api.post(`/classes/${classId}/sessions`, sessionData),
     editSessions: (classId, data) => api.put(`/classes/${classId}/sessions`, data), // data = { sessionIds, day_of_week, start_time, end_time, room }
+    updateSession: (classId, sessionId, data) => api.put(`/classes/${classId}/sessions/${sessionId}`, data),
     deleteSessions: (classId, sessionIds) => api.delete(`/classes/${classId}/sessions`, { data: { sessionIds } }),
 
     // --- DASHBOARD & REPORTS ---
