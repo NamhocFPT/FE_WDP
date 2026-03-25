@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { getAttemptState, saveAnswer } from "service/StudentQuizService";
 import { Button, Card, CardContent } from "component/ui";
+import Latex from "react-latex-next";
+import "katex/dist/katex.min.css";
 
 // Debounce helper
 function useDebounceCallback(callback, delay) {
@@ -458,7 +460,7 @@ export default function StudentQuizTake() {
 
                         {/* Question Text */}
                         <div className="text-base font-medium text-slate-900 leading-relaxed mb-6 whitespace-pre-wrap">
-                            {currentQ.text || currentQ.question_text || currentQ.content}
+                            <Latex>{currentQ.text || currentQ.question_text || currentQ.content}</Latex>
                         </div>
                         
                         {/* ─── SINGLE CHOICE ─── */}
@@ -488,7 +490,7 @@ export default function StudentQuizTake() {
                                                 <span className="font-bold mr-2 text-slate-400">
                                                     {String.fromCharCode(65 + oi)}.
                                                 </span>
-                                                {opt.text || opt.option_text || opt.content}
+                                                <Latex>{opt.text || opt.option_text || opt.content}</Latex>
                                             </span>
                                         </label>
                                     );
@@ -523,7 +525,7 @@ export default function StudentQuizTake() {
                                                 <span className="font-bold mr-2 text-slate-400">
                                                     {String.fromCharCode(65 + oi)}.
                                                 </span>
-                                                {opt.text || opt.option_text || opt.content}
+                                                <Latex>{opt.text || opt.option_text || opt.content}</Latex>
                                             </span>
                                         </label>
                                     );

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, PageHeader, Button } from "component/ui";
 
@@ -16,6 +16,30 @@ export default function StudentQuizResult() {
     const location = useLocation();
     const result = location.state?.result || {};
     const isSuccess = location.state?.success !== false;
+    const assessmentId = location.state?.assessmentId || result.assessmentId;
+
+    const [countdown, setCountdown] = useState(5);
+
+    useEffect(() => {
+        if (!isSuccess) return;
+
+        const timer = setInterval(() => {
+            setCountdown(prev => prev - 1);
+        }, 1000);
+
+        const redirect = setTimeout(() => {
+            if (assessmentId) {
+                nav(`/student/assessments/${assessmentId}`, { replace: true });
+            } else {
+                nav("/student/grades", { replace: true });
+            }
+        }, 5000);
+
+        return () => {
+            clearInterval(timer);
+            clearTimeout(redirect);
+        };
+    }, [isSuccess, assessmentId, nav]);
 
     const totalScore = result.totalScore;
     const maxScore = result.maxScore;
@@ -71,7 +95,9 @@ export default function StudentQuizResult() {
                 <div className="bg-gradient-to-br from-green-500 to-emerald-600 px-6 py-10 text-center text-white">
                     <div className="text-6xl mb-3">🎉</div>
                     <h2 className="text-2xl font-black">Nộp bài thành công!</h2>
-                    <p className="text-green-100 mt-2 text-sm">Bài làm của bạn đã được ghi nhận.</p>
+                    <p className="text-green-100 mt-2 text-sm italic">
+                        Bạn sẽ tự động thoát sau {countdown} giây...
+                    </p>
                 </div>
 
                 <CardContent className="p-8 space-y-6">

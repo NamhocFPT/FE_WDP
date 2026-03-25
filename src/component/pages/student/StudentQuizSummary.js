@@ -42,14 +42,24 @@ export default function StudentQuizSummary() {
             if (!res?.success) {
                 // Navigate to result page with failure
                 nav("/student/quiz-result", {
-                    state: { success: false, errorMessage: res?.message || "Lỗi nộp bài." },
+                    state: { 
+                        success: false, 
+                        errorMessage: res?.message || "Lỗi nộp bài.",
+                        assessmentId: res?.data?.assessmentId,
+                        classId: res?.data?.classId
+                    },
                     replace: true
                 });
                 return;
             }
             // Navigate to result page with success
             nav("/student/quiz-result", {
-                state: { success: true, result: res.data },
+                state: { 
+                    success: true, 
+                    result: res.data,
+                    assessmentId: res.data.assessmentId,
+                    classId: res.data.classId
+                },
                 replace: true
             });
         } catch (err) {
