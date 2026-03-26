@@ -46,13 +46,13 @@ export const adminApi = {
 
     // --- DASHBOARD & REPORTS ---
     getDashboardStats: () => api.get('/dashboard/stats'),
-    getReportData: (semester, course, dateRange, classId) =>
-        api.get('/reports/data', { params: { semester, course, dateRange, class_id: classId } }),
+    getReportData: (semester, course, dateRange, classId, startDate, endDate) =>
+        api.get('/reports/data', { params: { semester, course, dateRange, class_id: classId, startDate, endDate } }),
     getReportFilters: () => api.get('/reports/filters'),
-    getTeacherActivity: (semester, course, dateRange, classId) =>
-        api.get('/reports/teacher-activity', { params: { semester, course, dateRange, class_id: classId } }),
-    exportReportPDF: (semester, course, dateRange, class_id, className) =>
-        api.get('/reports/export/pdf', { params: { semester, course, dateRange, class_id, className }, responseType: 'blob' }),
+    getTeacherActivity: (semester, course, dateRange, classId, startDate, endDate) =>
+        api.get('/reports/teacher-activity', { params: { semester, course, dateRange, class_id: classId, startDate, endDate } }),
+    exportReportPDF: (semester, course, dateRange, class_id, className, startDate, endDate) =>
+        api.get('/reports/export/pdf', { params: { semester, course, dateRange, class_id, className, startDate, endDate }, responseType: 'blob' }),
 
     // --- UC_ADM_05 → UC_ADM_09: USER MANAGEMENT ---
     getUsers: (params) => api.get('/users', { params }),

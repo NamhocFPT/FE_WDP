@@ -1,12 +1,12 @@
 // src/component/pages/admin/Reports.js
 import React, { useState, useEffect, useRef } from "react";
 import { PageHeader, Card, CardHeader, CardTitle, CardContent, Button } from "component/ui";
-import { 
-    Download, 
-    ChevronDown, 
-    FileText, 
-    Table2, 
-    Sheet, 
+import {
+    Download,
+    ChevronDown,
+    FileText,
+    Table2,
+    Sheet,
     Loader2,
     Search,
     FileDown
@@ -27,6 +27,8 @@ export default function Reports() {
     const [filters, setFilters] = useState({ semesters: [], courses: [], classes: [] });
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
     const exportMenuRef = useRef(null);
     const [activeTab, setActiveTab] = useState('grade'); // 'grade' | 'teacher'
     const [teacherData, setTeacherData] = useState({
@@ -85,8 +87,8 @@ export default function Reports() {
 
         setLoading(true);
         setHasSearched(true);
-        
-        const reportPromise = adminApi.getReportData(semester, course, dateRange, selectedClass)
+
+        const reportPromise = adminApi.getReportData(semester, course, dateRange, selectedClass, startDate, endDate)
             .then(res => {
                 if (res.data.success) {
                     const receivedData = res.data.data || {};
@@ -105,7 +107,7 @@ export default function Reports() {
                         const sId = item.student_id || item.studentId || item.student_name;
                         const cId = item.class_id || item.classId || item.class_name;
                         const rowKey = `${sId}_${cId}`;
-                        
+
                         if (!pivotedStudents[rowKey]) {
                             pivotedStudents[rowKey] = {
                                 student_id: sId,
@@ -116,7 +118,7 @@ export default function Reports() {
                                 grades: {}
                             };
                         }
-                        
+
                         // Keep the highest score (MAX)
                         const assessmentId = item.assessment_id || item.assessmentId || item.quiz_name;
                         const existing = pivotedStudents[rowKey].grades[assessmentId];
@@ -170,8 +172,8 @@ export default function Reports() {
                 }
             });
 
-        const activityPromise = activeTab === 'teacher' 
-            ? adminApi.getTeacherActivity(semester, course, dateRange, selectedClass)
+        const activityPromise = activeTab === 'teacher'
+            ? adminApi.getTeacherActivity(semester, course, dateRange, selectedClass, startDate, endDate)
                 .then(res => {
                     if (res.data.success) {
                         const receivedTeacher = res.data.data || {};
@@ -195,18 +197,20 @@ export default function Reports() {
                 semester: semester || "",
                 course: course || "",
                 dateRange: dateRange || "This Month",
+                startDate: startDate || "",
+                endDate: endDate || "",
                 class_id: selectedClass || "",
-                className: (selectedClass && filters?.classes 
-                    ? filters.classes.find(c => String(c.id) === String(selectedClass))?.name || "Lớp" 
+                className: (selectedClass && filters?.classes
+                    ? filters.classes.find(c => String(c.id) === String(selectedClass))?.name || "Lớp"
                     : "Tất cả Lớp"),
                 activeTab: activeTab
             });
 
             const exportUrl = `http://localhost:9999/api/admin/reports/export/pdf?${params.toString()}`;
-            
+
             // Trigger download natively to avoid Axios-CORS conflicts with download managers (IDM)
             window.location.href = exportUrl;
-            
+
             toast.success("Đã bắt đầu xuất PDF!");
         } catch (error) {
             console.error("PDF Export error:", error);
@@ -240,11 +244,15 @@ export default function Reports() {
     // Build a common data structure for all export formats
     const buildReportSections = () => {
         const now = new Date();
-        const filtersLabel = `Học kỳ: ${semester || 'Tất cả'} | Môn học: ${course || 'Tất cả'} | Khoảng thời gian: ${
-            dateRange === 'This Week' ? 'Tuần này' : 
-            dateRange === 'This Month' ? 'Tháng này' : 
-            dateRange === 'This Semester' ? 'Học kỳ này' : 'Tùy chỉnh'
-        }`;
+        let dateLabel = "";
+        if (dateRange === 'Custom Range') {
+            dateLabel = `Từ ${startDate || '?'} đến ${endDate || '?'}`;
+        } else {
+            dateLabel = dateRange === 'This Week' ? 'Tuần này' : 
+                        dateRange === 'This Month' ? 'Tháng này' : 
+                        dateRange === 'This Semester' ? 'Học kỳ này' : 'Tùy chỉnh';
+        }
+        const filtersLabel = `Học kỳ: ${semester || 'Tất cả'} | Môn học: ${course || 'Tất cả'} | Khoảng thời gian: ${dateLabel}`;
         return { now, filtersLabel };
     };
 
@@ -351,35 +359,35 @@ export default function Reports() {
         XLSX.utils.book_append_sheet(wb, ws3, 'Ghi danh môn học');
 
         // Sheet 4: Detailed Data (UC Export Requirement)
-                        const quizCols = (data?.assessments || []).filter(a => String(a.type).toUpperCase() === 'QUIZ');
-                        const essayCols = (data?.assessments || []).filter(a => String(a.type).toUpperCase() !== 'QUIZ');
-                        
-                        const headerRow = ['Học sinh', 'Lớp', 'Mã môn'];
-                        quizCols.forEach(a => headerRow.push(a.title));
-                        essayCols.forEach(a => headerRow.push(a.title));
-            
-                        const excelRows = [headerRow];
-                        (data?.detailedData || []).forEach(s => {
-                            const row = [s.student_name, s.class_name, s.course_code];
-                            quizCols.forEach(a => {
-                                const grade = s.grades[a.id];
-                                row.push(grade ? `${grade.score} (${grade.grade_letter || '-'})` : '-');
-                            });
-                            essayCols.forEach(a => {
-                                const grade = s.grades[a.id];
-                                row.push(grade ? `${grade.score} (${grade.grade_letter || '-'})` : '-');
-                            });
-                            excelRows.push(row);
-                        });
-            
-                        const ws4Data = [
-                            ['DANH SÁCH CHI TIẾT ĐIỂM SỐ'],
-                            ['Học kỳ', semester || 'Tất cả'],
-                            ['Môn học', course || 'Tất cả'],
-                            ['Lớp học', filters.classes.find(c => c.id === selectedClass)?.name || 'Tất cả'],
-                            [],
-                            ...excelRows
-                        ];
+        const quizCols = (data?.assessments || []).filter(a => String(a.type).toUpperCase() === 'QUIZ');
+        const essayCols = (data?.assessments || []).filter(a => String(a.type).toUpperCase() !== 'QUIZ');
+
+        const headerRow = ['Học sinh', 'Lớp', 'Mã môn'];
+        quizCols.forEach(a => headerRow.push(a.title));
+        essayCols.forEach(a => headerRow.push(a.title));
+
+        const excelRows = [headerRow];
+        (data?.detailedData || []).forEach(s => {
+            const row = [s.student_name, s.class_name, s.course_code];
+            quizCols.forEach(a => {
+                const grade = s.grades[a.id];
+                row.push(grade ? `${grade.score} (${grade.grade_letter || '-'})` : '-');
+            });
+            essayCols.forEach(a => {
+                const grade = s.grades[a.id];
+                row.push(grade ? `${grade.score} (${grade.grade_letter || '-'})` : '-');
+            });
+            excelRows.push(row);
+        });
+
+        const ws4Data = [
+            ['DANH SÁCH CHI TIẾT ĐIỂM SỐ'],
+            ['Học kỳ', semester || 'Tất cả'],
+            ['Môn học', course || 'Tất cả'],
+            ['Lớp học', filters.classes.find(c => c.id === selectedClass)?.name || 'Tất cả'],
+            [],
+            ...excelRows
+        ];
         const ws4 = XLSX.utils.aoa_to_sheet(ws4Data);
         ws4['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 10 }];
         XLSX.utils.book_append_sheet(wb, ws4, 'Dữ liệu chi tiết');
@@ -387,7 +395,7 @@ export default function Reports() {
         XLSX.writeFile(wb, `baocao_${dateStr}.xlsx`);
         toast.success('Đã xuất Excel thành công!');
     };
-    
+
     const handleExportIndividual = (student) => {
         try {
             const now = new Date();
@@ -396,7 +404,7 @@ export default function Reports() {
 
             const quizCols = (data?.assessments || []).filter(a => String(a.type).toUpperCase() === 'QUIZ');
             const essayCols = (data?.assessments || []).filter(a => String(a.type).toUpperCase() !== 'QUIZ');
-            
+
             const headerRow = ['Học sinh', 'Lớp', 'Mã môn'];
             quizCols.forEach(a => headerRow.push(a.title));
             essayCols.forEach(a => headerRow.push(a.title));
@@ -449,9 +457,9 @@ export default function Reports() {
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header & Export Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <PageHeader 
-                    title="Báo cáo & Phân tích" 
-                    subtitle="Xem các chỉ số hiệu suất và báo cáo hoạt động" 
+                <PageHeader
+                    title="Báo cáo & Phân tích"
+                    subtitle="Xem các chỉ số hiệu suất và báo cáo hoạt động"
                 />
                 {/* Export Dropdown */}
                 <div className="relative" ref={exportMenuRef}>
@@ -508,13 +516,13 @@ export default function Reports() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Học kỳ</label>
-                            <select 
+                            <select
                                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors"
                                 value={semester}
                                 onChange={e => setSemester(e.target.value)}
                                 disabled={filtersLoading}
                             >
-                                <option value="">Tất cả Học kỳ</option>
+
                                 {filters.semesters.map(s => (
                                     <option key={s} value={s}>{s}</option>
                                 ))}
@@ -522,7 +530,7 @@ export default function Reports() {
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Môn học</label>
-                            <select 
+                            <select
                                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors"
                                 value={course}
                                 onChange={e => setCourse(e.target.value)}
@@ -536,7 +544,7 @@ export default function Reports() {
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Lớp học</label>
-                            <select 
+                            <select
                                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors"
                                 value={selectedClass}
                                 onChange={e => setSelectedClass(e.target.value)}
@@ -557,7 +565,7 @@ export default function Reports() {
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Khoảng thời gian</label>
-                            <select 
+                            <select
                                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors"
                                 value={dateRange}
                                 onChange={e => setDateRange(e.target.value)}
@@ -568,9 +576,33 @@ export default function Reports() {
                                 <option value="Custom Range">Tùy chỉnh</option>
                             </select>
                         </div>
+                        
+                        {dateRange === 'Custom Range' && (
+                            <>
+                                <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+                                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Từ ngày</label>
+                                    <input 
+                                        type="date"
+                                        className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
+                                        value={startDate}
+                                        onChange={e => setStartDate(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+                                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Đến ngày</label>
+                                    <input 
+                                        type="date"
+                                        className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
+                                        value={endDate}
+                                        onChange={e => setEndDate(e.target.value)}
+                                    />
+                                </div>
+                            </>
+                        )}
+
                         <div className="space-y-1.5 flex flex-col justify-end">
-                            <Button 
-                                onClick={handleViewReport} 
+                            <Button
+                                onClick={handleViewReport}
                                 disabled={loading || filtersLoading}
                                 className="bg-indigo-600 hover:bg-indigo-700 text-white h-[42px] rounded-lg shadow-md shadow-indigo-200"
                             >
@@ -586,22 +618,20 @@ export default function Reports() {
             <div className="flex gap-6 border-b border-slate-200 px-1">
                 <button
                     onClick={() => setActiveTab('grade')}
-                    className={`pb-3 border-b-2 text-sm font-semibold flex items-center gap-2 transition-colors ${
-                        activeTab === 'grade'
-                            ? 'border-indigo-600 text-indigo-600'
-                            : 'border-transparent text-slate-500 hover:text-slate-700'
-                    }`}
+                    className={`pb-3 border-b-2 text-sm font-semibold flex items-center gap-2 transition-colors ${activeTab === 'grade'
+                        ? 'border-indigo-600 text-indigo-600'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                        }`}
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                     Phân bố điểm số
                 </button>
                 <button
                     onClick={() => setActiveTab('teacher')}
-                    className={`pb-3 border-b-2 text-sm font-semibold flex items-center gap-2 transition-colors ${
-                        activeTab === 'teacher'
-                            ? 'border-indigo-600 text-indigo-600'
-                            : 'border-transparent text-slate-500 hover:text-slate-700'
-                    }`}
+                    className={`pb-3 border-b-2 text-sm font-semibold flex items-center gap-2 transition-colors ${activeTab === 'teacher'
+                        ? 'border-indigo-600 text-indigo-600'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                        }`}
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                     Hoạt động Giáo viên
@@ -615,279 +645,279 @@ export default function Reports() {
                         <Loader2 className="animate-spin text-indigo-600" size={32} />
                     </div>
                 ) : (
-                <>
+                    <>
 
-                <div className="grid gap-6 lg:grid-cols-2 mt-4">
-                    {/* Grade Distribution Bar */}
-                    <Card className="shadow-sm border-slate-200 flex flex-col min-h-[400px]">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-slate-800">Phân bố điểm số</CardTitle>
-                            <p className="text-sm text-slate-500">Thống kê điểm số tổng quát theo tiêu chí đã chọn</p>
-                        </CardHeader>
-                        <CardContent className="flex-1 pt-4">
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={data.gradeDistributionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                    <XAxis 
-                                        dataKey="name" 
-                                        axisLine={false} 
-                                        tickLine={false} 
-                                        tick={{ fill: '#64748b', fontSize: 13 }}
-                                        dy={10}
-                                    />
-                                    <YAxis 
-                                        axisLine={false} 
-                                        tickLine={false} 
-                                        tick={{ fill: '#64748b', fontSize: 13 }}
-                                        dx={-10}
-                                        domain={[0, 'dataMax']}
-                                        allowDecimals={false}
-                                    />
-                                    <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9' }} />
-                                    <Bar dataKey="students" fill="#4f46e5" radius={[4, 4, 0, 0]} maxBarSize={60} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
-
-                    {/* Grade Percentage Donut */}
-                    <Card className="shadow-sm border-slate-200 flex flex-col min-h-[400px]">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-slate-800">Phần trăm xếp loại</CardTitle>
-                            <p className="text-sm text-slate-500">Tỷ lệ phân phối theo phần trăm</p>
-                        </CardHeader>
-                        <CardContent className="flex-1 flex flex-col items-center justify-center p-4">
-                            {data.gradePercentageData.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-400">
-                                    <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                    </svg>
-                                    <span className="text-sm font-medium">Chưa có dữ liệu điểm</span>
-                                </div>
-                            ) : (
-                                <>
-                                    <ResponsiveContainer width="100%" height={250}>
-                                        <PieChart>
-                                            <Pie
-                                                data={data.gradePercentageData}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={55}
-                                                outerRadius={95}
-                                                paddingAngle={3}
-                                                dataKey="value"
-                                                label={false}
-                                                labelLine={false}
-                                            >
-                                                {data.gradePercentageData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                                ))}
-                                            </Pie>
-                                            <RechartsTooltip 
-                                                contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
-                                                formatter={(value, name) => [`${value}%`, name]}
-                                                itemStyle={{ color: '#1e293b', fontWeight: 500 }}
+                        <div className="grid gap-6 lg:grid-cols-2 mt-4">
+                            {/* Grade Distribution Bar */}
+                            <Card className="shadow-sm border-slate-200 flex flex-col min-h-[400px]">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-base text-slate-800">Phân bố điểm số</CardTitle>
+                                    <p className="text-sm text-slate-500">Thống kê điểm số tổng quát theo tiêu chí đã chọn</p>
+                                </CardHeader>
+                                <CardContent className="flex-1 pt-4">
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <BarChart data={data.gradeDistributionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                            <XAxis
+                                                dataKey="name"
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{ fill: '#64748b', fontSize: 13 }}
+                                                dy={10}
                                             />
-                                        </PieChart>
+                                            <YAxis
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{ fill: '#64748b', fontSize: 13 }}
+                                                dx={-10}
+                                                domain={[0, 'dataMax']}
+                                                allowDecimals={false}
+                                            />
+                                            <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9' }} />
+                                            <Bar dataKey="students" fill="#4f46e5" radius={[4, 4, 0, 0]} maxBarSize={60} />
+                                        </BarChart>
                                     </ResponsiveContainer>
-                                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2">
-                                        {data.gradePercentageData.map((entry, index) => (
-                                            <div key={index} className="flex items-center gap-1.5 text-sm text-slate-600">
-                                                <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: entry.color }} />
-                                                <span>{entry.name}</span>
+                                </CardContent>
+                            </Card>
+
+                            {/* Grade Percentage Donut */}
+                            <Card className="shadow-sm border-slate-200 flex flex-col min-h-[400px]">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-base text-slate-800">Phần trăm xếp loại</CardTitle>
+                                    <p className="text-sm text-slate-500">Tỷ lệ phân phối theo phần trăm</p>
+                                </CardHeader>
+                                <CardContent className="flex-1 flex flex-col items-center justify-center p-4">
+                                    {data.gradePercentageData.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-400">
+                                            <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                            </svg>
+                                            <span className="text-sm font-medium">Chưa có dữ liệu điểm</span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <ResponsiveContainer width="100%" height={250}>
+                                                <PieChart>
+                                                    <Pie
+                                                        data={data.gradePercentageData}
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        innerRadius={55}
+                                                        outerRadius={95}
+                                                        paddingAngle={3}
+                                                        dataKey="value"
+                                                        label={false}
+                                                        labelLine={false}
+                                                    >
+                                                        {data.gradePercentageData.map((entry, index) => (
+                                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                                        ))}
+                                                    </Pie>
+                                                    <RechartsTooltip
+                                                        contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+                                                        formatter={(value, name) => [`${value}%`, name]}
+                                                        itemStyle={{ color: '#1e293b', fontWeight: 500 }}
+                                                    />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2">
+                                                {data.gradePercentageData.map((entry, index) => (
+                                                    <div key={index} className="flex items-center gap-1.5 text-sm text-slate-600">
+                                                        <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                                                        <span>{entry.name}</span>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
+                                        </>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
 
-                {/* Course Enrollment Statistics Bar */}
-                <Card className="shadow-sm border-slate-200 mb-8 mt-6">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base text-slate-800">Thống kê Ghi danh Môn học</CardTitle>
-                        <p className="text-sm text-slate-500">Số lượng học sinh ghi danh theo từng môn học</p>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                        <ResponsiveContainer width="100%" height={350}>
-                            <BarChart data={data.courseEnrollmentData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis 
-                                    dataKey="name" 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                    tick={{ fill: '#64748b', fontSize: 13 }}
-                                    dy={10}
-                                />
-                                <YAxis 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                    tick={{ fill: '#64748b', fontSize: 13 }}
-                                    dx={-10}
-                                    domain={[0, 'auto']}
-                                    allowDecimals={false}
-                                />
-                                <RechartsTooltip cursor={{ fill: '#f1f5f9' }} />
-                                <Bar dataKey="students" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-
-                {/* Summary Stats Cards */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[
-                        {
-                            label: 'Điểm trung bình',
-                            value: data.summaryStats.avgGrade,
-                            sub: data.summaryStats.gradeTotal > 0
-                                ? `Dựa trên ${data.summaryStats.gradeTotal} đầu điểm`
-                                : 'Chưa có dữ liệu',
-                            color: 'text-indigo-600'
-                        },
-                        {
-                            label: 'Tỷ lệ đạt',
-                            value: data.summaryStats.gradeTotal > 0 ? `${data.summaryStats.passRate}%` : 'N/A',
-                            sub: data.summaryStats.gradeTotal > 0
-                                ? `${data.summaryStats.passRate >= 50 ? '+' : ''}${data.summaryStats.passRate - 50}% so với mục tiêu 50%`
-                                : 'Chưa có dữ liệu',
-                            color: data.summaryStats.passRate >= 70 ? 'text-green-600' : 'text-amber-500'
-                        },
-                        {
-                            label: 'Tổng Học sinh',
-                            value: data.summaryStats.totalStudents,
-                            sub: 'Trên tất cả môn học',
-                            color: 'text-purple-600'
-                        },
-                        {
-                            label: 'Học sinh loại A',
-                            value: data.summaryStats.gradeTotal > 0 ? `${data.summaryStats.aPercent}%` : 'N/A',
-                            sub: data.summaryStats.gradeTotal > 0
-                                ? `${data.summaryStats.aStudents} trên tổng số ${data.summaryStats.gradeTotal} học sinh`
-                                : 'Chưa có dữ liệu',
-                            color: 'text-emerald-600'
-                        }
-                    ].map((stat, i) => (
-                        <Card key={i} className="shadow-sm border-slate-200">
-                            <CardContent className="pt-5 pb-5">
-                                <p className="text-sm text-slate-500 mb-2">{stat.label}</p>
-                                <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
-                                <p className="text-xs text-slate-400 mt-1">{stat.sub}</p>
+                        {/* Course Enrollment Statistics Bar */}
+                        <Card className="shadow-sm border-slate-200 mb-8 mt-6">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-base text-slate-800">Thống kê Ghi danh Môn học</CardTitle>
+                                <p className="text-sm text-slate-500">Số lượng học sinh ghi danh theo từng môn học</p>
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                <ResponsiveContainer width="100%" height={350}>
+                                    <BarChart data={data.courseEnrollmentData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                        <XAxis
+                                            dataKey="name"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#64748b', fontSize: 13 }}
+                                            dy={10}
+                                        />
+                                        <YAxis
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#64748b', fontSize: 13 }}
+                                            dx={-10}
+                                            domain={[0, 'auto']}
+                                            allowDecimals={false}
+                                        />
+                                        <RechartsTooltip cursor={{ fill: '#f1f5f9' }} />
+                                        <Bar dataKey="students" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                                    </BarChart>
+                                </ResponsiveContainer>
                             </CardContent>
                         </Card>
-                    ))}
-                </div>
 
-                {/* Detailed Data Table (UC Step 6 - Part 2) */}
-                <Card className="shadow-sm border-slate-200 overflow-hidden mt-6">
-                    <CardHeader className="pb-4 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <CardTitle className="text-base font-bold text-slate-800">Bảng dữ liệu chi tiết</CardTitle>
-                            <p className="text-xs text-slate-500 mt-1">Danh sách học sinh và điểm số cụ thể tương ứng với bộ lọc</p>
+                        {/* Summary Stats Cards */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            {[
+                                {
+                                    label: 'Điểm trung bình',
+                                    value: data.summaryStats.avgGrade,
+                                    sub: data.summaryStats.gradeTotal > 0
+                                        ? `Dựa trên ${data.summaryStats.gradeTotal} đầu điểm`
+                                        : 'Chưa có dữ liệu',
+                                    color: 'text-indigo-600'
+                                },
+                                {
+                                    label: 'Tỷ lệ đạt',
+                                    value: data.summaryStats.gradeTotal > 0 ? `${data.summaryStats.passRate}%` : 'N/A',
+                                    sub: data.summaryStats.gradeTotal > 0
+                                        ? `${data.summaryStats.passRate >= 50 ? '+' : ''}${data.summaryStats.passRate - 50}% so với mục tiêu 50%`
+                                        : 'Chưa có dữ liệu',
+                                    color: data.summaryStats.passRate >= 70 ? 'text-green-600' : 'text-amber-500'
+                                },
+                                {
+                                    label: 'Tổng Học sinh',
+                                    value: data.summaryStats.totalStudents,
+                                    sub: 'Trên tất cả môn học',
+                                    color: 'text-purple-600'
+                                },
+                                {
+                                    label: 'Học sinh loại A',
+                                    value: data.summaryStats.gradeTotal > 0 ? `${data.summaryStats.aPercent}%` : 'N/A',
+                                    sub: data.summaryStats.gradeTotal > 0
+                                        ? `${data.summaryStats.aStudents} trên tổng số ${data.summaryStats.gradeTotal} học sinh`
+                                        : 'Chưa có dữ liệu',
+                                    color: 'text-emerald-600'
+                                }
+                            ].map((stat, i) => (
+                                <Card key={i} className="shadow-sm border-slate-200">
+                                    <CardContent className="pt-5 pb-5">
+                                        <p className="text-sm text-slate-500 mb-2">{stat.label}</p>
+                                        <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
+                                        <p className="text-xs text-slate-400 mt-1">{stat.sub}</p>
+                                    </CardContent>
+                                </Card>
+                            ))}
                         </div>
-                        <div className="relative w-full md:w-72">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                            <input 
-                                type="text"
-                                placeholder="Tìm tên học sinh..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm"
-                            />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <div className="overflow-x-auto">
-                            <table className="w-full border-collapse text-sm">
-                                <thead>
-                                    {/* Header Grouping Row */}
-                                    <tr className="bg-slate-50 border-b border-slate-200">
-                                        <th colSpan="4" className="px-4 py-3 border-r border-slate-200"></th>
-                                        <th 
-                                            colSpan={(data?.assessments?.filter(a => String(a.type).toUpperCase() === 'QUIZ').length || 0)} 
-                                            className="px-4 py-2 text-center text-[11px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50/50 border-r border-slate-200"
-                                        >
-                                            Trắc nghiệm (Quizzes)
-                                        </th>
-                                        <th 
-                                            colSpan={(data?.assessments?.filter(a => String(a.type).toUpperCase() !== 'QUIZ').length || 0)} 
-                                            className="px-4 py-2 text-center text-[11px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50/50"
-                                        >
-                                            Tự luận (Essays)
-                                        </th>
-                                    </tr>
-                                    <tr className="bg-white border-b border-slate-200">
-                                        <th className="px-6 py-3 text-left font-bold text-slate-700 sticky left-0 bg-white z-20">Học sinh</th>
-                                        <th className="px-6 py-3 text-left font-bold text-slate-700">Lớp</th>
-                                        <th className="px-6 py-3 text-left font-bold text-slate-700">Mã môn</th>
-                                        <th className="px-6 py-3 text-center font-bold text-slate-700 border-r border-slate-200">Xuất</th>
-                                        {data?.assessments?.filter(a => String(a.type).toUpperCase() === 'QUIZ').map(a => (
-                                            <th key={a.id} className="px-4 py-3 text-center border-r border-slate-200 min-w-[100px] normal-case font-medium text-slate-600 overflow-hidden">
-                                                <div className="truncate w-full" title={a.title}>{a.title}</div>
-                                            </th>
-                                        ))}
-                                        {data?.assessments?.filter(a => String(a.type).toUpperCase() !== 'QUIZ').map(a => (
-                                            <th key={a.id} className="px-4 py-3 text-center border-r border-slate-200 min-w-[100px] normal-case font-medium text-slate-600 overflow-hidden">
-                                                <div className="truncate w-full" title={a.title}>{a.title}</div>
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {(() => {
-                                        const filteredRows = (data?.detailedData || []).filter(s => 
-                                            !searchTerm || (s.student_name && s.student_name.toLowerCase().includes(searchTerm.toLowerCase()))
-                                        );
-                                        
-                                        return filteredRows.length > 0 ? (
-                                            filteredRows.map((student, idx) => (
-                                                <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                                                    <td className="px-6 py-4 font-medium text-slate-900 border-r sticky left-0 bg-white z-10">{student.student_name}</td>
-                                                    <td className="px-6 py-4 text-slate-600 border-r">{student.class_name}</td>
-                                                    <td className="px-6 py-4 text-slate-600 border-r">{student.course_code}</td>
-                                                    <td className="px-6 py-4 text-center border-r">
-                                                        <button 
-                                                            onClick={() => handleExportIndividual(student)}
-                                                            className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
-                                                            title="Xuất phiếu điểm cá nhân"
-                                                        >
-                                                            <FileDown size={18} />
-                                                        </button>
-                                                    </td>
-                                                    {data?.assessments?.filter(a => String(a.type).toUpperCase() === 'QUIZ').map(a => {
-                                                        const grade = student.grades[a.id];
-                                                        return (
-                                                            <td key={a.id} className="px-4 py-4 text-center border-r font-bold text-blue-600">
-                                                                {grade ? `${grade.score} (${grade.grade_letter || '-'})` : "-"}
-                                                            </td>
-                                                        );
-                                                    })}
-                                                    {data?.assessments?.filter(a => String(a.type).toUpperCase() !== 'QUIZ').map(a => {
-                                                        const grade = student.grades[a.id];
-                                                        return (
-                                                            <td key={a.id} className="px-4 py-4 text-center border-r font-bold text-indigo-600">
-                                                                {grade ? `${grade.score} (${grade.grade_letter || '-'})` : "-"}
-                                                            </td>
-                                                        );
-                                                    })}
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan={4 + (data?.assessments?.length || 0)} className="px-6 py-12 text-center text-slate-400 italic">
-                                                    {searchTerm ? `Không tìm thấy học sinh nào khớp với "${searchTerm}"` : "Chưa có dữ liệu bài nộp cho các tiêu chí đã chọn."}
-                                                </td>
+
+                        {/* Detailed Data Table (UC Step 6 - Part 2) */}
+                        <Card className="shadow-sm border-slate-200 overflow-hidden mt-6">
+                            <CardHeader className="pb-4 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div>
+                                    <CardTitle className="text-base font-bold text-slate-800">Bảng dữ liệu chi tiết</CardTitle>
+                                    <p className="text-xs text-slate-500 mt-1">Danh sách học sinh và điểm số cụ thể tương ứng với bộ lọc</p>
+                                </div>
+                                <div className="relative w-full md:w-72">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                    <input
+                                        type="text"
+                                        placeholder="Tìm tên học sinh..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm"
+                                    />
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full border-collapse text-sm">
+                                        <thead>
+                                            {/* Header Grouping Row */}
+                                            <tr className="bg-slate-50 border-b border-slate-200">
+                                                <th colSpan="4" className="px-4 py-3 border-r border-slate-200"></th>
+                                                <th
+                                                    colSpan={(data?.assessments?.filter(a => String(a.type).toUpperCase() === 'QUIZ').length || 0)}
+                                                    className="px-4 py-2 text-center text-[11px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50/50 border-r border-slate-200"
+                                                >
+                                                    Trắc nghiệm (Quizzes)
+                                                </th>
+                                                <th
+                                                    colSpan={(data?.assessments?.filter(a => String(a.type).toUpperCase() !== 'QUIZ').length || 0)}
+                                                    className="px-4 py-2 text-center text-[11px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50/50"
+                                                >
+                                                    Tự luận (Essays)
+                                                </th>
                                             </tr>
-                                        );
-                                    })()}
-                                </tbody>
-                            </table>
-                        </div>
-                    </CardContent>
-                </Card>
-                </>
+                                            <tr className="bg-white border-b border-slate-200">
+                                                <th className="px-6 py-3 text-left font-bold text-slate-700 sticky left-0 bg-white z-20">Học sinh</th>
+                                                <th className="px-6 py-3 text-left font-bold text-slate-700">Lớp</th>
+                                                <th className="px-6 py-3 text-left font-bold text-slate-700">Mã môn</th>
+                                                <th className="px-6 py-3 text-center font-bold text-slate-700 border-r border-slate-200">Xuất thông tin</th>
+                                                {data?.assessments?.filter(a => String(a.type).toUpperCase() === 'QUIZ').map(a => (
+                                                    <th key={a.id} className="px-4 py-3 text-center border-r border-slate-200 min-w-[100px] normal-case font-medium text-slate-600 overflow-hidden">
+                                                        <div className="truncate w-full" title={a.title}>{a.title}</div>
+                                                    </th>
+                                                ))}
+                                                {data?.assessments?.filter(a => String(a.type).toUpperCase() !== 'QUIZ').map(a => (
+                                                    <th key={a.id} className="px-4 py-3 text-center border-r border-slate-200 min-w-[100px] normal-case font-medium text-slate-600 overflow-hidden">
+                                                        <div className="truncate w-full" title={a.title}>{a.title}</div>
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {(() => {
+                                                const filteredRows = (data?.detailedData || []).filter(s =>
+                                                    !searchTerm || (s.student_name && s.student_name.toLowerCase().includes(searchTerm.toLowerCase()))
+                                                );
+
+                                                return filteredRows.length > 0 ? (
+                                                    filteredRows.map((student, idx) => (
+                                                        <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                                                            <td className="px-6 py-4 font-medium text-slate-900 border-r sticky left-0 bg-white z-10">{student.student_name}</td>
+                                                            <td className="px-6 py-4 text-slate-600 border-r">{student.class_name}</td>
+                                                            <td className="px-6 py-4 text-slate-600 border-r">{student.course_code}</td>
+                                                            <td className="px-6 py-4 text-center border-r">
+                                                                <button
+                                                                    onClick={() => handleExportIndividual(student)}
+                                                                    className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                                                                    title="Xuất phiếu điểm cá nhân"
+                                                                >
+                                                                    <FileDown size={18} />
+                                                                </button>
+                                                            </td>
+                                                            {data?.assessments?.filter(a => String(a.type).toUpperCase() === 'QUIZ').map(a => {
+                                                                const grade = student.grades[a.id];
+                                                                return (
+                                                                    <td key={a.id} className="px-4 py-4 text-center border-r font-bold text-blue-600">
+                                                                        {grade ? `${grade.score} (${grade.grade_letter || '-'})` : "-"}
+                                                                    </td>
+                                                                );
+                                                            })}
+                                                            {data?.assessments?.filter(a => String(a.type).toUpperCase() !== 'QUIZ').map(a => {
+                                                                const grade = student.grades[a.id];
+                                                                return (
+                                                                    <td key={a.id} className="px-4 py-4 text-center border-r font-bold text-indigo-600">
+                                                                        {grade ? `${grade.score} (${grade.grade_letter || '-'})` : "-"}
+                                                                    </td>
+                                                                );
+                                                            })}
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan={4 + (data?.assessments?.length || 0)} className="px-6 py-12 text-center text-slate-400 italic">
+                                                            {searchTerm ? `Không tìm thấy học sinh nào khớp với "${searchTerm}"` : "Chưa có dữ liệu bài nộp cho các tiêu chí đã chọn."}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })()}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </>
 
                 )
             ) : (
@@ -897,50 +927,50 @@ export default function Reports() {
                         <Loader2 className="animate-spin text-indigo-600" size={32} />
                     </div>
                 ) : (
-                <>
-                    {/* Line Chart */}
-                    <Card className="shadow-sm border-slate-200 mt-4">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-slate-800">Cường độ hoạt động Giáo viên</CardTitle>
-                            <p className="text-sm text-slate-500">
-                                Chỉ số hoạt động theo {dateRange === 'Tuần này' ? 'ngày' : 'tuần'} dựa trên bộ lọc
-                            </p>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={teacherData.activityChartData} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13 }} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13 }} dx={-10} allowDecimals={false} />
-                                    <RechartsTooltip 
-                                        contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
-                                    />
-                                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ paddingTop: '16px', fontSize: '13px' }} />
-                                    <Line type="monotone" dataKey="quizzesCreated" name="Bài trắc nghiệm đã tạo" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                                    <Line type="monotone" dataKey="materialsUploaded" name="Học liệu đã tải lên" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} strokeDasharray="5 5" />
-                                    <Line type="monotone" dataKey="assignmentsGraded" name="Bài tập đã chấm" stroke="#ec4899" strokeWidth={2} dot={{ r: 4 }} strokeDasharray="3 3" />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                    <>
+                        {/* Line Chart */}
+                        <Card className="shadow-sm border-slate-200 mt-4">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-base text-slate-800">Cường độ hoạt động Giáo viên</CardTitle>
+                                <p className="text-sm text-slate-500">
+                                    Chỉ số hoạt động theo {dateRange === 'Tuần này' ? 'ngày' : 'tuần'} dựa trên bộ lọc
+                                </p>
+                            </CardHeader>
+                            <CardContent className="pt-4">
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <LineChart data={teacherData.activityChartData} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13 }} dy={10} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13 }} dx={-10} allowDecimals={false} />
+                                        <RechartsTooltip
+                                            contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+                                        />
+                                        <Legend iconType="circle" iconSize={8} wrapperStyle={{ paddingTop: '16px', fontSize: '13px' }} />
+                                        <Line type="monotone" dataKey="quizzesCreated" name="Bài trắc nghiệm đã tạo" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                        <Line type="monotone" dataKey="materialsUploaded" name="Học liệu đã tải lên" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} strokeDasharray="5 5" />
+                                        <Line type="monotone" dataKey="assignmentsGraded" name="Bài tập đã chấm" stroke="#ec4899" strokeWidth={2} dot={{ r: 4 }} strokeDasharray="3 3" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
 
-                    {/* 3 Summary Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {[
-                             { label: 'Bài trắc nghiệm đã tạo', value: teacherData.totals.quizzesCreated, sub: dateRange === 'This Month' ? 'Trong tháng này' : (dateRange === 'This Week' ? 'Trong tuần này' : (dateRange === 'This Semester' ? 'Trong học kỳ này' : 'Tùy chỉnh')), color: 'text-indigo-600' },
-                            { label: 'Học liệu đã tải lên', value: teacherData.totals.materialsUploaded, sub: dateRange === 'This Month' ? 'Trong tháng này' : (dateRange === 'This Week' ? 'Trong tuần này' : (dateRange === 'This Semester' ? 'Trong học kỳ này' : 'Tùy chỉnh')), color: 'text-purple-600' },
-                            { label: 'Bài tập đã chấm', value: teacherData.totals.assignmentsGraded, sub: dateRange === 'This Month' ? 'Trong tháng này' : (dateRange === 'This Week' ? 'Trong tuần này' : (dateRange === 'This Semester' ? 'Trong học kỳ này' : 'Tùy chỉnh')), color: 'text-pink-600' },
-                        ].map((stat, i) => (
-                            <Card key={i} className="shadow-sm border-slate-200">
-                                <CardContent className="pt-5 pb-5">
-                                    <p className="text-sm text-slate-500 mb-2">{stat.label}</p>
-                                    <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
-                                    <p className="text-xs text-slate-400 mt-1">{stat.sub}</p>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </>
+                        {/* 3 Summary Cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            {[
+                                { label: 'Bài trắc nghiệm đã tạo', value: teacherData.totals.quizzesCreated, sub: dateRange === 'This Month' ? 'Trong tháng này' : (dateRange === 'This Week' ? 'Trong tuần này' : (dateRange === 'This Semester' ? 'Trong học kỳ này' : 'Tùy chỉnh')), color: 'text-indigo-600' },
+                                { label: 'Học liệu đã tải lên', value: teacherData.totals.materialsUploaded, sub: dateRange === 'This Month' ? 'Trong tháng này' : (dateRange === 'This Week' ? 'Trong tuần này' : (dateRange === 'This Semester' ? 'Trong học kỳ này' : 'Tùy chỉnh')), color: 'text-purple-600' },
+                                { label: 'Bài tập đã chấm', value: teacherData.totals.assignmentsGraded, sub: dateRange === 'This Month' ? 'Trong tháng này' : (dateRange === 'This Week' ? 'Trong tuần này' : (dateRange === 'This Semester' ? 'Trong học kỳ này' : 'Tùy chỉnh')), color: 'text-pink-600' },
+                            ].map((stat, i) => (
+                                <Card key={i} className="shadow-sm border-slate-200">
+                                    <CardContent className="pt-5 pb-5">
+                                        <p className="text-sm text-slate-500 mb-2">{stat.label}</p>
+                                        <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
+                                        <p className="text-xs text-slate-400 mt-1">{stat.sub}</p>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    </>
                 )
             )}
         </div>
