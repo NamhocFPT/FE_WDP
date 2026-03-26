@@ -7,7 +7,7 @@ import { Bell, Clock, ChevronDown, CheckCircle2 } from "lucide-react";
 import { api } from "service/api";
 
 export default function StreamNotificationPanel() {
-  const { recentNotifications, markAsRead, markAllAsRead } = useNotification();
+  const { recentNotifications, markAllAsRead, handleNotificationClick } = useNotification();
   const navigate = useNavigate();
   
   const [isExpanded, setIsExpanded] = useState(false);
@@ -64,11 +64,9 @@ export default function StreamNotificationPanel() {
     }
   };
 
-  const handleNotificationClick = async (notification) => {
+  const onNotificationClick = async (notification) => {
+    // Update local state for extra notifications if it was from there
     if (!notification.is_read) {
-      await markAsRead(notification._id || notification.id);
-      
-      // Update local state for extra notifications if it was from there
       setExtraNotifications(prev => 
         prev.map(n => 
           (n._id || n.id) === (notification._id || notification.id) 
@@ -78,22 +76,7 @@ export default function StreamNotificationPanel() {
       );
     }
 
-    const id = notification.ref_id;
-    switch (notification.ref_type) {
-      case "SESSION":
-        navigate(`/schedule/${id}`);
-        break;
-      case "ASSESSMENT":
-        navigate(`/assessments/${id}`);
-        break;
-      case "GRADE":
-        navigate(`/grades/${id}`);
-        break;
-      case "SYSTEM":
-      default:
-        // Do nothing for system or unknown types if they don't have a route
-        break;
-    }
+    await handleNotificationClick(notification, navigate);
   };
 
   return (
@@ -122,7 +105,7 @@ export default function StreamNotificationPanel() {
           displayNotifications.map((notif) => (
             <div
               key={notif._id || notif.id}
-              onClick={() => handleNotificationClick(notif)}
+              onClick={() => onNotificationClick(notif)}
               className={`p-3 transition-colors cursor-pointer hover:bg-slate-50 flex gap-3 ${
                 !notif.is_read ? "bg-blue-50/20" : ""
               }`}
