@@ -1,7 +1,16 @@
 // src/component/pages/admin/Reports.js
 import React, { useState, useEffect, useRef } from "react";
 import { PageHeader, Card, CardHeader, CardTitle, CardContent, Button } from "component/ui";
-import { Download, Loader2, ChevronDown, FileText, Table2, Sheet } from "lucide-react";
+import { 
+    Download, 
+    ChevronDown, 
+    FileText, 
+    Table2, 
+    Sheet, 
+    Loader2,
+    Search,
+    FileDown
+} from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, Legend } from "recharts";
 import { adminApi } from "service/adminApi";
 import { toast } from "sonner";
@@ -17,6 +26,7 @@ export default function Reports() {
     const [filtersLoading, setFiltersLoading] = useState(true);
     const [filters, setFilters] = useState({ semesters: [], courses: [], classes: [] });
     const [showExportMenu, setShowExportMenu] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
     const exportMenuRef = useRef(null);
     const [activeTab, setActiveTab] = useState('grade'); // 'grade' | 'teacher'
     const [teacherData, setTeacherData] = useState({
@@ -80,11 +90,73 @@ export default function Reports() {
             .then(res => {
                 if (res.data.success) {
                     const receivedData = res.data.data || {};
+                    // Pivot the data for the new table structure
+                    const detailedDataRaw = receivedData.detailedData || [];
+                    const pivotedStudents = {};
+                    const assessmentsMap = {};
+
+                    console.log('[Reports] Raw rows from server:', detailedDataRaw.length);
+                    if (detailedDataRaw.length > 0) {
+                        console.log('[Reports] Sample item keys:', Object.keys(detailedDataRaw[0]).join(', '));
+                    }
+
+                    detailedDataRaw.forEach(item => {
+                        // Fallback to names if IDs are missing (Backend might not have restarted)
+                        const sId = item.student_id || item.studentId || item.student_name;
+                        const cId = item.class_id || item.classId || item.class_name;
+                        const rowKey = `${sId}_${cId}`;
+                        
+                        if (!pivotedStudents[rowKey]) {
+                            pivotedStudents[rowKey] = {
+                                student_id: sId,
+                                class_id: cId,
+                                student_name: item.student_name,
+                                class_name: item.class_name,
+                                course_code: item.course_code,
+                                grades: {}
+                            };
+                        }
+                        
+                        // Keep the highest score (MAX)
+                        const assessmentId = item.assessment_id || item.assessmentId || item.quiz_name;
+                        const existing = pivotedStudents[rowKey].grades[assessmentId];
+                        const currentScore = parseFloat(item.score) || 0;
+                        const existingScore = existing ? (parseFloat(existing.score) || 0) : -1;
+
+                        if (!existing || currentScore > existingScore) {
+                            pivotedStudents[rowKey].grades[assessmentId] = {
+                                score: item.score,
+                                grade_letter: item.grade_letter
+                            };
+                        }
+
+                        if (!assessmentsMap[assessmentId]) {
+                            // Temporary type detection until backend is restarted
+                            let detectedType = item.type;
+                            if (!detectedType) {
+                                const lowerName = (item.quiz_name || "").toLowerCase();
+                                if (lowerName.includes('tự luận') || lowerName.includes('essay') || lowerName.includes('assignment') || lowerName.includes('bài tập')) {
+                                    detectedType = 'ESSAY';
+                                } else {
+                                    detectedType = 'QUIZ';
+                                }
+                            }
+
+                            assessmentsMap[assessmentId] = {
+                                id: assessmentId,
+                                title: item.quiz_name,
+                                type: detectedType
+                            };
+                        }
+                    });
+                    console.log('[Reports] Total pivoted rows:', Object.keys(pivotedStudents).length);
+
                     setData({
                         gradeDistributionData: receivedData.gradeDistributionData || [],
                         gradePercentageData: receivedData.gradePercentageData || [],
                         courseEnrollmentData: receivedData.courseEnrollmentData || [],
-                        detailedData: receivedData.detailedData || [],
+                        detailedData: Object.values(pivotedStudents),
+                        assessments: Object.values(assessmentsMap),
                         summaryStats: receivedData.summaryStats || { avgGrade: 'N/A', passRate: 0, totalStudents: 0, aStudents: 0, gradeTotal: 0, aPercent: 0 }
                     });
                 }
@@ -279,21 +351,86 @@ export default function Reports() {
         XLSX.utils.book_append_sheet(wb, ws3, 'Ghi danh môn học');
 
         // Sheet 4: Detailed Data (UC Export Requirement)
-        const ws4Data = [
-            ['DANH SÁCH CHI TIẾT ĐIỂM SỐ'],
-            ['Học kỳ', semester || 'Tất cả'],
-            ['Môn học', course || 'Tất cả'],
-            ['Lớp học', filters.classes.find(c => c.id === selectedClass)?.name || 'Tất cả'],
-            [],
-            ['Học sinh', 'Lớp', 'Mã môn', 'Điểm số', 'Xếp loại'],
-            ... (data?.detailedData || []).map(s => [s.student_name, s.class_name, s.course_code, s.score, s.grade_letter]),
-        ];
+                        const quizCols = (data?.assessments || []).filter(a => String(a.type).toUpperCase() === 'QUIZ');
+                        const essayCols = (data?.assessments || []).filter(a => String(a.type).toUpperCase() !== 'QUIZ');
+                        
+                        const headerRow = ['Học sinh', 'Lớp', 'Mã môn'];
+                        quizCols.forEach(a => headerRow.push(a.title));
+                        essayCols.forEach(a => headerRow.push(a.title));
+            
+                        const excelRows = [headerRow];
+                        (data?.detailedData || []).forEach(s => {
+                            const row = [s.student_name, s.class_name, s.course_code];
+                            quizCols.forEach(a => {
+                                const grade = s.grades[a.id];
+                                row.push(grade ? `${grade.score} (${grade.grade_letter || '-'})` : '-');
+                            });
+                            essayCols.forEach(a => {
+                                const grade = s.grades[a.id];
+                                row.push(grade ? `${grade.score} (${grade.grade_letter || '-'})` : '-');
+                            });
+                            excelRows.push(row);
+                        });
+            
+                        const ws4Data = [
+                            ['DANH SÁCH CHI TIẾT ĐIỂM SỐ'],
+                            ['Học kỳ', semester || 'Tất cả'],
+                            ['Môn học', course || 'Tất cả'],
+                            ['Lớp học', filters.classes.find(c => c.id === selectedClass)?.name || 'Tất cả'],
+                            [],
+                            ...excelRows
+                        ];
         const ws4 = XLSX.utils.aoa_to_sheet(ws4Data);
-        ws4['!cols'] = [{ wch: 30 }, { wch: 20 }, { wch: 15 }, { wch: 10 }, { wch: 10 }];
+        ws4['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 10 }];
         XLSX.utils.book_append_sheet(wb, ws4, 'Dữ liệu chi tiết');
 
         XLSX.writeFile(wb, `baocao_${dateStr}.xlsx`);
         toast.success('Đã xuất Excel thành công!');
+    };
+    
+    const handleExportIndividual = (student) => {
+        try {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('vi-VN').replace(/\//g, '-');
+            const wb = XLSX.utils.book_new();
+
+            const quizCols = (data?.assessments || []).filter(a => String(a.type).toUpperCase() === 'QUIZ');
+            const essayCols = (data?.assessments || []).filter(a => String(a.type).toUpperCase() !== 'QUIZ');
+            
+            const headerRow = ['Học sinh', 'Lớp', 'Mã môn'];
+            quizCols.forEach(a => headerRow.push(a.title));
+            essayCols.forEach(a => headerRow.push(a.title));
+
+            const studentRow = [student.student_name, student.class_name, student.course_code];
+            quizCols.forEach(a => {
+                const grade = student.grades[a.id];
+                studentRow.push(grade ? `${grade.score} (${grade.grade_letter || '-'})` : '-');
+            });
+            essayCols.forEach(a => {
+                const grade = student.grades[a.id];
+                studentRow.push(grade ? `${grade.score} (${grade.grade_letter || '-'})` : '-');
+            });
+
+            const wsData = [
+                ['PHIẾU ĐIỂM CÁ NHÂN'],
+                ['Ngày trích xuất', now.toLocaleString('vi-VN')],
+                ['Học kỳ', semester || 'Tất cả'],
+                ['Môn học', course || 'Tất cả'],
+                [],
+                headerRow,
+                studentRow
+            ];
+
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            ws['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 30 }, { wch: 15 }];
+            XLSX.utils.book_append_sheet(wb, ws, 'Phiếu điểm');
+
+            XLSX.writeFile(wb, `PhieuDiem_${student.student_name.replace(/\s+/g, '_')}_${dateStr}.xlsx`);
+            toast.success(`Đã xuất phiếu điểm cho ${student.student_name}`);
+        } catch (error) {
+            console.error("Individual Export error:", error);
+            toast.error("Lỗi khi xuất phiếu điểm cá nhân");
+        }
     };
 
     const triggerDownload = (content, filename, type) => {
@@ -644,63 +781,114 @@ export default function Reports() {
                 </div>
 
                 {/* Detailed Data Table (UC Step 6 - Part 2) */}
-                <Card className="shadow-sm border-slate-200 mt-6">
-                    <CardHeader className="pb-3 border-b border-slate-50">
-                        <CardTitle className="text-base font-semibold">Bảng dữ liệu chi tiết</CardTitle>
-                        <p className="text-sm text-slate-500">Danh sách học sinh và điểm số cụ thể tương ứng với bộ lọc</p>
+                <Card className="shadow-sm border-slate-200 overflow-hidden mt-6">
+                    <CardHeader className="pb-4 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <CardTitle className="text-base font-bold text-slate-800">Bảng dữ liệu chi tiết</CardTitle>
+                            <p className="text-xs text-slate-500 mt-1">Danh sách học sinh và điểm số cụ thể tương ứng với bộ lọc</p>
+                        </div>
+                        <div className="relative w-full md:w-72">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                            <input 
+                                type="text"
+                                placeholder="Tìm tên học sinh..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm"
+                            />
+                        </div>
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="text-xs text-slate-500 uppercase bg-slate-50">
-                                    <tr>
-                                        <th className="px-6 py-4 font-bold">Học sinh</th>
-                                        <th className="px-6 py-4 font-bold">Lớp</th>
-                                        <th className="px-6 py-4 font-bold">Mã môn</th>
-                                        <th className="px-6 py-4 font-bold text-center">Điểm số</th>
-                                        <th className="px-6 py-4 font-bold text-center">Xếp loại</th>
+                            <table className="w-full border-collapse text-sm">
+                                <thead>
+                                    {/* Header Grouping Row */}
+                                    <tr className="bg-slate-50 border-b border-slate-200">
+                                        <th colSpan="4" className="px-4 py-3 border-r border-slate-200"></th>
+                                        <th 
+                                            colSpan={(data?.assessments?.filter(a => String(a.type).toUpperCase() === 'QUIZ').length || 0)} 
+                                            className="px-4 py-2 text-center text-[11px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50/50 border-r border-slate-200"
+                                        >
+                                            Trắc nghiệm (Quizzes)
+                                        </th>
+                                        <th 
+                                            colSpan={(data?.assessments?.filter(a => String(a.type).toUpperCase() !== 'QUIZ').length || 0)} 
+                                            className="px-4 py-2 text-center text-[11px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50/50"
+                                        >
+                                            Tự luận (Essays)
+                                        </th>
+                                    </tr>
+                                    <tr className="bg-white border-b border-slate-200">
+                                        <th className="px-6 py-3 text-left font-bold text-slate-700 sticky left-0 bg-white z-20">Học sinh</th>
+                                        <th className="px-6 py-3 text-left font-bold text-slate-700">Lớp</th>
+                                        <th className="px-6 py-3 text-left font-bold text-slate-700">Mã môn</th>
+                                        <th className="px-6 py-3 text-center font-bold text-slate-700 border-r border-slate-200">Xuất</th>
+                                        {data?.assessments?.filter(a => String(a.type).toUpperCase() === 'QUIZ').map(a => (
+                                            <th key={a.id} className="px-4 py-3 text-center border-r border-slate-200 min-w-[100px] normal-case font-medium text-slate-600 overflow-hidden">
+                                                <div className="truncate w-full" title={a.title}>{a.title}</div>
+                                            </th>
+                                        ))}
+                                        {data?.assessments?.filter(a => String(a.type).toUpperCase() !== 'QUIZ').map(a => (
+                                            <th key={a.id} className="px-4 py-3 text-center border-r border-slate-200 min-w-[100px] normal-case font-medium text-slate-600 overflow-hidden">
+                                                <div className="truncate w-full" title={a.title}>{a.title}</div>
+                                            </th>
+                                        ))}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {(data?.detailedData?.length || 0) > 0 ? (
-                                        data.detailedData.map((student, idx) => (
-                                            <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                                <td className="px-6 py-4 font-medium text-slate-900">{student.student_name}</td>
-                                                <td className="px-6 py-4 text-slate-600">{student.class_name}</td>
-                                                <td className="px-6 py-4 text-slate-600">{student.course_code}</td>
-                                                <td className="px-6 py-4 text-center font-bold text-indigo-600">{student.score}</td>
-                                                <td className="px-6 py-4 text-center">
-                                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                                                        student.grade_letter === 'A' ? 'bg-emerald-100 text-emerald-700' :
-                                                        student.grade_letter === 'B' ? 'bg-blue-100 text-blue-700' :
-                                                        student.grade_letter === 'C' ? 'bg-amber-100 text-amber-700' :
-                                                        student.grade_letter === 'D' ? 'bg-orange-100 text-orange-700' :
-                                                        'bg-red-100 text-red-700'
-                                                    }`}>
-                                                        {student.grade_letter}
-                                                    </span>
+                                    {(() => {
+                                        const filteredRows = (data?.detailedData || []).filter(s => 
+                                            !searchTerm || (s.student_name && s.student_name.toLowerCase().includes(searchTerm.toLowerCase()))
+                                        );
+                                        
+                                        return filteredRows.length > 0 ? (
+                                            filteredRows.map((student, idx) => (
+                                                <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                                                    <td className="px-6 py-4 font-medium text-slate-900 border-r sticky left-0 bg-white z-10">{student.student_name}</td>
+                                                    <td className="px-6 py-4 text-slate-600 border-r">{student.class_name}</td>
+                                                    <td className="px-6 py-4 text-slate-600 border-r">{student.course_code}</td>
+                                                    <td className="px-6 py-4 text-center border-r">
+                                                        <button 
+                                                            onClick={() => handleExportIndividual(student)}
+                                                            className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                                                            title="Xuất phiếu điểm cá nhân"
+                                                        >
+                                                            <FileDown size={18} />
+                                                        </button>
+                                                    </td>
+                                                    {data?.assessments?.filter(a => String(a.type).toUpperCase() === 'QUIZ').map(a => {
+                                                        const grade = student.grades[a.id];
+                                                        return (
+                                                            <td key={a.id} className="px-4 py-4 text-center border-r font-bold text-blue-600">
+                                                                {grade ? `${grade.score} (${grade.grade_letter || '-'})` : "-"}
+                                                            </td>
+                                                        );
+                                                    })}
+                                                    {data?.assessments?.filter(a => String(a.type).toUpperCase() !== 'QUIZ').map(a => {
+                                                        const grade = student.grades[a.id];
+                                                        return (
+                                                            <td key={a.id} className="px-4 py-4 text-center border-r font-bold text-indigo-600">
+                                                                {grade ? `${grade.score} (${grade.grade_letter || '-'})` : "-"}
+                                                            </td>
+                                                        );
+                                                    })}
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={4 + (data?.assessments?.length || 0)} className="px-6 py-12 text-center text-slate-400 italic">
+                                                    {searchTerm ? `Không tìm thấy học sinh nào khớp với "${searchTerm}"` : "Chưa có dữ liệu bài nộp cho các tiêu chí đã chọn."}
                                                 </td>
                                             </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="5" className="px-6 py-12 text-center text-slate-400">
-                                                {hasSearched ? (
-                                                    <div className="flex flex-col items-center gap-2">
-                                                        <FileText size={40} className="text-slate-200" />
-                                                        <p className="font-medium">Chưa có dữ liệu thống kê cho bộ lọc này.</p>
-                                                        <p className="text-xs">Vui lòng kiểm tra lại cấu hình Lớp học hoặc Học kỳ.</p>
-                                                    </div>
-                                                ) : "Chọn bộ lọc và nhấn 'Xem báo cáo' để hiển thị dữ liệu"}
-                                            </td>
-                                        </tr>
-                                    )}
+                                        );
+                                    })()}
                                 </tbody>
                             </table>
                         </div>
                     </CardContent>
                 </Card>
                 </>
+
                 )
             ) : (
                 /* Teacher Activity Tab */
