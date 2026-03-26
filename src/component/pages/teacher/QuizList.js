@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getQuizByClass, deleteQuiz, getTeacherClasses } from "service/TeacherQuizService";
+import { getQuizByClass, deleteQuiz, getTeacherClasses, updateQuizStatus } from "service/TeacherQuizService";
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge } from "component/ui";
-import { FileText, Users, Settings, Plus, Trash2, Edit3, Eye, ChevronRight, ChevronLeft } from "lucide-react";
+import { FileText, Users, Settings, Plus, Trash2, Edit3, Eye, ChevronRight, ChevronLeft, Send, AlertTriangle } from "lucide-react";
 
 export default function QuizList() {
     const { classId: paramClassId } = useParams();
@@ -77,16 +77,44 @@ export default function QuizList() {
             alert("Lỗi khi xóa bài trắc nghiệm.");
         }
     };
+    const handlePublish = async (quiz) => {
+        const now = new Date();
+        const dueDate = quiz.due_at ? new Date(quiz.due_at) : null;
+
+        if (dueDate && now > dueDate) {
+            alert("Đề đã hết hạn nộp bài, nếu muốn công bố hãy thay đổi lại thời gian nộp");
+            return;
+        }
+
+        if (!window.confirm(`Bạn có chắc muốn công bố đề thi "${quiz.title}"?`)) return;
+
+        try {
+            const res = await updateQuizStatus(selectedClassId, quiz.id, "published");
+            if (res.success) {
+                alert("Công bố đề thi thành công!");
+                fetchQuizzes(selectedClassId);
+            } else {
+                alert(res.message || "Lỗi khi công bố đề thi.");
+            }
+        } catch (err) {
+            alert("Lỗi kết nối khi công bố đề thi.");
+        }
+    };
+
+    const isExpired = (dueDateStr) => {
+        if (!dueDateStr) return false;
+        return new Date() > new Date(dueDateStr);
+    };
 
     return (
         <div className="space-y-6">
-            <PageHeader 
-                title="Quản lý Trắc nghiệm Online" 
+            <PageHeader
+                title="Quản lý Trắc nghiệm Online"
                 subtitle={selectedClassId ? `Lớp: ${classes.find(c => c.id === selectedClassId)?.course?.name || "---"} (${classes.find(c => c.id === selectedClassId)?.name || selectedClassId})` : "Danh sách bài tập trắc nghiệm của lớp"}
                 onBack={() => navigate("/teacher/classes")}
                 right={[
-                    <Button 
-                        key="create" 
+                    <Button
+                        key="create"
                         disabled={!selectedClassId}
                         onClick={() => navigate(`/teacher/quizzes/create?classId=${selectedClassId}`)}
                         className="flex items-center gap-2 bg-blue-600 text-white"
@@ -106,8 +134,8 @@ export default function QuizList() {
                         <div className="text-xs text-slate-500">Lọc danh sách theo từng lớp</div>
                     </div>
                 </div>
-                
-                <select 
+
+                <select
                     className="w-full md:w-64 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all cursor-pointer"
                     value={selectedClassId}
                     onChange={(e) => {
@@ -134,8 +162,8 @@ export default function QuizList() {
                         </div>
                     ) : quizzes.length === 0 ? (
                         <div className="p-12 text-center text-slate-400">
-                            {!selectedClassId 
-                                ? "Vui lòng chọn một lớp học để xem danh sách." 
+                            {!selectedClassId
+                                ? "Vui lòng chọn một lớp học để xem danh sách."
                                 : "Chưa có bài trắc nghiệm nào được tạo cho lớp này."}
                         </div>
                     ) : (
@@ -159,76 +187,97 @@ export default function QuizList() {
                                                 <div className="font-bold text-slate-900 flex items-center gap-2">
                                                     {q.title}
                                                 </div>
-                                                <div className="text-xs text-slate-400 mt-1 uppercase tracking-wider">ID: {q.id.substring(0,8)}...</div>
+                                                <div className="text-xs text-slate-400 mt-1 uppercase tracking-wider">ID: {q.id.substring(0, 8)}...</div>
                                             </Td>
-                                             <Td className="text-sm text-slate-600 font-medium">
-                                                 {q.open_at ? new Date(q.open_at).toLocaleString('vi-VN') : "Ngay lập tức"}
-                                             </Td>
-                                             <Td>
-                                                 <Badge tone={q.status === 'published' ? "green" : "slate"}>
-                                                     {q.status === 'published' ? "Công bố" : "Bản nháp"}
-                                                 </Badge>
-                                             </Td>
-                                             <Td className="text-center">
-                                                 <div className="flex items-center justify-center gap-1.5 text-slate-700 font-medium">
-                                                     <FileText size={14} className="text-slate-400" />
-                                                     {q.questionCount || 0}
-                                                 </div>
-                                             </Td>
-                                             <Td className="text-center">
-                                                 <div className="flex items-center justify-center gap-1.5 text-slate-700 font-medium">
-                                                     <Users size={14} className="text-slate-400" />
-                                                     {q.submissionCount || 0}
-                                                 </div>
-                                             </Td>
-                                             <Td className="text-sm text-slate-600">
-                                                 {q.due_at ? new Date(q.due_at).toLocaleString('vi-VN') : "Vô thời hạn"}
-                                             </Td>
-                                             <Td className="text-right">
-                                                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                     <Button 
-                                                         size="xs" 
-                                                         variant="outline" 
-                                                         title="Xem danh sách nộp bài"
-                                                          onClick={() => navigate(`/teacher/classes/${selectedClassId}/assessments/${q.id}/quiz-attempts`)}
-                                                     >
-                                                         <Eye size={14} />
-                                                     </Button>
-                                                     <Button 
-                                                         size="xs" 
-                                                         variant="outline" 
-                                                         title={q.status === 'draft' ? "Tiếp tục soạn đề" : "Soạn đề"}
-                                                         onClick={() => navigate(`/teacher/classes/${selectedClassId}/quizzes/${q.id}/questions`)}
-                                                     >
-                                                         <Settings size={14} className="mr-1" />
-                                                         {q.status === 'draft' ? "Tiếp soạn đề" : "Soạn đề"}
-                                                     </Button>
-                                                     <Button 
-                                                         size="xs" 
-                                                         variant="outline" 
-                                                         title="Chỉnh sửa cấu hình"
-                                                         onClick={() => navigate(`/teacher/quizzes/create?classId=${selectedClassId}&quizId=${q.id}`)}
-                                                     >
-                                                         <Edit3 size={14} />
-                                                     </Button>
-                                                     <Button 
-                                                         size="xs" 
-                                                         variant="danger" 
-                                                         className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"
-                                                         title="Xóa"
-                                                         onClick={() => handleDelete(q.id)}
-                                                     >
-                                                         <Trash2 size={14} />
-                                                     </Button>
-                                                 </div>
-                                             </Td>
+                                            <Td className="text-sm text-slate-600 font-medium">
+                                                {q.open_at ? new Date(q.open_at).toLocaleString('vi-VN') : "Ngay lập tức"}
+                                            </Td>
+                                            <Td>
+                                                {/* <Badge tone={q.status === 'published' ? "green" : "slate"}>
+                                                    {q.status === 'published' ? "Công bố" : "Bản nháp"}
+                                                </Badge> */}
+                                            </Td>
+                                            <Td className="text-center">
+                                                <div className="flex items-center justify-center gap-1.5 text-slate-700 font-medium">
+                                                    <FileText size={14} className="text-slate-400" />
+                                                    {q.questionCount || 0}
+                                                </div>
+                                            </Td>
+                                            <Td className="text-center">
+                                                <div className="flex items-center justify-center gap-1.5 text-slate-700 font-medium">
+                                                    <Users size={14} className="text-slate-400" />
+                                                    {q.submissionCount || 0}
+                                                </div>
+                                            </Td>
+                                            <Td className="text-sm">
+                                                <div className="flex flex-col">
+                                                    <span className={isExpired(q.due_at) ? "text-red-500 font-bold" : "text-slate-600"}>
+                                                        {q.due_at ? new Date(q.due_at).toLocaleString('vi-VN') : "Vô thời hạn"}
+                                                    </span>
+                                                    {isExpired(q.due_at) && (
+                                                        <span className="text-[10px] text-red-500 font-medium flex items-center gap-0.5 mt-0.5">
+                                                            <AlertTriangle size={10} /> Đã hết hạn
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </Td>
+                                            <Td className="text-right">
+                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {q.status === 'draft' && (
+                                                        <Button
+                                                            size="xs"
+                                                            variant="outline"
+                                                            className="bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-600 hover:text-white"
+                                                            title="Công bố ngay"
+                                                            onClick={() => handlePublish(q)}
+                                                        >
+                                                            <Send size={14} className="mr-1" />
+                                                            Công bố
+                                                        </Button>
+                                                    )}
+                                                    <Button
+                                                        size="xs"
+                                                        variant="outline"
+                                                        title="Xem danh sách nộp bài"
+                                                        onClick={() => navigate(`/teacher/classes/${selectedClassId}/assessments/${q.id}/quiz-attempts`)}
+                                                    >
+                                                        <Eye size={14} />
+                                                    </Button>
+                                                    <Button
+                                                        size="xs"
+                                                        variant="outline"
+                                                        title={q.status === 'draft' ? "Tiếp tục soạn đề" : "Soạn đề"}
+                                                        onClick={() => navigate(`/teacher/classes/${selectedClassId}/quizzes/${q.id}/questions`)}
+                                                    >
+                                                        <Settings size={14} className="mr-1" />
+                                                        {q.status === 'draft' ? "Tiếp soạn đề" : "Soạn đề"}
+                                                    </Button>
+                                                    <Button
+                                                        size="xs"
+                                                        variant="outline"
+                                                        title="Chỉnh sửa cấu hình"
+                                                        onClick={() => navigate(`/teacher/quizzes/create?classId=${selectedClassId}&quizId=${q.id}`)}
+                                                    >
+                                                        <Edit3 size={14} />
+                                                    </Button>
+                                                    <Button
+                                                        size="xs"
+                                                        variant="danger"
+                                                        className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"
+                                                        title="Xóa"
+                                                        onClick={() => handleDelete(q.id)}
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </Button>
+                                                </div>
+                                            </Td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </Table>
                         </div>
                     )}
-                    
+
                     {/* Pagination */}
                     {!isLoading && !error && Math.ceil((quizzes || []).length / itemsPerPage) > 1 && (
                         <div className="flex items-center justify-between px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-xl">
@@ -236,8 +285,8 @@ export default function QuizList() {
                                 Hiển thị {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, quizzes.length)} trong số {quizzes.length} bài
                             </span>
                             <div className="flex items-center gap-2">
-                                <Button 
-                                    variant="outline" 
+                                <Button
+                                    variant="outline"
                                     size="sm"
                                     disabled={currentPage === 1}
                                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -248,8 +297,8 @@ export default function QuizList() {
                                 <div className="flex items-center justify-center min-w-[40px] font-bold text-sm text-slate-700">
                                     {currentPage} / {Math.ceil((quizzes || []).length / itemsPerPage)}
                                 </div>
-                                <Button 
-                                    variant="outline" 
+                                <Button
+                                    variant="outline"
                                     size="sm"
                                     disabled={currentPage === Math.ceil((quizzes || []).length / itemsPerPage)}
                                     onClick={() => setCurrentPage(prev => Math.min(Math.ceil((quizzes || []).length / itemsPerPage), prev + 1))}

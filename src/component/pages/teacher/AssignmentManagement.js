@@ -2,11 +2,12 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader, Card, CardContent, Button, Table, Th, Td, Badge } from "component/ui";
-import { Eye, EyeOff, FileText, HelpCircle, Share2 } from "lucide-react";
+import { Eye, EyeOff, FileText, HelpCircle, Share2, Send, AlertTriangle } from "lucide-react";
 import ShareAssessmentModal from "./ShareAssessmentModal";
+import { updateQuizStatus } from "service/TeacherQuizService";
 
 export default function AssignmentManagement() {
-    const { classId } = useParams(); 
+    const { classId } = useParams();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const typeFilter = searchParams.get("type"); // 'quiz' or 'essay'
@@ -40,9 +41,18 @@ export default function AssignmentManagement() {
         if (classId) fetchAssignments();
     }, [classId]);
 
+    useEffect(() => {
+        if (message.text) {
+            const timer = setTimeout(() => {
+                setMessage({ text: "", type: "" });
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [message]);
+
     const onDelete = async (assessmentId) => {
         if (!window.confirm("Bạn có chắc chắn muốn xóa bài tập này không? Hành động này không thể hoàn tác.")) return;
-        
+
         try {
             const token = localStorage.getItem("smartedu_token");
             const response = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/assessments/${assessmentId}`, {
@@ -65,17 +75,17 @@ export default function AssignmentManagement() {
         try {
             const token = localStorage.getItem("smartedu_token");
             const { files, ...assignmentClean } = assignment; // Bỏ files để tránh lỗi tải lại file khi publish
-            
+
             const response = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/assessments/essay/${assignment.id}`, {
                 method: "PUT",
-                headers: { 
+                headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}` 
+                    "Authorization": `Bearer ${token}`
                 },
-                body: JSON.stringify({ 
-                    ...assignmentClean, 
+                body: JSON.stringify({
+                    ...assignmentClean,
                     settings: assignment.settings_json,
-                    status: 'published' 
+                    status: 'published'
                 })
             });
             const data = await response.json();
@@ -88,6 +98,35 @@ export default function AssignmentManagement() {
         } catch (error) {
             console.error("Lỗi công bố nhanh:", error);
         }
+    };
+
+    const onQuizPublish = async (quiz) => {
+        const now = new Date();
+        const dueDate = quiz.due_at ? new Date(quiz.due_at) : null;
+
+        if (dueDate && now > dueDate) {
+            alert("Đề đã hết hạn nộp bài, nếu muốn công bố hãy thay đổi lại thời gian nộp");
+            return;
+        }
+
+        if (!window.confirm(`Bạn có chắc muốn công bố đề thi "${quiz.title}"?`)) return;
+
+        try {
+            const res = await updateQuizStatus(classId, quiz.id, "published");
+            if (res.success) {
+                setMessage({ text: "Đã công bố đề thi thành công!", type: "success" });
+                fetchAssignments();
+            } else {
+                setMessage({ text: res.message || "Lỗi khi công bố đề thi.", type: "error" });
+            }
+        } catch (err) {
+            setMessage({ text: "Lỗi kết nối khi công bố đề thi.", type: "error" });
+        }
+    };
+
+    const isExpired = (dueDateStr) => {
+        if (!dueDateStr) return false;
+        return new Date() > new Date(dueDateStr);
     };
 
     const handleEditClick = (assignment) => {
@@ -110,9 +149,9 @@ export default function AssignmentManagement() {
 
     return (
         <div className="space-y-4 max-w-7xl mx-auto">
-            <PageHeader 
-                title={pageTitle} 
-                subtitle={classDetail ? `${classDetail.course?.name || "---"} (${classDetail.name})` : `Lớp: ${classId}`} 
+            <PageHeader
+                title={pageTitle}
+                subtitle={classDetail ? `${classDetail.course?.name || "---"} (${classDetail.name})` : `Lớp: ${classId}`}
                 icon={pageIcon}
                 onBack={() => navigate("/teacher/classes")}
                 right={[
@@ -125,7 +164,7 @@ export default function AssignmentManagement() {
                     }}>
                         + {typeFilter === 'quiz' ? 'Tạo Trắc nghiệm mới' : (typeFilter === 'essay' ? 'Tạo Tự luận mới' : 'Tạo mới')}
                     </Button>
-                ]} 
+                ]}
             />
 
             {classDetail && classDetail.status === "upcoming" && (
@@ -161,13 +200,13 @@ export default function AssignmentManagement() {
                                     {filteredAssignments.length > 0 ? filteredAssignments.map((a) => (
                                         <tr key={a.id} className="hover:bg-slate-50 group">
                                             <Td>
-                                                <div 
+                                                <div
                                                     className="font-semibold text-blue-600 cursor-pointer hover:underline flex items-center gap-2"
                                                     onClick={() => {
                                                         if (a.type?.toUpperCase() === 'QUIZ') {
                                                             navigate(`/teacher/classes/${classId}/assessments/${a.id}/quiz-attempts`);
                                                         } else {
-                                                             navigate(`/teacher/classes/${classId}/assessments/${a.id}/submissions`);
+                                                            navigate(`/teacher/classes/${classId}/assessments/${a.id}/submissions`);
                                                         }
                                                     }}
                                                 >
@@ -179,68 +218,91 @@ export default function AssignmentManagement() {
                                             <Td className="text-sm text-slate-600 font-medium whitespace-nowrap">
                                                 {a.allow_from ? new Date(a.allow_from).toLocaleString('vi-VN') : (a.settings_json?.openAt ? new Date(a.settings_json.openAt).toLocaleString('vi-VN') : "Ngay lập tức")}
                                             </Td>
-                                            <Td>{a.due_at ? new Date(a.due_at).toLocaleString('vi-VN') : "Không có hạn"}</Td>
+                                            <Td className="text-sm">
+                                                <div className="flex flex-col">
+                                                    <span className={isExpired(a.due_at) ? "text-red-500 font-bold" : "text-slate-600"}>
+                                                        {a.due_at ? new Date(a.due_at).toLocaleString('vi-VN') : "Không có hạn"}
+                                                    </span>
+                                                    {isExpired(a.due_at) && (
+                                                        <span className="text-[10px] text-red-500 font-medium flex items-center gap-0.5 mt-0.5">
+                                                            <AlertTriangle size={10} /> Đã hết hạn
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </Td>
                                             <Td><Badge tone="amber">{a.max_score || 100}</Badge></Td>
-                                             <Td>
-                                                 <Badge tone={a.status === 'published' ? 'green' : 'slate'}>
-                                                     {a.status === 'published' ? 'Đã công bố' : 'Bản nháp'}
-                                                 </Badge>
-                                             </Td>
-                                             <Td className="text-right">
-                                                 <div className="flex justify-end gap-2">
-                                                     {a.status !== 'published' && a.type?.toUpperCase() === 'ESSAY' && (
-                                                         <Button 
-                                                             size="xs" 
-                                                             variant="outline"
-                                                             className="text-emerald-600 border-emerald-200"
-                                                             onClick={() => onQuickPublish(a)}
-                                                         >
-                                                             Công bố
-                                                         </Button>
-                                                     )}
-                                                     <Button size="xs" variant="outline" onClick={() => handleEditClick(a)}>
-                                                         Sửa
-                                                     </Button>
-                                                     <Button 
-                                                         size="xs" 
-                                                         variant="danger" 
-                                                         className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"
-                                                         onClick={() => onDelete(a.id)}
-                                                     >
-                                                         Xóa
-                                                     </Button>
-                                                     <Button 
-                                                         size="xs" 
-                                                         variant="outline"
-                                                         className={`border-blue-200 text-blue-600 hover:bg-blue-50 ${a.status === 'closed' ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
-                                                         onClick={() => {
-                                                             if (a.status === 'closed') return;
-                                                             setAssessmentToShare(a);
-                                                             setIsShareModalOpen(true);
-                                                         }}
-                                                         title={a.status === 'closed' ? "Không thể chia sẻ bài tập đã đóng" : "Chia sẻ bài tập"}
-                                                     >
-                                                         <Share2 className="w-3 h-3 mr-1" />
-                                                         Chia sẻ
-                                                     </Button>
-                                                     {a.type?.toUpperCase() === 'QUIZ' && (
-                                                         <Button 
-                                                             size="xs" 
-                                                             className={a.status === 'published' ? "bg-slate-800 text-white hover:bg-black" : "bg-blue-600 text-white hover:bg-blue-700"}
-                                                             onClick={() => {
-                                                                 const qId = a.id || a._id;
-                                                                 if (!qId || qId === "undefined") {
-                                                                     alert("Không tìm thấy ID bài tập. Vui lòng tải lại trang.");
-                                                                     return;
-                                                                 }
-                                                                 navigate(`/teacher/classes/${classId}/quizzes/${qId}/questions`, { state: { quiz: a } });
-                                                             }}
-                                                         >
-                                                             {a.status === 'draft' ? "Tiếp soạn đề" : "Soạn đề"}
-                                                         </Button>
-                                                     )}
-                                                 </div>
-                                             </Td>
+                                            <Td>
+                                                <Badge tone={a.status === 'published' ? 'green' : 'slate'}>
+                                                    {a.status === 'published' ? 'Đã công bố' : 'Bản nháp'}
+                                                </Badge>
+                                            </Td>
+                                            <Td className="text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    {a.status !== 'published' && a.type?.toUpperCase() === 'ESSAY' && (
+                                                        <Button
+                                                            size="xs"
+                                                            variant="outline"
+                                                            className="text-emerald-600 border-emerald-200"
+                                                            onClick={() => onQuickPublish(a)}
+                                                        >
+                                                            Công bố
+                                                        </Button>
+                                                    )}
+                                                    {a.status === 'draft' && a.type?.toUpperCase() === 'QUIZ' && (
+                                                        <Button
+                                                            size="xs"
+                                                            variant="outline"
+                                                            className="bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-600 hover:text-white"
+                                                            onClick={() => onQuizPublish(a)}
+                                                        >
+                                                            <Send size={14} className="mr-1" />
+                                                            Công bố
+                                                        </Button>
+                                                    )}
+
+                                                    <Button size="xs" variant="outline" onClick={() => handleEditClick(a)}>
+                                                        Sửa
+                                                    </Button>
+                                                    <Button
+                                                        size="xs"
+                                                        variant="danger"
+                                                        className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"
+                                                        onClick={() => onDelete(a.id)}
+                                                    >
+                                                        Xóa
+                                                    </Button>
+                                                    <Button
+                                                        size="xs"
+                                                        variant="outline"
+                                                        className={`border-blue-200 text-blue-600 hover:bg-blue-50 ${a.status === 'closed' ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                                                        onClick={() => {
+                                                            if (a.status === 'closed') return;
+                                                            setAssessmentToShare(a);
+                                                            setIsShareModalOpen(true);
+                                                        }}
+                                                        title={a.status === 'closed' ? "Không thể chia sẻ bài tập đã đóng" : "Chia sẻ bài tập"}
+                                                    >
+                                                        <Share2 className="w-3 h-3 mr-1" />
+                                                        Chia sẻ
+                                                    </Button>
+                                                    {a.status !== 'published' && a.type?.toUpperCase() === 'QUIZ' && (
+                                                        <Button
+                                                            size="xs"
+                                                            className={a.status === 'published' ? "bg-slate-800 text-white hover:bg-black" : "bg-blue-600 text-white hover:bg-blue-700"}
+                                                            onClick={() => {
+                                                                const qId = a.id || a._id;
+                                                                if (!qId || qId === "undefined") {
+                                                                    alert("Không tìm thấy ID bài tập. Vui lòng tải lại trang.");
+                                                                    return;
+                                                                }
+                                                                navigate(`/teacher/classes/${classId}/quizzes/${qId}/questions`, { state: { quiz: a } });
+                                                            }}
+                                                        >
+                                                            Soạn đề
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </Td>
                                         </tr>
                                     )) : <tr><Td colSpan="5" className="text-center text-slate-400 py-10">Lớp chưa có bài tập nào.</Td></tr>}
                                 </tbody>
@@ -250,9 +312,9 @@ export default function AssignmentManagement() {
                 </CardContent>
             </Card>
 
-            <ShareAssessmentModal 
-                open={isShareModalOpen} 
-                onClose={() => setIsShareModalOpen(false)} 
+            <ShareAssessmentModal
+                open={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
                 assessment={assessmentToShare}
                 currentClassId={classId}
             />

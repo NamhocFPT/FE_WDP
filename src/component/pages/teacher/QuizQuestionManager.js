@@ -28,11 +28,11 @@ export default function QuizQuestionManager() {
     const exportMenuRef = useRef(null);
     const [mathpadTemp, setMathpadTemp] = useState("");
     const questionTextRef = useRef(null);
-    
+
     // NEW STATES
     const [quizMeta, setQuizMeta] = useState(null);
     const [classMeta, setClassMeta] = useState(null);
-    
+
     useEffect(() => {
         import("mathlive");
         async function fetchMetadata() {
@@ -221,18 +221,33 @@ export default function QuizQuestionManager() {
         if (questions.length === 0) {
             return toast.error("Đề thi chưa có câu hỏi nào!");
         }
-        if (!window.confirm("Bạn có chắc chắn muốn Lưu lại và Hoàn tất đề thi này?")) return;
+        if (!window.confirm("Bạn có chắc chắn muốn Lưu lại và Hoàn tất đề thi này? Sau khi công bố, học sinh có thể nhìn thấy đề thi.")) return;
 
         try {
             const res = await TeacherQuizService.updateQuizStatus(classId, quizId, "published");
             if (res && res.success) {
-                toast.success("Đã hoàn tất đề thi!");
-                navigate(`/teacher/classes/${classId}/assignments`);
+                toast.success("Đã công bố đề thi thành công!");
+                navigate(`/teacher/classes/${classId}/assignments?type=quiz`);
             } else {
-                toast.error(res?.message || "Không thể hoàn tất đề thi");
+                toast.error(res?.message || "Không thể công bố đề thi");
             }
         } catch (error) {
-            toast.error(error?.response?.data?.message || "Lỗi khi lưu đề thi");
+            toast.error(error?.response?.data?.message || "Lỗi khi công bố đề thi");
+        }
+    };
+
+    const handleSaveDraft = async () => {
+        try {
+            // Chúng ta gọi update status về draft (dù mặc định là draft nhưng gọi cho chắc chắn và đồng bộ)
+            const res = await TeacherQuizService.updateQuizStatus(classId, quizId, "draft");
+            if (res && res.success) {
+                toast.success("Đã lưu bản nháp và thoát");
+                navigate(`/teacher/classes/${classId}/assignments?type=quiz`);
+            } else {
+                toast.error(res?.message || "Không thể lưu bản nháp");
+            }
+        } catch (error) {
+            toast.error(error?.response?.data?.message || "Lỗi khi lưu bản nháp");
         }
     };
 
@@ -243,7 +258,7 @@ export default function QuizQuestionManager() {
             const res = await TeacherQuizService.deleteQuiz(classId, quizId);
             if (res && res.success) {
                 toast.success("Đã hủy đề thi");
-                navigate(`/teacher/classes/${classId}/assignments`);
+                navigate(`/teacher/classes/${classId}/assignments?type=quiz`);
             } else {
                 toast.error(res?.message || "Không thể hủy đề thi");
             }
@@ -268,7 +283,7 @@ export default function QuizQuestionManager() {
                     <div className="absolute top-0 right-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-white opacity-5 blur-3xl"></div>
                     <div className="absolute bottom-0 left-0 -mb-10 -ml-10 h-48 w-48 rounded-full bg-blue-500 opacity-10 blur-2xl"></div>
                 </div>
-                
+
                 <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div>
                         <div className="mb-2 flex items-center gap-2 text-blue-200">
@@ -281,7 +296,7 @@ export default function QuizQuestionManager() {
                     </div>
 
                     <div className="flex flex-wrap items-center justify-end gap-3 max-w-sm">
-                        <Button variant="ghost" className="border border-indigo-400/30 bg-indigo-500/10 text-white hover:bg-white hover:text-indigo-900 transition-colors rounded-xl font-semibold" onClick={() => navigate(-1)}>
+                        <Button variant="ghost" className="border border-indigo-400/30 bg-indigo-500/10 text-white hover:bg-white hover:text-indigo-900 transition-colors rounded-xl font-semibold" onClick={handleSaveDraft}>
                             Lưu & Thoát
                         </Button>
                         <Button variant="danger" className="bg-red-500 hover:bg-red-600 text-white border-none shadow-lg shadow-red-500/20 rounded-xl" onClick={handleCancelQuiz}>
@@ -292,7 +307,7 @@ export default function QuizQuestionManager() {
                         </Button>
                     </div>
                 </div>
-                
+
                 <div className="relative z-10 mt-8 flex flex-wrap gap-3">
                     <Button variant="ghost" onClick={handleAddQuestion} disabled={!!editingQuestion} className="bg-white text-indigo-900 hover:bg-slate-50 border-none shadow-lg rounded-xl h-11 px-5">
                         <Plus className="h-5 w-5 mr-2 text-indigo-600" /> Tạo câu hỏi thủ công
@@ -300,18 +315,18 @@ export default function QuizQuestionManager() {
                     <Button variant="ghost" className="bg-gradient-to-r from-purple-500 hover:from-purple-400 to-pink-500 hover:to-pink-400 text-white border-none shadow-lg shadow-purple-500/25 rounded-xl h-11 px-5" onClick={() => setShowAIModal(true)}>
                         <Sparkles className="h-5 w-5 mr-2" /> Sáng tạo bằng Gemini AI
                     </Button>
-                    
+
                     {/* Export Menu */}
                     <div className="relative" ref={exportMenuRef}>
-                        <Button 
-                            variant="ghost" 
+                        <Button
+                            variant="ghost"
                             className="bg-indigo-600/20 backdrop-blur-md text-white border border-indigo-400/30 hover:bg-indigo-600/40 shadow-lg rounded-xl h-11 px-5"
                             onClick={() => setShowExportMenu(!showExportMenu)}
                         >
                             <Download className="h-5 w-5 mr-2" /> Xuất Quiz
                             <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
                         </Button>
-                        
+
                         {showExportMenu && (
                             <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden py-1 animate-in fade-in zoom-in duration-200">
                                 <div className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50">Định dạng PDF</div>
@@ -321,7 +336,7 @@ export default function QuizQuestionManager() {
                                 <button onClick={() => handleExport('pdf', true)} className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3">
                                     <FileText className="h-4 w-4 text-red-600" /> Đề bài + Đáp án (.pdf)
                                 </button>
-                                
+
                                 <div className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 mt-1">Định dạng WORD</div>
                                 <button onClick={() => handleExport('docx', false)} className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3">
                                     <LayoutList className="h-4 w-4 text-blue-500" /> Chỉ đề bài (.docx)
@@ -424,15 +439,15 @@ export default function QuizQuestionManager() {
                                             <label className="text-xs font-bold text-purple-700 uppercase tracking-wider block mb-2">Bảng nháp công thức (Virtual Keyboard)</label>
                                             <div className="flex items-stretch gap-2">
                                                 <div className="flex-1 rounded-xl border-2 border-purple-100 bg-white overflow-hidden p-1">
-                                                    <math-field 
+                                                    <math-field
                                                         style={{ width: '100%', fontSize: '1.1rem', backgroundColor: 'transparent', border: 'none', outline: 'none', padding: '8px' }}
                                                         onInput={(e) => setMathpadTemp(e.target.value)}
                                                     >
                                                         {mathpadTemp}
                                                     </math-field>
                                                 </div>
-                                                <Button 
-                                                    variant="outline" 
+                                                <Button
+                                                    variant="outline"
                                                     className="border-purple-200 text-purple-700 bg-white"
                                                     onClick={() => {
                                                         if (mathpadTemp.includes("\\placeholder")) {
@@ -446,7 +461,7 @@ export default function QuizQuestionManager() {
                                                             const text = editingQuestion.question_text || "";
                                                             const newText = text.substring(0, start) + latexToAdd + text.substring(end);
                                                             setEditingQuestion({ ...editingQuestion, question_text: newText });
-                                                            
+
                                                             setTimeout(() => {
                                                                 if (questionTextRef.current) {
                                                                     questionTextRef.current.focus();
@@ -559,8 +574,8 @@ export default function QuizQuestionManager() {
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-500 uppercase block">Đính kèm tài liệu tham khảo (Tùy chọn)</label>
                         <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center bg-white hover:bg-slate-50 transition-colors relative">
-                            <input 
-                                type="file" 
+                            <input
+                                type="file"
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                 accept=".pdf,.doc,.docx,.txt"
                                 onChange={(e) => {
@@ -570,7 +585,7 @@ export default function QuizQuestionManager() {
                                 }}
                             />
                             {aiFile ? (
-                                <div className="text-sm font-semibold text-purple-700">{aiFile.name} ({(aiFile.size/1024).toFixed(1)} KB)</div>
+                                <div className="text-sm font-semibold text-purple-700">{aiFile.name} ({(aiFile.size / 1024).toFixed(1)} KB)</div>
                             ) : (
                                 <div className="text-sm text-slate-500">Kéo thả hoặc click để chọn file PDF, Word, TXT (Tối đa 10MB)</div>
                             )}
