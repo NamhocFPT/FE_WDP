@@ -281,14 +281,14 @@ export default function QuizQuestionManager() {
                     </div>
 
                     <div className="flex flex-wrap items-center justify-end gap-3 max-w-sm">
-                        <Button variant="ghost" className="border border-indigo-400/30 bg-indigo-500/10 text-white hover:bg-white hover:text-indigo-900 transition-colors rounded-xl" onClick={() => navigate(-1)}>
-                            Quay lại
+                        <Button variant="ghost" className="border border-indigo-400/30 bg-indigo-500/10 text-white hover:bg-white hover:text-indigo-900 transition-colors rounded-xl font-semibold" onClick={() => navigate(-1)}>
+                            Lưu & Thoát
                         </Button>
                         <Button variant="danger" className="bg-red-500 hover:bg-red-600 text-white border-none shadow-lg shadow-red-500/20 rounded-xl" onClick={handleCancelQuiz}>
-                            Xóa đề
+                            Hủy đề
                         </Button>
                         <Button onClick={handlePublishQuiz} className="bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 border-none rounded-xl">
-                            <Save className="h-4 w-4 mr-2" /> Hoàn tất
+                            <Save className="h-4 w-4 mr-2" /> Hoàn tất & Công bố
                         </Button>
                     </div>
                 </div>

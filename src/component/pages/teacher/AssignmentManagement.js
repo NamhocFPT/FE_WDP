@@ -181,66 +181,66 @@ export default function AssignmentManagement() {
                                             </Td>
                                             <Td>{a.due_at ? new Date(a.due_at).toLocaleString('vi-VN') : "Không có hạn"}</Td>
                                             <Td><Badge tone="amber">{a.max_score || 100}</Badge></Td>
-                                            <Td>
-                                                <Badge tone={a.status === 'published' ? 'green' : 'slate'}>
-                                                    {a.status === 'published' ? 'Đã công bố' : 'Bản nháp / Ẩn'}
-                                                </Badge>
-                                            </Td>
-                                            <Td className="text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    {a.status !== 'published' && a.type?.toUpperCase() === 'ESSAY' && (
-                                                        <Button 
-                                                            size="xs" 
-                                                            variant="outline"
-                                                            className="text-emerald-600 border-emerald-200"
-                                                            onClick={() => onQuickPublish(a)}
-                                                        >
-                                                            Công bố
-                                                        </Button>
-                                                    )}
-                                                    <Button size="xs" variant="outline" onClick={() => handleEditClick(a)}>
-                                                        Sửa
-                                                    </Button>
-                                                    <Button 
-                                                        size="xs" 
-                                                        variant="danger" 
-                                                        className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"
-                                                        onClick={() => onDelete(a.id)}
-                                                    >
-                                                        Xóa
-                                                    </Button>
-                                                    <Button 
-                                                        size="xs" 
-                                                        variant="outline"
-                                                        className={`border-blue-200 text-blue-600 hover:bg-blue-50 ${a.status === 'closed' ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
-                                                        onClick={() => {
-                                                            if (a.status === 'closed') return;
-                                                            setAssessmentToShare(a);
-                                                            setIsShareModalOpen(true);
-                                                        }}
-                                                        title={a.status === 'closed' ? "Không thể chia sẻ bài tập đã đóng" : "Chia sẻ bài tập"}
-                                                    >
-                                                        <Share2 className="w-3 h-3 mr-1" />
-                                                        Chia sẻ
-                                                    </Button>
-                                                    {a.type?.toUpperCase() === 'QUIZ' && (
-                                                        <Button 
-                                                            size="xs" 
-                                                            className="bg-slate-800 text-white hover:bg-black"
-                                                            onClick={() => {
-                                                                const qId = a.id || a._id;
-                                                                if (!qId || qId === "undefined") {
-                                                                    alert("Không tìm thấy ID bài tập. Vui lòng tải lại trang.");
-                                                                    return;
-                                                                }
-                                                                navigate(`/teacher/classes/${classId}/quizzes/${qId}/questions`, { state: { quiz: a } });
-                                                            }}
-                                                        >
-                                                            Soạn đề
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </Td>
+                                             <Td>
+                                                 <Badge tone={a.status === 'published' ? 'green' : 'slate'}>
+                                                     {a.status === 'published' ? 'Đã công bố' : 'Bản nháp'}
+                                                 </Badge>
+                                             </Td>
+                                             <Td className="text-right">
+                                                 <div className="flex justify-end gap-2">
+                                                     {a.status !== 'published' && a.type?.toUpperCase() === 'ESSAY' && (
+                                                         <Button 
+                                                             size="xs" 
+                                                             variant="outline"
+                                                             className="text-emerald-600 border-emerald-200"
+                                                             onClick={() => onQuickPublish(a)}
+                                                         >
+                                                             Công bố
+                                                         </Button>
+                                                     )}
+                                                     <Button size="xs" variant="outline" onClick={() => handleEditClick(a)}>
+                                                         Sửa
+                                                     </Button>
+                                                     <Button 
+                                                         size="xs" 
+                                                         variant="danger" 
+                                                         className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"
+                                                         onClick={() => onDelete(a.id)}
+                                                     >
+                                                         Xóa
+                                                     </Button>
+                                                     <Button 
+                                                         size="xs" 
+                                                         variant="outline"
+                                                         className={`border-blue-200 text-blue-600 hover:bg-blue-50 ${a.status === 'closed' ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                                                         onClick={() => {
+                                                             if (a.status === 'closed') return;
+                                                             setAssessmentToShare(a);
+                                                             setIsShareModalOpen(true);
+                                                         }}
+                                                         title={a.status === 'closed' ? "Không thể chia sẻ bài tập đã đóng" : "Chia sẻ bài tập"}
+                                                     >
+                                                         <Share2 className="w-3 h-3 mr-1" />
+                                                         Chia sẻ
+                                                     </Button>
+                                                     {a.type?.toUpperCase() === 'QUIZ' && (
+                                                         <Button 
+                                                             size="xs" 
+                                                             className={a.status === 'published' ? "bg-slate-800 text-white hover:bg-black" : "bg-blue-600 text-white hover:bg-blue-700"}
+                                                             onClick={() => {
+                                                                 const qId = a.id || a._id;
+                                                                 if (!qId || qId === "undefined") {
+                                                                     alert("Không tìm thấy ID bài tập. Vui lòng tải lại trang.");
+                                                                     return;
+                                                                 }
+                                                                 navigate(`/teacher/classes/${classId}/quizzes/${qId}/questions`, { state: { quiz: a } });
+                                                             }}
+                                                         >
+                                                             {a.status === 'draft' ? "Tiếp soạn đề" : "Soạn đề"}
+                                                         </Button>
+                                                     )}
+                                                 </div>
+                                             </Td>
                                         </tr>
                                     )) : <tr><Td colSpan="5" className="text-center text-slate-400 py-10">Lớp chưa có bài tập nào.</Td></tr>}
                                 </tbody>
