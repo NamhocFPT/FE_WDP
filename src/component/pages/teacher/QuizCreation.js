@@ -1,6 +1,6 @@
 // src/component/pages/teacher/QuizCreation.js
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { createQuiz, getTeacherClasses, getQuizDetail, updateQuiz } from "service/TeacherQuizService";
 import { Badge, Button, Card, CardContent, Input, PageHeader } from "component/ui";
 import { Clock, Users, ArrowRight, Settings2, Edit3, PlusCircle } from "lucide-react";
@@ -29,6 +29,7 @@ function getMinDateTimeLocal() {
 
 export default function QuizCreation() {
     const nav = useNavigate();
+    const { classId: classIdFromParams } = useParams();
     const [sp] = useSearchParams();
 
     // Trigger từ màn quản lý khóa học có thể truyền ?classId=...&quizId=...
@@ -43,7 +44,7 @@ export default function QuizCreation() {
     const titleRef = useRef(null);
 
     const [form, setForm] = useState({
-        classId: classIdFromQuery || "",
+        classId: classIdFromQuery || classIdFromParams || "",
 
         title: "",
         instructions: "",
