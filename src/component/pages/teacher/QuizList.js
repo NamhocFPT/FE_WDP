@@ -161,66 +161,67 @@ export default function QuizList() {
                                                 </div>
                                                 <div className="text-xs text-slate-400 mt-1 uppercase tracking-wider">ID: {q.id.substring(0,8)}...</div>
                                             </Td>
-                                            <Td className="text-sm text-slate-600 font-medium">
-                                                {q.open_at ? new Date(q.open_at).toLocaleString('vi-VN') : "Ngay lập tức"}
-                                            </Td>
-                                            <Td>
-                                                <Badge tone={q.is_published ? "green" : "slate"}>
-                                                    {q.is_published ? "Công bố" : "Bản nháp"}
-                                                </Badge>
-                                            </Td>
-                                            <Td className="text-center">
-                                                <div className="flex items-center justify-center gap-1.5 text-slate-700 font-medium">
-                                                    <FileText size={14} className="text-slate-400" />
-                                                    {q.questionsCount || 0}
-                                                </div>
-                                            </Td>
-                                            <Td className="text-center">
-                                                <div className="flex items-center justify-center gap-1.5 text-slate-700 font-medium">
-                                                    <Users size={14} className="text-slate-400" />
-                                                    {q.attemptsCount || 0}
-                                                </div>
-                                            </Td>
-                                            <Td className="text-sm text-slate-600">
-                                                {q.due_at ? new Date(q.due_at).toLocaleString('vi-VN') : "Vô thời hạn"}
-                                            </Td>
-                                            <Td className="text-right">
-                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button 
-                                                        size="xs" 
-                                                        variant="outline" 
-                                                        title="Xem danh sách nộp bài"
-                                                         onClick={() => navigate(`/teacher/classes/${selectedClassId}/assessments/${q.id}/quiz-attempts`)}
-                                                    >
-                                                        <Eye size={14} />
-                                                    </Button>
-                                                    <Button 
-                                                        size="xs" 
-                                                        variant="outline" 
-                                                        title="Soạn đề"
-                                                        onClick={() => navigate(`/teacher/classes/${selectedClassId}/quizzes/${q.id}/questions`)}
-                                                    >
-                                                        <Settings size={14} />
-                                                    </Button>
-                                                    <Button 
-                                                        size="xs" 
-                                                        variant="outline" 
-                                                        title="Chỉnh sửa"
-                                                        onClick={() => navigate(`/teacher/quizzes/create?classId=${selectedClassId}&quizId=${q.id}`)}
-                                                    >
-                                                        <Edit3 size={14} />
-                                                    </Button>
-                                                    <Button 
-                                                        size="xs" 
-                                                        variant="danger" 
-                                                        className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"
-                                                        title="Xóa"
-                                                        onClick={() => handleDelete(q.id)}
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </Button>
-                                                </div>
-                                            </Td>
+                                             <Td className="text-sm text-slate-600 font-medium">
+                                                 {q.open_at ? new Date(q.open_at).toLocaleString('vi-VN') : "Ngay lập tức"}
+                                             </Td>
+                                             <Td>
+                                                 <Badge tone={q.status === 'published' ? "green" : "slate"}>
+                                                     {q.status === 'published' ? "Công bố" : "Bản nháp"}
+                                                 </Badge>
+                                             </Td>
+                                             <Td className="text-center">
+                                                 <div className="flex items-center justify-center gap-1.5 text-slate-700 font-medium">
+                                                     <FileText size={14} className="text-slate-400" />
+                                                     {q.questionCount || 0}
+                                                 </div>
+                                             </Td>
+                                             <Td className="text-center">
+                                                 <div className="flex items-center justify-center gap-1.5 text-slate-700 font-medium">
+                                                     <Users size={14} className="text-slate-400" />
+                                                     {q.submissionCount || 0}
+                                                 </div>
+                                             </Td>
+                                             <Td className="text-sm text-slate-600">
+                                                 {q.due_at ? new Date(q.due_at).toLocaleString('vi-VN') : "Vô thời hạn"}
+                                             </Td>
+                                             <Td className="text-right">
+                                                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                     <Button 
+                                                         size="xs" 
+                                                         variant="outline" 
+                                                         title="Xem danh sách nộp bài"
+                                                          onClick={() => navigate(`/teacher/classes/${selectedClassId}/assessments/${q.id}/quiz-attempts`)}
+                                                     >
+                                                         <Eye size={14} />
+                                                     </Button>
+                                                     <Button 
+                                                         size="xs" 
+                                                         variant="outline" 
+                                                         title={q.status === 'draft' ? "Tiếp tục soạn đề" : "Soạn đề"}
+                                                         onClick={() => navigate(`/teacher/classes/${selectedClassId}/quizzes/${q.id}/questions`)}
+                                                     >
+                                                         <Settings size={14} className="mr-1" />
+                                                         {q.status === 'draft' ? "Tiếp soạn đề" : "Soạn đề"}
+                                                     </Button>
+                                                     <Button 
+                                                         size="xs" 
+                                                         variant="outline" 
+                                                         title="Chỉnh sửa cấu hình"
+                                                         onClick={() => navigate(`/teacher/quizzes/create?classId=${selectedClassId}&quizId=${q.id}`)}
+                                                     >
+                                                         <Edit3 size={14} />
+                                                     </Button>
+                                                     <Button 
+                                                         size="xs" 
+                                                         variant="danger" 
+                                                         className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"
+                                                         title="Xóa"
+                                                         onClick={() => handleDelete(q.id)}
+                                                     >
+                                                         <Trash2 size={14} />
+                                                     </Button>
+                                                 </div>
+                                             </Td>
                                         </tr>
                                     ))}
                                 </tbody>
