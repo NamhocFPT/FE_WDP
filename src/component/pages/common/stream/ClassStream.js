@@ -183,7 +183,7 @@ export default function ClassStream({ classId }) {
   }
 
   return (
-    <div className="space-y-5 max-w-3xl mx-auto flex flex-col min-h-[calc(100vh-100px)] animate-in fade-in duration-500">
+    <div className="space-y-5 max-w-3xl mx-auto flex flex-col h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar pr-2 pb-6 animate-in fade-in duration-500">
       {/* Create Post Form */}
       {permissions.can_create_post && (
         <StreamPostForm

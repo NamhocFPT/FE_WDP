@@ -5,16 +5,17 @@ import { toast } from "sonner";
 const BASE_URL = "http://localhost:9999/api";
 
 async function fetchWithAuth(url, options = {}) {
+    const { skipNotFoundToast, ...fetchOptions } = options;
     const token = store.getToken();
     const headers = {
-        ...options.headers,
+        ...fetchOptions.headers,
     };
 
-    if (!headers["Content-Type"] && !(options.body instanceof FormData)) {
+    if (!headers["Content-Type"] && !(fetchOptions.body instanceof FormData)) {
         headers["Content-Type"] = "application/json";
     }
 
-    if (options.body instanceof FormData) {
+    if (fetchOptions.body instanceof FormData) {
         delete headers["Content-Type"];
     }
 
@@ -23,13 +24,17 @@ async function fetchWithAuth(url, options = {}) {
     }
 
     const response = await fetch(`${BASE_URL}${url}`, {
-        ...options,
+        ...fetchOptions,
         headers,
     });
 
     const data = await response.json();
 
-    if (response.status === 404 && (!options.method || options.method === "GET")) {
+    if (
+        response.status === 404 &&
+        (!fetchOptions.method || fetchOptions.method === "GET") &&
+        !skipNotFoundToast
+    ) {
         toast.error("Nội dung này không còn tồn tại hoặc đã bị gỡ bởi Giáo viên.");
     }
 

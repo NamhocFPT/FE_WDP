@@ -14,11 +14,13 @@ import Profile from "component/pages/common/Profile";
 import NotFound from "component/pages/common/NotFound";
 import Forbidden from "component/pages/common/Forbidden";
 import Notifications from "component/pages/common/Notifications";
+import PublicCourseMaterialsPage from "component/pages/common/PublicCourseMaterialsPage";
 
 // Admin
 import AdminDashboard from "component/pages/admin/AdminDashboard";
 import UserManagement from "component/pages/admin/UserManagement";
 import CourseManagement from "component/pages/admin/CourseManagement";
+import CoursePublicMaterialsManagement from "component/pages/admin/CoursePublicMaterialsManagement";
 import ClassManagement from "component/pages/admin/ClassManagement";
 import ClassDetail from "component/pages/admin/ClassDetail";
 import ScheduleManagement from "component/pages/admin/ScheduleManagement";
@@ -36,7 +38,7 @@ import QuizQuestionManager from "component/pages/teacher/QuizQuestionManager";
 import TeacherClassList from "../pages/teacher/TeacherClassList";
 import TeacherClassHome from "component/pages/teacher/TeacherClassHome";
 import SubmissionList from "../pages/teacher/SubmissionList";
-import TeacherGradingWorkspace from '../pages/teacher/TeacherGradingWorkspace';
+import TeacherGradingWorkspace from "../pages/teacher/TeacherGradingWorkspace";
 import QuizAttempts from "component/pages/teacher/QuizAttempts";
 import TeacherStudentList from "component/pages/teacher/TeacherStudentList";
 import QuizReviewAttempt from "component/pages/teacher/QuizReviewAttempt";
@@ -59,7 +61,6 @@ import StudentQuizSummary from "component/pages/student/StudentQuizSummary";
 import StudentQuizResult from "component/pages/student/StudentQuizResult";
 import StudentQuizReview from "component/pages/student/StudentQuizReview";
 
-// Wrapper to pass classId from URL params to ClassStream
 function ClassStreamWrapper() {
   const { classId } = useParams();
   return (
@@ -77,7 +78,7 @@ function ClassStreamWrapper() {
 function ProtectedRoute({ children }) {
   const currentUser = store.getCurrentUser();
   if (!currentUser) return <Navigate to="/login" replace />;
-  
+
   if (currentUser.must_change_password) {
     return <Navigate to="/force-change-password" replace />;
   }
@@ -88,7 +89,7 @@ function ProtectedRoute({ children }) {
 function ForceChangeRoute({ children }) {
   const currentUser = store.getCurrentUser();
   if (!currentUser) return <Navigate to="/login" replace />;
-  
+
   if (!currentUser.must_change_password) {
     return <Navigate to={`/${currentUser.role}`} replace />;
   }
@@ -102,12 +103,11 @@ function RootRedirect() {
   return <Navigate to={`/${currentUser.role}`} replace />;
 }
 
-// ✅ export MẢNG routes để dùng với useRoutes()
 export const router = [
   { path: "/login", element: <Login /> },
   { path: "/", element: <RootRedirect /> },
   { path: "/forbidden", element: <Forbidden /> },
-  
+
   {
     path: "/force-change-password",
     element: (
@@ -145,7 +145,6 @@ export const router = [
     children: [{ index: true, element: <Notifications /> }],
   },
 
-  // Admin
   {
     path: "/admin",
     element: (
@@ -157,6 +156,7 @@ export const router = [
       { index: true, element: <AdminDashboard /> },
       { path: "users", element: <UserManagement /> },
       { path: "courses", element: <CourseManagement /> },
+      { path: "courses/:courseId/public-materials", element: <CoursePublicMaterialsManagement /> },
       { path: "classes", element: <ClassManagement /> },
       { path: "classes/:id", element: <ClassDetail /> },
       { path: "schedule", element: <ScheduleManagement /> },
@@ -164,7 +164,6 @@ export const router = [
     ],
   },
 
-  // Teacher
   {
     path: "/teacher",
     element: (
@@ -176,23 +175,24 @@ export const router = [
       { index: true, element: <TeacherDashboard /> },
       { path: "schedule", element: <TeacherSchedule /> },
       { path: "materials", element: <MaterialsManagement /> },
+      { path: "public-materials", element: <PublicCourseMaterialsPage /> },
       { path: "classes/:classId/materials", element: <MaterialsManagement /> },
       { path: "classes", element: <TeacherClassList /> },
       { path: "classes/:classId", element: <TeacherClassHome /> },
-      { 
+      {
         path: "assignments",
         children: [
-            { path: "quizzes", element: <QuizList /> },
-            { path: "essays", element: <GradingPage /> },
+          { path: "quizzes", element: <QuizList /> },
+          { path: "essays", element: <GradingPage /> },
         ]
       },
-      { path: "quizzes", element: <QuizList /> }, // Keep for compatibility
+      { path: "quizzes", element: <QuizList /> },
       { path: "quizzes/create", element: <QuizCreation /> },
       { path: "classes/:classId/quizzes/create", element: <QuizCreation /> },
       { path: "classes/:classId/assignments", element: <AssignmentManagement /> },
       { path: "classes/:classId/assignments/essay/create", element: <EssayCreation /> },
       { path: "classes/:classId/assignments/essay/edit", element: <EssayCreation /> },
-      { path: "grading", element: <GradingPage /> }, // Keep for compatibility
+      { path: "grading", element: <GradingPage /> },
       { path: "notifications", element: <TeacherDashboard /> },
       { path: "classes/:classId/assessments/:assessmentId/submissions", element: <SubmissionList /> },
       { path: "classes/:classId/assessments/:assessmentId/submissions/:submissionId/grade", element: <TeacherGradingWorkspace /> },
@@ -206,7 +206,6 @@ export const router = [
     ],
   },
 
-  // Student
   {
     path: "/student",
     element: (
@@ -219,7 +218,7 @@ export const router = [
       { path: "classes", element: <MyClasses /> },
       { path: "classes/:id", element: <ClassHome /> },
       { path: "schedule", element: <MySchedule /> },
-      { path: "materials", element: <StudentDashboard /> },
+      { path: "materials", element: <PublicCourseMaterialsPage /> },
       { path: "quizzes", element: <StudentDashboard /> },
       { path: "quizzes/:quizId/start", element: <StudentQuizStart /> },
       { path: "attempts/:submissionId/summary", element: <StudentQuizSummary /> },
@@ -230,8 +229,7 @@ export const router = [
       { path: "classes/:classId/assessments/:assessmentId", element: <StudentAssignmentDetail /> },
     ],
   },
-  
-  // Student Quiz Take - No Layout (Full screen Mode)
+
   {
     path: "/student/attempts/:submissionId/take",
     element: (

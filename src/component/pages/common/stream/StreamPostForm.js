@@ -1,6 +1,7 @@
 // src/component/pages/common/stream/StreamPostForm.js
 import React, { useState, useRef } from "react";
 import { Button, cn } from "component/ui";
+import { store } from "service/store";
 import { streamApi } from "service/streamApi";
 import {
   X,
@@ -51,6 +52,9 @@ export default function StreamPostForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(!!editingPost);
   const fileInputRef = useRef(null);
+
+  const currentUser = store.getCurrentUser();
+  const avatarUrl = currentUser?.avatar_url || currentUser?.avatarUrl;
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
@@ -120,8 +124,12 @@ export default function StreamPostForm({
         onClick={() => setIsExpanded(true)}
         className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all duration-300"
       >
-        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-          ✏️
+        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm overflow-hidden shrink-0">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+          ) : (
+            "✏️"
+          )}
         </div>
         <span className="text-sm text-slate-400 group-hover:text-slate-600 transition-colors">
           Chia sẻ thông tin với lớp học...
