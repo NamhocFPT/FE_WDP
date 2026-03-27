@@ -302,17 +302,17 @@ export default function QuizQuestionManager() {
                         <Button variant="danger" className="bg-red-500 hover:bg-red-600 text-white border-none shadow-lg shadow-red-500/20 rounded-xl" onClick={handleCancelQuiz}>
                             Hủy đề
                         </Button>
-                        <Button onClick={handlePublishQuiz} className="bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 border-none rounded-xl">
+                        <Button onClick={handlePublishQuiz} className="bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 border-none rounded-xl" disabled={quizMeta?.submissionCount > 0}>
                             <Save className="h-4 w-4 mr-2" /> Hoàn tất & Công bố
                         </Button>
                     </div>
                 </div>
 
                 <div className="relative z-10 mt-8 flex flex-wrap gap-3">
-                    <Button variant="ghost" onClick={handleAddQuestion} disabled={!!editingQuestion} className="bg-white text-indigo-900 hover:bg-slate-50 border-none shadow-lg rounded-xl h-11 px-5">
+                    <Button variant="ghost" onClick={handleAddQuestion} disabled={!!editingQuestion || quizMeta?.submissionCount > 0} className="bg-white text-indigo-900 hover:bg-slate-50 border-none shadow-lg rounded-xl h-11 px-5 disabled:opacity-50 disabled:cursor-not-allowed">
                         <Plus className="h-5 w-5 mr-2 text-indigo-600" /> Tạo câu hỏi thủ công
                     </Button>
-                    <Button variant="ghost" className="bg-gradient-to-r from-purple-500 hover:from-purple-400 to-pink-500 hover:to-pink-400 text-white border-none shadow-lg shadow-purple-500/25 rounded-xl h-11 px-5" onClick={() => setShowAIModal(true)}>
+                    <Button variant="ghost" className="bg-gradient-to-r from-purple-500 hover:from-purple-400 to-pink-500 hover:to-pink-400 text-white border-none shadow-lg shadow-purple-500/25 rounded-xl h-11 px-5 disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => setShowAIModal(true)} disabled={quizMeta?.submissionCount > 0}>
                         <Sparkles className="h-5 w-5 mr-2" /> Sáng tạo bằng Gemini AI
                     </Button>
 
@@ -348,6 +348,16 @@ export default function QuizQuestionManager() {
                         )}
                     </div>
                 </div>
+
+                {quizMeta?.submissionCount > 0 && (
+                    <div className="relative z-10 mt-6 p-4 rounded-2xl bg-amber-500/20 border border-amber-400/30 text-amber-100 flex items-start gap-3 backdrop-blur-md">
+                        <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-bold text-base text-yellow-100">Ngân hàng câu hỏi đã bị khóa</p>
+                            <p className="text-sm opacity-90 mt-1">Bài trắc nghiệm này đã có <b>{quizMeta.submissionCount} học sinh</b> làm bài. Để đảm bảo tính công bằng và an toàn dữ liệu, bạn không thể thêm, sửa hoặc xóa câu hỏi lúc này.</p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="grid gap-6 lg:grid-cols-3">
@@ -390,11 +400,11 @@ export default function QuizQuestionManager() {
                                                     ))}
                                                 </div>
                                             </div>
-                                            <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Button size="xs" variant="outline" onClick={() => handleEditQuestion(q)}>
+                                            <div className={`flex flex-col gap-2 transition-opacity ${quizMeta?.submissionCount > 0 ? "opacity-30 cursor-not-allowed" : "opacity-0 group-hover:opacity-100"}`}>
+                                                <Button size="xs" variant="outline" onClick={() => handleEditQuestion(q)} disabled={quizMeta?.submissionCount > 0}>
                                                     <Edit2 className="h-3.5 w-3.5" />
                                                 </Button>
-                                                <Button size="xs" variant="danger" className="text-red-600 border-red-100 hover:bg-red-50" onClick={() => handleDeleteQuestion(q.id)}>
+                                                <Button size="xs" variant="danger" className="text-red-600 border-red-100 hover:bg-red-50" onClick={() => handleDeleteQuestion(q.id)} disabled={quizMeta?.submissionCount > 0}>
                                                     <Trash2 className="h-3.5 w-3.5" />
                                                 </Button>
                                             </div>
