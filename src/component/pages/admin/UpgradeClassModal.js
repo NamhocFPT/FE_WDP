@@ -11,6 +11,22 @@ const suggestNextClassName = (oldName) => {
     return oldName.replace(/\d+/, (match) => parseInt(match, 10) + 1);
 };
 
+const suggestNextYear = (semesterStr) => {
+    if (!semesterStr) return `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
+    const match = semesterStr.match(/(\d{4})-(\d{4})/);
+    if (!match) return `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
+    const start = parseInt(match[1]);
+    const end = parseInt(match[2]);
+    return `${start + 1}-${end + 1}`;
+};
+
+const suggestNextDate = (oldDateStr) => {
+    if (!oldDateStr) return "";
+    const date = new Date(oldDateStr);
+    date.setFullYear(date.getFullYear() + 1);
+    return date.toISOString().split("T")[0];
+};
+
 export default function UpgradeClassModal({ classData, onClose, onSuccess }) {
     const [metadata, setMetadata] = useState({ teachers: [] });
     const [students, setStudents] = useState([]);
@@ -20,9 +36,9 @@ export default function UpgradeClassModal({ classData, onClose, onSuccess }) {
     const [formData, setFormData] = useState({
         name: suggestNextClassName(classData?.name),
         semester: "Học kỳ 1",
-        year: "2026-2027",
-        start_date: "",
-        end_date: "",
+        year: suggestNextYear(classData?.semester),
+        start_date: suggestNextDate(classData?.start_date),
+        end_date: suggestNextDate(classData?.end_date),
         teacher_id: classData?.teacher?.id || "",
         course_id: classData?.course?.id || ""
     });
@@ -193,6 +209,7 @@ export default function UpgradeClassModal({ classData, onClose, onSuccess }) {
                                     <input 
                                         type="date" required
                                         className="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
+                                        value={formData.start_date}
                                         onChange={(e) => setFormData({...formData, start_date: e.target.value})}
                                     />
                                 </div>
@@ -201,6 +218,7 @@ export default function UpgradeClassModal({ classData, onClose, onSuccess }) {
                                     <input 
                                         type="date" required
                                         className={`w-full p-3 border rounded-lg text-sm outline-none transition-all ${dateError ? "border-red-500 focus:ring-red-200" : "border-slate-200 focus:border-blue-500"}`}
+                                        value={formData.end_date}
                                         onChange={(e) => {
                                             setFormData({...formData, end_date: e.target.value});
                                             setDateError(""); 
