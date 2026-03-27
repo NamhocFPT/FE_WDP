@@ -266,8 +266,9 @@ export default function AssignmentManagement() {
                                                     <Button
                                                         size="xs"
                                                         variant="danger"
-                                                        className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"
-                                                        onClick={() => onDelete(a.id)}
+                                                        className={`bg-red-50 text-red-600 hover:bg-red-600 hover:text-white ${a.submissionCount > 0 ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                                                        onClick={() => a.submissionCount > 0 ? alert("Không thể xóa bài tập đã có học sinh làm bài.") : onDelete(a.id)}
+                                                        title={a.submissionCount > 0 ? "Không thể xóa bài tập đã có học sinh làm bài" : "Xóa bài tập"}
                                                     >
                                                         Xóa
                                                     </Button>
