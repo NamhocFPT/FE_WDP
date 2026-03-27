@@ -312,7 +312,7 @@ export default function QuizQuestionManager() {
                     <Button variant="ghost" onClick={handleAddQuestion} disabled={!!editingQuestion || quizMeta?.submissionCount > 0} className="bg-white text-indigo-900 hover:bg-slate-50 border-none shadow-lg rounded-xl h-11 px-5 disabled:opacity-50 disabled:cursor-not-allowed">
                         <Plus className="h-5 w-5 mr-2 text-indigo-600" /> Tạo câu hỏi thủ công
                     </Button>
-                    <Button variant="ghost" className="bg-gradient-to-r from-purple-500 hover:from-purple-400 to-pink-500 hover:to-pink-400 text-white border-none shadow-lg shadow-purple-500/25 rounded-xl h-11 px-5" onClick={() => setShowAIModal(true)}>
+                    <Button variant="ghost" disabled={!!editingQuestion || quizMeta?.submissionCount > 0} className="bg-gradient-to-r from-purple-500 hover:from-purple-400 to-pink-500 hover:to-pink-400 text-white border-none shadow-lg shadow-purple-500/25 rounded-xl h-11 px-5 disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => setShowAIModal(true)}>
                         <Sparkles className="h-5 w-5 mr-2" /> Sáng tạo bằng AI
                     </Button>
 
@@ -546,7 +546,7 @@ export default function QuizQuestionManager() {
                                         <HelpCircle className="h-6 w-6 text-slate-400" />
                                     </div>
                                     <p className="text-sm text-slate-500">Chọn một câu hỏi để chỉnh sửa hoặc nhấn "Thêm câu hỏi" để bắt đầu soạn mới.</p>
-                                    <Button variant="outline" onClick={handleAddQuestion}>Thêm câu hỏi mới</Button>
+                                    <Button className={"disabled:opacity-50 disabled:cursor-not-allowed"} variant="outline" disabled={!!editingQuestion || quizMeta?.submissionCount > 0} onClick={handleAddQuestion}>Thêm câu hỏi mới</Button>
                                 </CardContent>
                             </Card>
                         </div>
