@@ -85,7 +85,7 @@ export function PageHeader({ title, subtitle, right, icon, onBack }) {
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-6">
             <div className="flex items-center gap-4">
                 {onBack && (
-                    <button 
+                    <button
                         onClick={onBack}
                         className="flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-slate-200 shadow-sm hover:bg-slate-50 transition-all group"
                         title="Quay lại"

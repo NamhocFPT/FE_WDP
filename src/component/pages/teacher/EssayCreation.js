@@ -16,6 +16,7 @@ export default function EssayCreation() {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [existingFiles, setExistingFiles] = useState([]);
     const [isUpcomingClass, setIsUpcomingClass] = useState(false);
+    const [submissionCount, setSubmissionCount] = useState(0);
 
     const initialFormState = {
         title: "",
@@ -90,6 +91,7 @@ export default function EssayCreation() {
                                 settings: essay.settings_json || essay.settings || initialFormState.settings
                             });
                             setExistingFiles(essay.files || []);
+                            setSubmissionCount(essay.submissionCount || 0);
                         }
                     }
                 } catch (error) {
@@ -269,6 +271,13 @@ export default function EssayCreation() {
                 </div>
             )}
 
+            {submissionCount > 0 && (
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-700 flex items-center gap-2">
+                    <Settings2 size={16} />
+                    <span>Bài tập đã có {submissionCount} học sinh nộp bài. Điểm tối đa đã bị khóa để đảm bảo tính an toàn dữ liệu.</span>
+                </div>
+            )}
+
             <div className="grid gap-4 lg:grid-cols-3">
                 {/* LEFT: Form */}
                 <div className="lg:col-span-2 space-y-4">
@@ -337,7 +346,7 @@ export default function EssayCreation() {
                                     </div>
                                     <div>
                                         <label className="mb-1 block text-sm font-semibold text-slate-700">Thang điểm tối đa</label>
-                                        <Input type="number" name="max_score" value={formData.max_score} onChange={handleInputChange} min="0" step="0.5" />
+                                        <Input type="number" name="max_score" value={formData.max_score} onChange={handleInputChange} min="0" step="0.5" disabled={submissionCount > 0} className="disabled:bg-slate-50 disabled:text-slate-500" />
 
                                     </div>
                                 </div>

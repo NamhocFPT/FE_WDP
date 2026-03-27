@@ -39,6 +39,7 @@ export default function QuizCreation() {
 
     const [teacherClasses, setTeacherClasses] = useState([]);
     const [loadingData, setLoadingData] = useState(true);
+    const [submissionCount, setSubmissionCount] = useState(0);
     const [classError, setClassError] = useState("");
 
     const titleRef = useRef(null);
@@ -156,6 +157,7 @@ export default function QuizCreation() {
                             reviewOption: settings.reviewOption || "after_submit",
                             maxScore: quizData.max_score || 10
                         }));
+                        setSubmissionCount(quizData.submissionCount || 0);
                     }
                 }
             } catch (err) {
@@ -307,6 +309,13 @@ export default function QuizCreation() {
                 </div>
             )}
 
+            {submissionCount > 0 && (
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-700 flex items-center gap-2">
+                    <Settings2 size={16} />
+                    <span>Bài trắc nghiệm đã có {submissionCount} học sinh làm bài. Một số cấu hình quan trọng đã bị khóa để đảm bảo tính an toàn dữ liệu.</span>
+                </div>
+            )}
+
             <div className="grid gap-4 lg:grid-cols-3">
                 {/* LEFT: Form */}
                 <div className="lg:col-span-2 space-y-4">
@@ -329,7 +338,7 @@ export default function QuizCreation() {
                                             }`}
                                         value={form.classId}
                                         onChange={(e) => setField("classId", e.target.value)}
-                                        disabled={teacherClasses.length === 0}
+                                        disabled={teacherClasses.length === 0 || isEditMode}
                                     >
                                         <option value="" disabled>-- Chọn lớp học --</option>
                                         {teacherClasses.map((c) => (
@@ -430,9 +439,10 @@ export default function QuizCreation() {
                                 <div>
                                     <div className="mb-1 text-xs font-semibold text-slate-600">Số lần làm bài</div>
                                     <select
-                                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-500"
                                         value={form.attemptLimit}
                                         onChange={(e) => setField("attemptLimit", e.target.value)}
+                                        disabled={submissionCount > 0}
                                     >
                                         <option value="1">1 lần</option>
                                         <option value="2">2 lần</option>
@@ -443,9 +453,10 @@ export default function QuizCreation() {
                                 <div>
                                     <div className="mb-1 text-xs font-semibold text-slate-600">Cách tính điểm</div>
                                     <select
-                                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-500"
                                         value={form.gradeMethod}
                                         onChange={(e) => setField("gradeMethod", e.target.value)}
+                                        disabled={submissionCount > 0}
                                     >
                                         <option value="highest">Lấy điểm cao nhất</option>
                                         <option value="average">Lấy điểm trung bình</option>
@@ -461,15 +472,18 @@ export default function QuizCreation() {
                                         onChange={(e) => setField("maxScore", e.target.value)}
                                         min="0"
                                         step="0.5"
+                                        disabled={submissionCount > 0}
+                                        className="disabled:bg-slate-50 disabled:text-slate-500"
                                     />
                                 </div>
                             </div>
 
-                            <label className="flex items-center gap-2 text-sm text-slate-700">
+                            <label className={`flex items-center gap-2 text-sm text-slate-700 ${submissionCount > 0 ? "opacity-50 cursor-not-allowed" : ""}`}>
                                 <input
                                     type="checkbox"
                                     checked={form.shuffleQuestions}
                                     onChange={(e) => setField("shuffleQuestions", e.target.checked)}
+                                    disabled={submissionCount > 0}
                                 />
                                 Trộn câu hỏi
                             </label>
@@ -482,24 +496,26 @@ export default function QuizCreation() {
                             <div className="text-sm font-bold text-slate-900">Tuỳ chọn xem lại</div>
 
                             <div className="space-y-2 text-sm text-slate-700">
-                                <label className="flex items-start gap-2">
+                                <label className={`flex items-start gap-2 ${submissionCount > 0 ? "opacity-50 cursor-not-allowed" : ""}`}>
                                     <input
                                         type="radio"
                                         name="reviewOption"
                                         checked={form.reviewOption === "after_submit"}
                                         onChange={() => setField("reviewOption", "after_submit")}
+                                        disabled={submissionCount > 0}
                                     />
                                     <div>
                                         <div className="font-semibold">Xem điểm/đáp án ngay sau khi nộp</div>
                                     </div>
                                 </label>
 
-                                <label className="flex items-start gap-2">
+                                <label className={`flex items-start gap-2 ${submissionCount > 0 ? "opacity-50 cursor-not-allowed" : ""}`}>
                                     <input
                                         type="radio"
                                         name="reviewOption"
                                         checked={form.reviewOption === "after_close"}
                                         onChange={() => setField("reviewOption", "after_close")}
+                                        disabled={submissionCount > 0}
                                     />
                                     <div>
                                         <div className="font-semibold">Chỉ xem sau khi đóng đề</div>
