@@ -8,7 +8,7 @@ export default function EditSessionModal({ isOpen, onClose, classId, sessionGrou
     const [teachers, setTeachers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
-        day_of_week: "",
+        specific_date: "",
         start_time: "",
         end_time: "",
         room: "",
@@ -32,7 +32,7 @@ export default function EditSessionModal({ isOpen, onClose, classId, sessionGrou
             };
 
             setFormData({
-                day_of_week: vnToEnDay[sessionGroup.day] || sessionGroup.day || "",
+                specific_date: sessionGroup.dateISO || "",
                 start_time: start || "",
                 end_time: end || "",
                 room: sessionGroup.room !== "N/A" ? sessionGroup.room : "",
@@ -47,7 +47,7 @@ export default function EditSessionModal({ isOpen, onClose, classId, sessionGrou
         try {
             const payload = {
                 sessionIds: sessionGroup.sessionIds,
-                day_of_week: formData.day_of_week,
+                specific_date: formData.specific_date,
                 start_time: formData.start_time,
                 end_time: formData.end_time,
                 room: formData.room,
@@ -57,8 +57,8 @@ export default function EditSessionModal({ isOpen, onClose, classId, sessionGrou
             if (sessionGroup.sessionIds?.length === 1 && sessionGroup.dateISO) {
                 // Single session edit
                 const updatedPayload = {
-                    start_time: `${sessionGroup.dateISO}T${formData.start_time}:00`,
-                    end_time: `${sessionGroup.dateISO}T${formData.end_time}:00`,
+                    start_time: `${formData.specific_date}T${formData.start_time}:00`,
+                    end_time: `${formData.specific_date}T${formData.end_time}:00`,
                     room: formData.room,
                     teacher_id: formData.teacher_id || null
                 };
@@ -86,7 +86,7 @@ export default function EditSessionModal({ isOpen, onClose, classId, sessionGrou
                 <div className="flex justify-between items-start p-6 pb-4">
                     <div>
                         <h3 className="text-xl font-bold text-slate-900">Chỉnh sửa Lịch học</h3>
-                        <p className="text-sm text-slate-500 mt-1">Cập nhật lịch học định kỳ cho lớp</p>
+                        <p className="text-sm text-slate-500 mt-1">Cập nhật thông tin buổi học</p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition-colors">
                         <X size={20} />
@@ -94,24 +94,15 @@ export default function EditSessionModal({ isOpen, onClose, classId, sessionGrou
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 pt-0 space-y-5">
-                    {/* Day of Week */}
+                    {/* Specific Date */}
                     <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-2 uppercase tracking-wider">Thứ trong tuần</label>
-                        <select 
-                            required
-                            className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-all"
-                            value={formData.day_of_week}
-                            onChange={(e) => setFormData({...formData, day_of_week: e.target.value})}
-                        >
-                            <option value="" disabled>Chọn thứ</option>
-                            <option value="Monday">Thứ Hai</option>
-                            <option value="Tuesday">Thứ Ba</option>
-                            <option value="Wednesday">Thứ Tư</option>
-                            <option value="Thursday">Thứ Năm</option>
-                            <option value="Friday">Thứ Sáu</option>
-                            <option value="Saturday">Thứ Bảy</option>
-                            <option value="Sunday">Chủ Nhật</option>
-                        </select>
+                        <label className="text-xs font-bold text-slate-700 block mb-2 uppercase tracking-wider">Ngày học cụ thể</label>
+                        <input 
+                            type="date" required
+                            className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                            value={formData.specific_date}
+                            onChange={(e) => setFormData({...formData, specific_date: e.target.value})}
+                        />
                     </div>
 
                     {/* Time */}

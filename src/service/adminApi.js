@@ -13,7 +13,7 @@ api.interceptors.request.use((config) => {
 
 export const adminApi = {
     // --- UC_ADM_10: COURSES ---
-    getCourses: () => api.get("/courses"),
+    getCourses: (params) => api.get("/courses", { params }),
     addCourse: (courseData) => api.post("/courses", courseData),
     updateCourse: (id, courseData) => api.put(`/courses/${id}`, courseData),
     deleteCourse: (id) => api.delete(`/courses/${id}`),
@@ -32,7 +32,7 @@ export const adminApi = {
         api.delete(`/public-materials/${materialId}`),
 
     // --- UC_ADM_11: CLASSES ---
-    getClasses: () => api.get("/classes"),
+    getClasses: (params) => api.get("/classes", { params }),
     getCreateClassMetadata: () => api.get("/classes/create"),
     addClass: (data) => api.post("/classes", data),
     updateClass: (id, data) => api.put(`/classes/${id}`, data),

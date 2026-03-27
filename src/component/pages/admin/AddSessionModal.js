@@ -8,7 +8,7 @@ export default function AddSessionModal({ isOpen, onClose, classId, onSuccess, c
     const [teachers, setTeachers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
-        day_of_week: "",
+        specific_date: "",
         start_time: "",
         end_time: "",
         room: "",
@@ -23,7 +23,7 @@ export default function AddSessionModal({ isOpen, onClose, classId, onSuccess, c
         
         // Reset form data when opened
         setFormData({
-            day_of_week: "",
+            specific_date: "",
             start_time: "",
             end_time: "",
             room: "",
@@ -36,7 +36,7 @@ export default function AddSessionModal({ isOpen, onClose, classId, onSuccess, c
         setLoading(true);
         try {
             const payload = {
-                day_of_week: formData.day_of_week,
+                specific_date: formData.specific_date,
                 start_time: formData.start_time,
                 end_time: formData.end_time,
                 room: formData.room,
@@ -64,7 +64,7 @@ export default function AddSessionModal({ isOpen, onClose, classId, onSuccess, c
                 <div className="flex justify-between items-start p-6 pb-4">
                     <div>
                         <h3 className="text-xl font-bold text-slate-900">Thêm buổi học</h3>
-                        <p className="text-sm text-slate-500 mt-1">Tạo lịch học định kỳ mới cho lớp học</p>
+                        <p className="text-sm text-slate-500 mt-1">Tạo một buổi học mới cho lớp học</p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition-colors">
                         <X size={20} />
@@ -72,24 +72,15 @@ export default function AddSessionModal({ isOpen, onClose, classId, onSuccess, c
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 pt-0 space-y-5">
-                    {/* Day of Week */}
+                    {/* Specific Date */}
                     <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-2 uppercase tracking-wider">Thứ trong tuần</label>
-                        <select 
-                            required
-                            className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-all"
-                            value={formData.day_of_week}
-                            onChange={(e) => setFormData({...formData, day_of_week: e.target.value})}
-                        >
-                            <option value="" disabled>Chọn thứ</option>
-                            <option value="Monday">Thứ Hai</option>
-                            <option value="Tuesday">Thứ Ba</option>
-                            <option value="Wednesday">Thứ Tư</option>
-                            <option value="Thursday">Thứ Năm</option>
-                            <option value="Friday">Thứ Sáu</option>
-                            <option value="Saturday">Thứ Bảy</option>
-                            <option value="Sunday">Chủ Nhật</option>
-                        </select>
+                        <label className="text-xs font-bold text-slate-700 block mb-2 uppercase tracking-wider">Ngày học cụ thể</label>
+                        <input 
+                            type="date" required
+                            className="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                            value={formData.specific_date}
+                            onChange={(e) => setFormData({...formData, specific_date: e.target.value})}
+                        />
                     </div>
 
                     {/* Time */}

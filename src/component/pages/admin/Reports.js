@@ -9,7 +9,10 @@ import {
     Sheet,
     Loader2,
     Search,
-    FileDown
+    FileDown,
+    Eye,
+    X,
+    FileQuestion
 } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, Legend } from "recharts";
 import { adminApi } from "service/adminApi";
@@ -30,6 +33,8 @@ export default function Reports() {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const exportMenuRef = useRef(null);
+    const [selectedStudentDetail, setSelectedStudentDetail] = useState(null); // Student details for modal
+    const [selectedDetailType, setSelectedDetailType] = useState('ALL'); // 'ALL' | 'QUIZ' | 'ESSAY'
     const [activeTab, setActiveTab] = useState('grade'); // 'grade' | 'teacher'
     const [teacherData, setTeacherData] = useState({
         activityChartData: [
@@ -102,10 +107,22 @@ export default function Reports() {
                         console.log('[Reports] Sample item keys:', Object.keys(detailedDataRaw[0]).join(', '));
                     }
 
+                    const getGradeLetter = (score) => {
+                        const num = parseFloat(score);
+                        if (isNaN(num)) return '-';
+                        if (num >= 9) return 'A+';
+                        if (num >= 8.5) return 'A';
+                        if (num >= 8) return 'B+';
+                        if (num >= 7) return 'B';
+                        if (num >= 6.5) return 'C+';
+                        if (num >= 5.5) return 'C';
+                        if (num >= 5) return 'D';
+                        return 'F';
+                    };
+
                     detailedDataRaw.forEach(item => {
-                        // Fallback to names if IDs are missing (Backend might not have restarted)
-                        const sId = item.student_id || item.studentId || item.student_name;
-                        const cId = item.class_id || item.classId || item.class_name;
+                        const sId = item.student_id;
+                        const cId = item.class_id;
                         const rowKey = `${sId}_${cId}`;
 
                         if (!pivotedStudents[rowKey]) {
@@ -115,51 +132,94 @@ export default function Reports() {
                                 student_name: item.student_name,
                                 class_name: item.class_name,
                                 course_code: item.course_code,
-                                grades: {}
+                                grades: {},
+                                raw_submissions: {} // To store all attempts for calculation
                             };
                         }
 
-                        // Keep the highest score (MAX)
-                        const assessmentId = item.assessment_id || item.assessmentId || item.quiz_name;
-                        const existing = pivotedStudents[rowKey].grades[assessmentId];
-                        const currentScore = parseFloat(item.score) || 0;
-                        const existingScore = existing ? (parseFloat(existing.score) || 0) : -1;
-
-                        if (!existing || currentScore > existingScore) {
-                            pivotedStudents[rowKey].grades[assessmentId] = {
-                                score: item.score,
-                                grade_letter: item.grade_letter
-                            };
+                        const assessmentId = item.assessment_id;
+                        if (!pivotedStudents[rowKey].raw_submissions[assessmentId]) {
+                            pivotedStudents[rowKey].raw_submissions[assessmentId] = [];
                         }
+                        
+                        // Robust check for date field (handle case sensitivity)
+                        const rawSubmittedAt = item.submitted_at || item.SUBMITTED_AT || item.graded_at || item.GRADED_AT;
+                        
+                        pivotedStudents[rowKey].raw_submissions[assessmentId].push({
+                            score: parseFloat(item.score || item.SCORE) || 0,
+                            submitted_at: rawSubmittedAt,
+                            grade_method: item.assessment_settings?.gradeMethod || 'highest'
+                        });
 
                         if (!assessmentsMap[assessmentId]) {
-                            // Temporary type detection until backend is restarted
-                            let detectedType = item.type;
-                            if (!detectedType) {
-                                const lowerName = (item.quiz_name || "").toLowerCase();
-                                if (lowerName.includes('tự luận') || lowerName.includes('essay') || lowerName.includes('assignment') || lowerName.includes('bài tập')) {
-                                    detectedType = 'ESSAY';
-                                } else {
-                                    detectedType = 'QUIZ';
-                                }
-                            }
-
                             assessmentsMap[assessmentId] = {
                                 id: assessmentId,
                                 title: item.quiz_name,
-                                type: detectedType
+                                type: item.type
                             };
                         }
                     });
-                    console.log('[Reports] Total pivoted rows:', Object.keys(pivotedStudents).length);
+
+                    // Perform calculations for each student-assessment pair based on gradeMethod
+                    Object.values(pivotedStudents).forEach(student => {
+                        Object.keys(student.raw_submissions).forEach(assessmentId => {
+                            const attempts = student.raw_submissions[assessmentId];
+                            const method = attempts[0].grade_method;
+                            let finalScore = 0;
+
+                            if (method === 'average') {
+                                const sum = attempts.reduce((acc, curr) => acc + curr.score, 0);
+                                finalScore = (sum / attempts.length).toFixed(1);
+                            } else if (method === 'latest') {
+                                // Sort by submitted_at desc
+                                const sorted = [...attempts].sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
+                                finalScore = sorted[0].score;
+                            } else {
+                                // Default: highest
+                                finalScore = Math.max(...attempts.map(a => a.score));
+                            }
+
+                            student.grades[assessmentId] = {
+                                score: finalScore,
+                                grade_letter: getGradeLetter(finalScore)
+                            };
+                        });
+                    });
+
+                    // Calculate Summary Stats from pivoted data
+                    const studentsArray = Object.values(pivotedStudents);
+                    const allFinalScores = studentsArray.flatMap(s => Object.values(s.grades).map(g => parseFloat(g.score)));
+                    const avgScore = allFinalScores.length > 0 ? allFinalScores.reduce((a, b) => a + b, 0) / allFinalScores.length : 0;
+                    
+                    const passCount = allFinalScores.filter(s => s >= 5).length;
+                    const passRate = allFinalScores.length > 0 ? (passCount / allFinalScores.length * 100).toFixed(1) : 0;
+                    
+                    const aCount = allFinalScores.filter(s => s >= 8.5).length;
+                    const aPercent = allFinalScores.length > 0 ? (aCount / allFinalScores.length * 100).toFixed(1) : 0;
+
+                    const distribution = { 'A+': 0, 'A': 0, 'B+': 0, 'B': 0, 'C+': 0, 'C': 0, 'D': 0, 'F': 0 };
+                    allFinalScores.forEach(s => {
+                        const letter = getGradeLetter(s);
+                        if (distribution[letter] !== undefined) distribution[letter]++;
+                    });
 
                     setData({
-                        gradeDistributionData: receivedData.gradeDistributionData || [],
-                        gradePercentageData: receivedData.gradePercentageData || [],
+                        gradeDistributionData: Object.entries(distribution).map(([name, count]) => ({ name, students: count })),
+                        gradePercentageData: [
+                            { name: 'Đạt (>=5)', value: parseFloat(passRate), color: '#10b981' },
+                            { name: 'Chưa đạt (<5)', value: 100 - parseFloat(passRate), color: '#ef4444' }
+                        ],
                         courseEnrollmentData: receivedData.courseEnrollmentData || [],
-                        detailedData: Object.values(pivotedStudents),
+                        detailedData: studentsArray,
                         assessments: Object.values(assessmentsMap),
-                        summaryStats: receivedData.summaryStats || { avgGrade: 'N/A', passRate: 0, totalStudents: 0, aStudents: 0, gradeTotal: 0, aPercent: 0 }
+                        summaryStats: {
+                            avgGrade: getGradeLetter(avgScore),
+                            passRate,
+                            totalStudents: studentsArray.length,
+                            aStudents: aCount,
+                            gradeTotal: allFinalScores.length,
+                            aPercent
+                        }
                     });
                 }
             })
@@ -836,13 +896,11 @@ export default function Reports() {
                                             <tr className="bg-slate-50 border-b border-slate-200">
                                                 <th colSpan="4" className="px-4 py-3 border-r border-slate-200"></th>
                                                 <th
-                                                    colSpan={(data?.assessments?.filter(a => String(a.type).toUpperCase() === 'QUIZ').length || 0)}
                                                     className="px-4 py-2 text-center text-[11px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50/50 border-r border-slate-200"
                                                 >
                                                     Trắc nghiệm (Quizzes)
                                                 </th>
                                                 <th
-                                                    colSpan={(data?.assessments?.filter(a => String(a.type).toUpperCase() !== 'QUIZ').length || 0)}
                                                     className="px-4 py-2 text-center text-[11px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50/50"
                                                 >
                                                     Tự luận (Essays)
@@ -853,16 +911,8 @@ export default function Reports() {
                                                 <th className="px-6 py-3 text-left font-bold text-slate-700">Lớp</th>
                                                 <th className="px-6 py-3 text-left font-bold text-slate-700">Mã môn</th>
                                                 <th className="px-6 py-3 text-center font-bold text-slate-700 border-r border-slate-200">Xuất thông tin</th>
-                                                {data?.assessments?.filter(a => String(a.type).toUpperCase() === 'QUIZ').map(a => (
-                                                    <th key={a.id} className="px-4 py-3 text-center border-r border-slate-200 min-w-[100px] normal-case font-medium text-slate-600 overflow-hidden">
-                                                        <div className="truncate w-full" title={a.title}>{a.title}</div>
-                                                    </th>
-                                                ))}
-                                                {data?.assessments?.filter(a => String(a.type).toUpperCase() !== 'QUIZ').map(a => (
-                                                    <th key={a.id} className="px-4 py-3 text-center border-r border-slate-200 min-w-[100px] normal-case font-medium text-slate-600 overflow-hidden">
-                                                        <div className="truncate w-full" title={a.title}>{a.title}</div>
-                                                    </th>
-                                                ))}
+                                                <th className="px-4 py-3 text-center border-r border-slate-200 text-[11px] font-bold uppercase text-slate-500">Xem Trắc nghiệm</th>
+                                                <th className="px-4 py-3 text-center text-[11px] font-bold uppercase text-slate-500">Xem Tự luận</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
@@ -878,35 +928,45 @@ export default function Reports() {
                                                             <td className="px-6 py-4 text-slate-600 border-r">{student.class_name}</td>
                                                             <td className="px-6 py-4 text-slate-600 border-r">{student.course_code}</td>
                                                             <td className="px-6 py-4 text-center border-r">
+                                                                <div className="flex items-center justify-center">
+                                                                    <button
+                                                                        onClick={() => handleExportIndividual(student)}
+                                                                        className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                                                                        title="Xuất phiếu điểm cá nhân"
+                                                                    >
+                                                                        <FileDown size={18} />
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-4 text-center border-r">
                                                                 <button
-                                                                    onClick={() => handleExportIndividual(student)}
-                                                                    className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
-                                                                    title="Xuất phiếu điểm cá nhân"
+                                                                    onClick={() => {
+                                                                        setSelectedStudentDetail(student);
+                                                                        setSelectedDetailType('QUIZ');
+                                                                    }}
+                                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-all shadow-sm border border-blue-100 hover:scale-110 active:scale-95 mx-auto block"
+                                                                    title="Xem chi tiết Trắc nghiệm"
                                                                 >
-                                                                    <FileDown size={18} />
+                                                                    <Eye size={20} />
                                                                 </button>
                                                             </td>
-                                                            {data?.assessments?.filter(a => String(a.type).toUpperCase() === 'QUIZ').map(a => {
-                                                                const grade = student.grades[a.id];
-                                                                return (
-                                                                    <td key={a.id} className="px-4 py-4 text-center border-r font-bold text-blue-600">
-                                                                        {grade ? `${grade.score} (${grade.grade_letter || '-'})` : "-"}
-                                                                    </td>
-                                                                );
-                                                            })}
-                                                            {data?.assessments?.filter(a => String(a.type).toUpperCase() !== 'QUIZ').map(a => {
-                                                                const grade = student.grades[a.id];
-                                                                return (
-                                                                    <td key={a.id} className="px-4 py-4 text-center border-r font-bold text-indigo-600">
-                                                                        {grade ? `${grade.score} (${grade.grade_letter || '-'})` : "-"}
-                                                                    </td>
-                                                                );
-                                                            })}
+                                                            <td className="px-4 py-4 text-center border-r">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedStudentDetail(student);
+                                                                        setSelectedDetailType('ESSAY');
+                                                                    }}
+                                                                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full transition-all shadow-sm border border-indigo-100 hover:scale-110 active:scale-95 mx-auto block"
+                                                                    title="Xem chi tiết Tự luận"
+                                                                >
+                                                                    <Eye size={20} />
+                                                                </button>
+                                                            </td>
                                                         </tr>
                                                     ))
                                                 ) : (
                                                     <tr>
-                                                        <td colSpan={4 + (data?.assessments?.length || 0)} className="px-6 py-12 text-center text-slate-400 italic">
+                                                        <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
                                                             {searchTerm ? `Không tìm thấy học sinh nào khớp với "${searchTerm}"` : "Chưa có dữ liệu bài nộp cho các tiêu chí đã chọn."}
                                                         </td>
                                                     </tr>
@@ -972,6 +1032,114 @@ export default function Reports() {
                         </div>
                     </>
                 )
+            )}
+
+            {/* Chi tiết bài nộp Modal */}
+            {selectedStudentDetail && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+                        {/* Modal Header */}
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900">Chi tiết {selectedDetailType === 'QUIZ' ? 'Trắc nghiệm' : 'Tự luận'}: {selectedStudentDetail.student_name}</h3>
+                                <p className="text-sm text-slate-500 mt-1">Lớp: {selectedStudentDetail.class_name} | Mã môn: {selectedStudentDetail.course_code}</p>
+                            </div>
+                            <button 
+                                onClick={() => setSelectedStudentDetail(null)}
+                                className="p-2 hover:bg-white hover:shadow-sm rounded-full transition-all text-slate-400 hover:text-slate-600"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-8 text-sm">
+                            {(() => {
+                                const assessmentsToShow = (data.assessments || [])
+                                    .filter(a => {
+                                        const hasSubmission = (selectedStudentDetail.raw_submissions[a.id] || []).length > 0;
+                                        const typeMatch = selectedDetailType === 'ALL' || 
+                                                         (selectedDetailType === 'QUIZ' && String(a.type).toUpperCase() === 'QUIZ') || 
+                                                         (selectedDetailType === 'ESSAY' && String(a.type).toUpperCase() !== 'QUIZ');
+                                        return hasSubmission && typeMatch;
+                                    });
+
+                                return assessmentsToShow.length > 0 ? (
+                                    assessmentsToShow.map(assessment => {
+                                        const attempts = selectedStudentDetail.raw_submissions[assessment.id] || [];
+                                        const method = attempts.length > 0 ? attempts[0].grade_method : 'highest';
+                                        const finalGrade = selectedStudentDetail.grades[assessment.id];
+
+                                        return (
+                                            <div key={assessment.id} className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
+                                                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${assessment.type === 'QUIZ' ? 'bg-blue-100 text-blue-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                                                            {assessment.type === 'QUIZ' ? 'Trắc nghiệm' : 'Tự luận'}
+                                                        </span>
+                                                        <h4 className="font-bold text-slate-800">{assessment.title}</h4>
+                                                    </div>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="text-right">
+                                                            <p className="text-[10px] text-slate-400 uppercase font-semibold">Cách tính điểm</p>
+                                                            <p className="font-medium text-slate-700">{method === 'highest' ? 'Điểm cao nhất' : (method === 'average' ? 'Trung bình' : 'Lần cuối')}</p>
+                                                        </div>
+                                                        <div className="h-8 w-px bg-slate-200" />
+                                                        <div className="text-right">
+                                                            <p className="text-[10px] text-slate-400 uppercase font-semibold">Điểm tổng kết</p>
+                                                            <p className="font-bold text-blue-600 text-lg">{finalGrade ? `${finalGrade.score} (${finalGrade.grade_letter})` : 'N/A'}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="p-0">
+                                                    <table className="w-full text-left">
+                                                        <thead className="text-[11px] text-slate-500 uppercase bg-slate-50/30">
+                                                            <tr>
+                                                                <th className="px-4 py-2 font-semibold">Lần nộp</th>
+                                                                <th className="px-4 py-2 font-semibold">Thời gian</th>
+                                                                <th className="px-4 py-2 font-semibold text-center">Điểm số</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-slate-50">
+                                                            {attempts.length > 0 ? [...attempts].sort((a,b) => new Date(b.submitted_at) - new Date(a.submitted_at)).map((attempt, i) => (
+                                                                <tr key={i} className="hover:bg-slate-50/50">
+                                                                    <td className="px-4 py-2.5 text-slate-600">Lần {attempts.length - i}</td>
+                                                                    <td className="px-4 py-2.5 text-slate-500">
+                                                                        {attempt.submitted_at && !isNaN(new Date(attempt.submitted_at).getTime()) 
+                                                                            ? new Date(attempt.submitted_at).toLocaleString('vi-VN') 
+                                                                            : 'N/A (No Date)'}
+                                                                    </td>
+                                                                    <td className="px-4 py-2.5 text-center font-bold text-slate-700">{attempt.score}</td>
+                                                                </tr>
+                                                            )) : (
+                                                                <tr>
+                                                                    <td colSpan="3" className="px-4 py-8 text-center text-slate-400 italic">Học sinh chưa nộp bài.</td>
+                                                                </tr>
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-20 text-slate-400 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">
+                                        <div className="bg-white p-4 rounded-full shadow-sm mb-4">
+                                            <FileQuestion size={40} className="text-slate-300" />
+                                        </div>
+                                        <p className="text-base font-medium text-slate-500">Không có dữ liệu bài nộp cho mục này</p>
+                                        <p className="text-xs mt-1">Học sinh này chưa tham gia bất kỳ bài {selectedDetailType === 'QUIZ' ? 'trắc nghiệm' : 'tự luận'} nào.</p>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+                            <Button onClick={() => setSelectedStudentDetail(null)} variant="outline" className="bg-white">Đóng</Button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
