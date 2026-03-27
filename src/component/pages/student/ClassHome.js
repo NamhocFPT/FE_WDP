@@ -572,24 +572,6 @@ export default function ClassHome() {
                 </Card>
             )}
 
-            {/* TAB: ANNOUNCEMENTS */}
-            {currentTab === "announcements" && (
-                <Card className="animate-in fade-in duration-300">
-                    <CardHeader><CardTitle>Thông báo lớp học</CardTitle></CardHeader>
-                    <CardContent className="space-y-4">
-                        {cl.announcements?.length > 0 ? cl.announcements.map((a) => (
-                            <div key={a.id} className="rounded-xl border border-blue-100 bg-blue-50/40 p-5 hover:shadow-sm transition-shadow">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-xl">📢</span>
-                                    <div className="text-sm font-bold text-slate-900">{a.title}</div>
-                                </div>
-                                <div className="text-sm text-slate-700 leading-relaxed border-l-2 border-blue-200 pl-3 ml-2">{a.content}</div>
-                                <div className="mt-3 text-xs font-semibold text-slate-400 ml-5">{a.date}</div>
-                            </div>
-                        )) : <p className="text-sm text-slate-500 italic text-center py-6">Chưa có thông báo nào.</p>}
-                    </CardContent>
-                </Card>
-            )}
 
             {/* TAB: GRADES */}
             {currentTab === "grades" && (

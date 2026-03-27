@@ -18,7 +18,6 @@ export const navByRole = {
   teacher: [
     { to: "/teacher", label: "Tổng quan" },
     { to: "/teacher/schedule", label: "Lịch dạy" },
-    { to: "/teacher/materials", label: "Học liệu" },
     { to: "/teacher/public-materials", label: "Tài liệu" },
     {
       to: "/teacher/classes",

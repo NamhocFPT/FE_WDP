@@ -577,7 +577,7 @@ export default function QuizQuestionManager() {
                             <input
                                 type="file"
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                accept=".pdf,.doc,.docx,.txt"
+                                accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
                                 onChange={(e) => {
                                     if (e.target.files && e.target.files[0]) {
                                         setAiFile(e.target.files[0]);
@@ -587,7 +587,10 @@ export default function QuizQuestionManager() {
                             {aiFile ? (
                                 <div className="text-sm font-semibold text-purple-700">{aiFile.name} ({(aiFile.size / 1024).toFixed(1)} KB)</div>
                             ) : (
-                                <div className="text-sm text-slate-500">Kéo thả hoặc click để chọn file PDF, Word, TXT (Tối đa 10MB)</div>
+                                <div className="text-sm text-slate-500 text-center">
+                                    <p className="font-bold mb-1">Kéo thả hoặc click để chọn tài liệu</p>
+                                    <p className="text-xs opacity-70">Hỗ trợ PDF, Word, Ảnh (chụp đề), TXT (Tối đa 10MB)</p>
+                                </div>
                             )}
                         </div>
                         {aiFile && (

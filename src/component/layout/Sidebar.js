@@ -71,7 +71,6 @@ export default function Sidebar() {
                     { to: `/teacher/classes/${classId}/assignments?type=essay`, label: "Tự luận" },
                 ]
             },
-            { to: `/teacher/classes/${classId}/materials`, label: "Học liệu" },
             { to: `/teacher/classes/${classId}/students`, label: "Học sinh" },
             { to: `/teacher/classes/${classId}/gradebook`, label: "Bảng điểm" },
         ];
@@ -89,7 +88,6 @@ export default function Sidebar() {
                     { to: `/student/classes/${classId}?tab=assignments`, label: "Tự luận", id: "assignments" },
                 ]
             },
-            { to: `/student/classes/${classId}?tab=announcements`, label: "Thông báo", id: "announcements" },
             { to: `/student/classes/${classId}/grades`, label: "Bảng điểm", id: "grades" },
         ];
     } else {
