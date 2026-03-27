@@ -19,6 +19,12 @@ export default function ClassManagement() {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [q, setQ] = useState(""); 
+    
+    // Pagination states
+    const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(20);
+    const [total, setTotal] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); 
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [editClass, setEditClass] = useState(null); 
@@ -29,10 +35,12 @@ export default function ClassManagement() {
     const [statusAction, setStatusAction] = useState(""); // "closed" or "cancelled"
 
     const fetchClasses = async () => {
+        setLoading(true);
         try {
-            const res = await adminApi.getClasses();
-            const activeClasses = res.data.data.filter(cl => !cl.is_deleted);
-            setClasses(activeClasses); 
+            const res = await adminApi.getClasses({ page, limit, q, statusFilter });
+            setClasses(res.data.data); 
+            setTotal(res.data.total);
+            setTotalPages(res.data.totalPages);
             setLoading(false);
         } catch (err) {
             console.error("Lỗi khi tải danh sách lớp học:", err);
@@ -40,21 +48,15 @@ export default function ClassManagement() {
         }
     };
 
-    useEffect(() => { fetchClasses(); }, []);
+    useEffect(() => {
+        setPage(1);
+    }, [q, statusFilter]);
+
+    useEffect(() => { fetchClasses(); }, [page, limit, q, statusFilter]);
 
     const filteredClasses = useMemo(() => {
-        let result = classes;
-        if (statusFilter !== "all") {
-            result = result.filter(cl => cl.status === statusFilter);
-        }
-        if (q) {
-            result = result.filter(cl => 
-                cl.name?.toLowerCase().includes(q.toLowerCase()) || 
-                cl.course?.name?.toLowerCase().includes(q.toLowerCase())
-            );
-        }
-        return result;
-    }, [q, statusFilter, classes]);
+        return classes;
+    }, [classes]);
 
     // File Excel Template Download
     const handleDownloadTemplate = () => {
@@ -179,7 +181,7 @@ export default function ClassManagement() {
                                         <Td>
                                             <div className="flex items-center gap-2">
                                                 <Users size={14} />
-                                                <span className="font-semibold">{cl.enrollments?.length || 0}</span> / {cl.max_capacity || 40}
+                                                <span className="font-semibold">{cl.enrollmentCount || 0}</span> / {cl.max_capacity || 40}
                                             </div>
                                         </Td>
                                         <Td>
@@ -217,6 +219,54 @@ export default function ClassManagement() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between px-2 py-4">
+                <div className="text-sm text-slate-500">
+                    Hiển thị <span className="font-semibold text-slate-700">{classes.length}</span> trên{" "}
+                    <span className="font-semibold text-slate-700">{total}</span> lớp học
+                </div>
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page === 1 || loading}
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        className="h-9 px-4 border-slate-200"
+                    >
+                        Trước
+                    </Button>
+                    <div className="flex items-center gap-1">
+                        {[...Array(totalPages)].map((_, i) => {
+                            if (totalPages > 5) {
+                                if (i + 1 < page - 2 || i + 1 > page + 2) return null;
+                            }
+                            return (
+                                <button
+                                    key={i}
+                                    onClick={() => setPage(i + 1)}
+                                    className={`h-9 w-9 rounded-lg text-sm font-medium transition-colors ${
+                                        page === i + 1
+                                            ? "bg-[#0f172a] text-white shadow-sm"
+                                            : "text-slate-600 hover:bg-slate-100"
+                                    }`}
+                                >
+                                    {i + 1}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page === totalPages || loading}
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        className="h-9 px-4 border-slate-200"
+                    >
+                        Sau
+                    </Button>
+                </div>
+            </div>
 
             {/* CREATE POPUP */}
             {isCreateModalOpen && (

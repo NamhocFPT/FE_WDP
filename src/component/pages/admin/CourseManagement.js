@@ -28,6 +28,12 @@ export default function CourseManagement() {
   const [loading, setLoading] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
 
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
   // States cho Modal Thêm/Sửa
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -44,17 +50,28 @@ export default function CourseManagement() {
   const [itemToDelete, setItemToDelete] = useState(null);
 
   const fetchCourses = async () => {
+    setLoading(true);
     try {
-      const res = await adminApi.getCourses();
+      const res = await adminApi.getCourses({ page, limit, q, status: statusFilter });
       setCourses(res.data.data);
+      setTotal(res.data.total);
+      setTotalPages(res.data.totalPages);
     } catch (err) {
       console.error("Lỗi khi tải danh sách:", err);
+      toast.error("Không thể tải danh sách môn học");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
+    // Reset về trang 1 khi search hoặc filter thay đổi
+    setPage(1);
+  }, [q, statusFilter]);
+
+  useEffect(() => {
     fetchCourses();
-  }, []);
+  }, [page, limit, q, statusFilter]);
 
   // Xử lý khi nhấn nút Sửa
   const handleEditClick = (course) => {
@@ -120,18 +137,10 @@ export default function CourseManagement() {
     }
   };
 
-  // Filter: Tìm kiếm theo text VÀ Chỉ hiện những cái chưa bị xóa (is_deleted !== true)
+  // Rows bây giờ lấy trực tiếp từ state courses vì backend đã xử lý filter/mảng rồi
   const rows = useMemo(() => {
-    return courses.filter((c) => {
-      const matchesSearch =
-        !q ||
-        c.name?.toLowerCase().includes(q.toLowerCase()) ||
-        c.code?.toLowerCase().includes(q.toLowerCase());
-      const matchesStatus = statusFilter === "all" || c.status === statusFilter;
-      const isNotDeleted = !c.is_deleted;
-      return matchesSearch && matchesStatus && isNotDeleted;
-    });
-  }, [q, statusFilter, courses]);
+    return courses;
+  }, [courses]);
 
   // File Excel Template Download
   const handleDownloadTemplate = () => {
@@ -335,6 +344,55 @@ export default function CourseManagement() {
             ))}
           </tbody>
         </Table>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-between px-2 py-4">
+        <div className="text-sm text-slate-500">
+          Hiển thị <span className="font-semibold text-slate-700">{rows.length}</span> trên{" "}
+          <span className="font-semibold text-slate-700">{total}</span> môn học
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 1 || loading}
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            className="h-9 px-4 border-slate-200"
+          >
+            Trước
+          </Button>
+          <div className="flex items-center gap-1">
+            {[...Array(totalPages)].map((_, i) => {
+               // Hiển thị tối đa 5 trang xung quanh trang hiện tại
+               if (totalPages > 5) {
+                 if (i + 1 < page - 2 || i + 1 > page + 2) return null;
+               }
+               return (
+                <button
+                  key={i}
+                  onClick={() => setPage(i + 1)}
+                  className={`h-9 w-9 rounded-lg text-sm font-medium transition-colors ${
+                    page === i + 1
+                      ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {i + 1}
+                </button>
+               );
+            })}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === totalPages || loading}
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            className="h-9 px-4 border-slate-200"
+          >
+            Sau
+          </Button>
+        </div>
       </div>
 
       {/* POPUP THÊM/SỬA (Modal) */}
