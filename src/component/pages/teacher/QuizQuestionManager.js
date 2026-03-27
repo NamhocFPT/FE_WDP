@@ -313,7 +313,7 @@ export default function QuizQuestionManager() {
                         <Plus className="h-5 w-5 mr-2 text-indigo-600" /> Tạo câu hỏi thủ công
                     </Button>
                     <Button variant="ghost" className="bg-gradient-to-r from-purple-500 hover:from-purple-400 to-pink-500 hover:to-pink-400 text-white border-none shadow-lg shadow-purple-500/25 rounded-xl h-11 px-5" onClick={() => setShowAIModal(true)}>
-                        <Sparkles className="h-5 w-5 mr-2" /> Sáng tạo bằng Gemini AI
+                        <Sparkles className="h-5 w-5 mr-2" /> Sáng tạo bằng AI
                     </Button>
 
                     {/* Export Menu */}

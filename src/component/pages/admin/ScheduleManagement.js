@@ -148,12 +148,11 @@ export default function ScheduleManagement() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [teachers, setTeachers] = useState([]);
     const [classes, setClasses] = useState([{ label: "Tất cả lớp", value: "" }]);
+    const [courses, setCourses] = useState([{ label: "Tất cả môn", value: "" }]);
     const [selectedTeacherId, setSelectedTeacherId] = useState("");
     const [selectedClassFilterId, setSelectedClassFilterId] = useState("");
     const [selectedClassId, setSelectedClassId] = useState("");
-    const [courseCodeFilter, setCourseCodeFilter] = useState("");
-    const [semesterFilter, setSemesterFilter] = useState("");
-    const [roomFilter, setRoomFilter] = useState("");
+    const [selectedCourseId, setSelectedCourseId] = useState("");
     const [dateStartFilter, setDateStartFilter] = useState("");
     const [dateEndFilter, setDateEndFilter] = useState("");
     const [sessions, setSessions] = useState([]);
@@ -214,13 +213,9 @@ export default function ScheduleManagement() {
     }, []);
 
     const fetchClasses = useCallback(async () => {
-        if (!selectedTeacherId) {
-            setClasses([{ label: "Tất cả lớp", value: "" }]);
-            return;
-        }
         try {
-            const res = await get(`api/v1/admin/classes?teacher_id=${selectedTeacherId}&limit=100`);
-            const classData = res.data || [];
+            const res = await adminApi.getClasses({ limit: 500 });
+            const classData = res.data?.data || [];
             setClasses([
                 { label: "Tất cả lớp", value: "" },
                 ...classData.map((item) => ({
@@ -233,7 +228,31 @@ export default function ScheduleManagement() {
             console.error("Failed to fetch classes", error);
             setClasses([{ label: "Tất cả lớp", value: "" }]);
         }
-    }, [selectedTeacherId]);
+    }, []);
+
+    const fetchCourses = useCallback(async () => {
+        try {
+            const res = await adminApi.getCourses({ limit: 500 });
+            const courseData = res.data?.data || [];
+            setCourses([
+                { label: "Tất cả môn", value: "" },
+                ...courseData.map((item) => ({
+                    value: item.id,
+                    label: `${item.code} - ${item.name}`,
+                    course: item,
+                })),
+            ]);
+        } catch (error) {
+            console.error("Failed to fetch courses", error);
+            setCourses([{ label: "Tất cả môn", value: "" }]);
+        }
+    }, []);
+
+    const selectedCourseCode = useMemo(() => {
+        if (!selectedCourseId) return "";
+        const found = courses.find((c) => c.value === selectedCourseId);
+        return found?.course?.code || "";
+    }, [courses, selectedCourseId]);
 
     const fetchSchedule = useCallback(async () => {
         setIsLoading(true);
@@ -245,9 +264,7 @@ export default function ScheduleManagement() {
             });
             if (selectedTeacherId) params.append("teacher_id", selectedTeacherId);
             if (selectedClassFilterId) params.append("class_id", selectedClassFilterId);
-            if (courseCodeFilter.trim()) params.append("course_code", courseCodeFilter.trim());
-            if (semesterFilter.trim()) params.append("semester", semesterFilter.trim());
-            if (roomFilter.trim()) params.append("room", roomFilter.trim());
+            if (selectedCourseCode) params.append("course_code", selectedCourseCode);
 
             const res = await get(`api/v1/admin/class-sessions?${params.toString()}`);
             const data = (res.data || [])
@@ -265,17 +282,13 @@ export default function ScheduleManagement() {
         } finally {
             setIsLoading(false);
         }
-    }, [selectedTeacherId, dateFrom, dateTo, selectedClassFilterId, courseCodeFilter, semesterFilter, roomFilter]);
+    }, [selectedTeacherId, dateFrom, dateTo, selectedClassFilterId, selectedCourseCode]);
 
     useEffect(() => {
         fetchTeachers();
-    }, [fetchTeachers]);
-
-    useEffect(() => {
-        setSelectedClassFilterId("");
-        setSelectedClassId("");
         fetchClasses();
-    }, [fetchClasses]);
+        fetchCourses();
+    }, [fetchTeachers, fetchClasses, fetchCourses]);
 
     useEffect(() => {
         fetchSchedule();
@@ -366,10 +379,9 @@ export default function ScheduleManagement() {
     const handleToday = () => setCurrentDate(new Date());
 
     const handleResetFilters = () => {
+        setSelectedTeacherId("");
         setSelectedClassFilterId("");
-        setCourseCodeFilter("");
-        setSemesterFilter("");
-        setRoomFilter("");
+        setSelectedCourseId("");
         setDateStartFilter("");
         setDateEndFilter("");
     };
@@ -380,9 +392,7 @@ export default function ScheduleManagement() {
             const params = new URLSearchParams({ all: "true" });
             if (selectedTeacherId) params.append("teacher_id", selectedTeacherId);
             if (selectedClassFilterId) params.append("class_id", selectedClassFilterId);
-            if (courseCodeFilter.trim()) params.append("course_code", courseCodeFilter.trim());
-            if (semesterFilter.trim()) params.append("semester", semesterFilter.trim());
-            if (roomFilter.trim()) params.append("room", roomFilter.trim());
+            if (selectedCourseCode) params.append("course_code", selectedCourseCode);
             if (dateStartFilter) params.append("from", dateStartFilter);
             if (dateEndFilter) params.append("to", dateEndFilter);
 
@@ -724,7 +734,7 @@ export default function ScheduleManagement() {
                     </div>
                 </div>
                 <CardContent className="space-y-4">
-                    <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr_1fr_1fr]">
+                    <div className="grid gap-4 xl:grid-cols-3">
                         <div>
                             <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Giáo viên</div>
                             <SearchableSelect
@@ -744,20 +754,17 @@ export default function ScheduleManagement() {
                             />
                         </div>
                         <div>
-                            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Mã môn</div>
-                            <Input value={courseCodeFilter} onChange={(event) => setCourseCodeFilter(event.target.value)} placeholder="VD: SWP391" />
-                        </div>
-                        <div>
-                            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Học kỳ</div>
-                            <Input value={semesterFilter} onChange={(event) => setSemesterFilter(event.target.value)} placeholder="VD: Spring 2026" />
+                            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Môn học</div>
+                            <SearchableSelect
+                                options={courses}
+                                value={selectedCourseId}
+                                onChange={setSelectedCourseId}
+                                placeholder="Tất cả môn"
+                            />
                         </div>
                     </div>
 
-                    <div className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr_auto_auto]">
-                        <div>
-                            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Phòng học</div>
-                            <Input value={roomFilter} onChange={(event) => setRoomFilter(event.target.value)} placeholder="VD: P301" />
-                        </div>
+                    <div className="grid gap-4 xl:grid-cols-[1fr_1fr_auto_auto]">
                         <div>
                             <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Từ ngày (Export)</div>
                             <Input type="date" value={dateStartFilter} onChange={(event) => setDateStartFilter(event.target.value)} />
@@ -800,7 +807,7 @@ export default function ScheduleManagement() {
                             </div>
                             <div className="mt-3 space-y-2 text-sm text-slate-600">
                                 <div>1. Chọn một giáo viên để xem lịch dạy.</div>
-                                <div>2. Lọc tiếp theo lớp, môn, học kỳ hoặc phòng nếu cần.</div>
+                                <div>2. Lọc tiếp theo lớp học hoặc môn học nếu cần.</div>
                                 <div>3. Dùng chế độ ngày, tuần, tháng để xem theo mức độ chi tiết.</div>
                             </div>
                         </div>
