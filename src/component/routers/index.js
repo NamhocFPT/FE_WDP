@@ -227,6 +227,7 @@ export const router = [
       { path: "grades", element: <Grades /> },
       { path: "classes/:classId/grades", element: <StudentClassGrades /> },
       { path: "classes/:classId/assessments/:assessmentId", element: <StudentAssignmentDetail /> },
+      { path: "classes/:classId/stream", element: <ClassStreamWrapper /> },
     ],
   },
 

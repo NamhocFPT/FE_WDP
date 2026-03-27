@@ -14,7 +14,7 @@ export default function Notifications() {
   const [isUnreadOnly, setIsUnreadOnly] = useState(false);
 
   const navigate = useNavigate();
-  const { markAsRead, markAllAsRead } = useNotification();
+  const { markAllAsRead, handleNotificationClick } = useNotification();
 
   const fetchNotifications = async (currentPage, unreadOnly) => {
     setLoading(true);
@@ -61,9 +61,9 @@ export default function Notifications() {
     }
   };
 
-  const handleNotificationClick = async (notification) => {
+  const onNotificationClick = async (notification) => {
+    // Update local state optimistically
     if (!notification.is_read) {
-      await markAsRead(notification._id || notification.id);
       setNotifications((prev) =>
         prev.map((n) =>
           (n._id || n.id) === (notification._id || notification.id)
@@ -73,22 +73,7 @@ export default function Notifications() {
       );
     }
 
-    // Navigate logic based on ref_type
-    const id = notification.ref_id;
-    switch (notification.ref_type) {
-      case "SESSION":
-        navigate(`/schedule/${id}`);
-        break;
-      case "ASSESSMENT":
-        navigate(`/assessments/${id}`);
-        break;
-      case "GRADE":
-        navigate(`/grades/${id}`);
-        break;
-      case "SYSTEM":
-      default:
-        break;
-    }
+    await handleNotificationClick(notification, navigate);
   };
 
   return (
@@ -137,7 +122,7 @@ export default function Notifications() {
           notifications.map((notif) => (
             <div
               key={notif._id || notif.id}
-              onClick={() => handleNotificationClick(notif)}
+              onClick={() => onNotificationClick(notif)}
               className={`p-4 sm:p-6 transition-colors cursor-pointer hover:bg-slate-50 flex flex-col sm:flex-row gap-4 sm:items-center justify-between ${
                 !notif.is_read ? "bg-blue-50/30" : ""
               }`}

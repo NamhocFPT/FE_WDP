@@ -137,6 +137,9 @@ export const api = {
         },
         async readAllNotifications() {
             return fetchWithAuth("/notifications/read-all", { method: "PATCH" });
+        },
+        async resolveTarget(id) {
+            return fetchWithAuth(`/notifications/${id}/target`, { method: "GET", skipNotFoundToast: true });
         }
     },
     ai: {

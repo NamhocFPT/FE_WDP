@@ -10,8 +10,8 @@ export default function NotificationBell() {
   const {
     unreadCount,
     recentNotifications,
-    markAsRead,
     markAllAsRead,
+    handleNotificationClick,
   } = useNotification();
   
   const navigate = useNavigate();
@@ -19,29 +19,9 @@ export default function NotificationBell() {
 
   const displayCount = unreadCount > 99 ? "99+" : unreadCount;
 
-  const handleNotificationClick = async (notification) => {
-    if (!notification.is_read) {
-      await markAsRead(notification._id || notification.id);
-    }
+  const onNotificationClick = async (notification) => {
     setIsOpen(false);
-
-    // Navigate logic based on ref_type
-    const id = notification.ref_id;
-    switch (notification.ref_type) {
-      case "SESSION":
-        navigate(`/schedule/${id}`); // or specific route for schedule detail
-        break;
-      case "ASSESSMENT":
-        navigate(`/assessments/${id}`);
-        break;
-      case "GRADE":
-        navigate(`/grades/${id}`); // specific route
-        break;
-      case "SYSTEM":
-      default:
-        // No redirect for system or default
-        break;
-    }
+    await handleNotificationClick(notification, navigate);
   };
 
   const handleSeeAll = () => {
@@ -89,7 +69,7 @@ export default function NotificationBell() {
             recentNotifications.map((notif) => (
               <div
                 key={notif._id || notif.id}
-                onClick={() => handleNotificationClick(notif)}
+                onClick={() => onNotificationClick(notif)}
                 className={`flex flex-col gap-1 p-3 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition-colors ${
                   !notif.is_read ? "bg-blue-50/50" : ""
                 }`}
