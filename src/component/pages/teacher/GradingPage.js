@@ -14,7 +14,7 @@ export default function GradingPage() {
             setLoading(true);
             try {
                 const token = localStorage.getItem("smartedu_token");
-                const res = await fetch("http://localhost:9999/api/teacher/grading/overview", {
+                const res = await fetch("https://api.skytrustforwarder.asia/api/teacher/grading/overview", {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 const result = await res.json();

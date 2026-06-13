@@ -2,7 +2,7 @@
 import { store } from "./store";
 import { toast } from "sonner";
 
-const BASE_URL = "http://localhost:9999/api";
+const BASE_URL = "https://api.skytrustforwarder.asia/api";
 
 async function fetchWithAuth(url, options = {}) {
     const { skipNotFoundToast, ...fetchOptions } = options;

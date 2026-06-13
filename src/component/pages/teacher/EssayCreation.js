@@ -48,7 +48,7 @@ export default function EssayCreation() {
         const fetchClassStatus = async () => {
             try {
                 const token = localStorage.getItem("smartedu_token");
-                const res = await fetch(`http://localhost:9999/api/teacher/classes`, {
+                const res = await fetch(`https://api.skytrustforwarder.asia/api/teacher/classes`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 const data = await res.json();
@@ -72,7 +72,7 @@ export default function EssayCreation() {
             const fetchDetail = async () => {
                 try {
                     const token = localStorage.getItem("smartedu_token");
-                    const res = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/assessments`, {
+                    const res = await fetch(`https://api.skytrustforwarder.asia/api/teacher/classes/${classId}/assessments`, {
                         headers: { "Authorization": `Bearer ${token}` }
                     });
                     const data = await res.json();
@@ -175,7 +175,7 @@ export default function EssayCreation() {
             if (selectedFiles.length > 0) {
                 const uploadFormData = new FormData();
                 selectedFiles.forEach(file => uploadFormData.append("files", file));
-                const uploadRes = await fetch("http://localhost:9999/api/upload", {
+                const uploadRes = await fetch("https://api.skytrustforwarder.asia/api/upload", {
                     method: "POST",
                     headers: { "Authorization": `Bearer ${token}` },
                     body: uploadFormData
@@ -219,8 +219,8 @@ export default function EssayCreation() {
             };
 
             const url = isEditMode
-                ? `http://localhost:9999/api/teacher/classes/${classId}/assessments/essay/${essayId}`
-                : `http://localhost:9999/api/teacher/classes/${classId}/assessments/essay`;
+                ? `https://api.skytrustforwarder.asia/api/teacher/classes/${classId}/assessments/essay/${essayId}`
+                : `https://api.skytrustforwarder.asia/api/teacher/classes/${classId}/assessments/essay`;
 
             const method = isEditMode ? "PUT" : "POST";
 

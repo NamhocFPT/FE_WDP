@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { store } from './store';
 
-const api = axios.create({ baseURL: 'http://localhost:9999/api/teacher' });
+const api = axios.create({ baseURL: 'https://api.skytrustforwarder.asia/api/teacher' });
 
 api.interceptors.request.use((config) => {
     const token = store.getToken();

@@ -2,7 +2,7 @@ import axios from 'axios';
 import { store } from './store';
 
 // const api = axios.create({
-//     baseURL: 'http://localhost:9999/api/student'
+//     baseURL: 'https://api.skytrustforwarder.asia/api/student'
 // });
 
 // // Thêm Interceptor: Tự động nhét Token vào mọi chuyến xe Axios gửi đi
@@ -18,7 +18,7 @@ import { store } from './store';
 //         return Promise.reject(error);
 //     }
 // );
-const api = axios.create({ baseURL: 'http://localhost:9999/api/student' });
+const api = axios.create({ baseURL: 'https://api.skytrustforwarder.asia/api/student' });
 
 api.interceptors.request.use((config) => {
     const token = store.getToken();
@@ -69,4 +69,4 @@ export const studentApi = {
     getClassMaterials,
     getGradesOverview,
     getSubmissionReview,
-};
+};

@@ -266,7 +266,7 @@ export default function Reports() {
                 activeTab: activeTab
             });
 
-            const exportUrl = `http://localhost:9999/api/admin/reports/export/pdf?${params.toString()}`;
+            const exportUrl = `https://api.skytrustforwarder.asia/api/admin/reports/export/pdf?${params.toString()}`;
 
             // Trigger download natively to avoid Axios-CORS conflicts with download managers (IDM)
             window.location.href = exportUrl;

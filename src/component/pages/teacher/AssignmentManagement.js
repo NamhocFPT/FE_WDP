@@ -22,7 +22,7 @@ export default function AssignmentManagement() {
     const fetchAssignments = async () => {
         try {
             const token = localStorage.getItem("smartedu_token");
-            const response = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/assessments`, {
+            const response = await fetch(`https://api.skytrustforwarder.asia/api/teacher/classes/${classId}/assessments`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const data = await response.json();
@@ -55,7 +55,7 @@ export default function AssignmentManagement() {
 
         try {
             const token = localStorage.getItem("smartedu_token");
-            const response = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/assessments/${assessmentId}`, {
+            const response = await fetch(`https://api.skytrustforwarder.asia/api/teacher/classes/${classId}/assessments/${assessmentId}`, {
                 method: "DELETE",
                 headers: { "Authorization": `Bearer ${token}` }
             });
@@ -76,7 +76,7 @@ export default function AssignmentManagement() {
             const token = localStorage.getItem("smartedu_token");
             const { files, ...assignmentClean } = assignment; // Bỏ files để tránh lỗi tải lại file khi publish
 
-            const response = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/assessments/essay/${assignment.id}`, {
+            const response = await fetch(`https://api.skytrustforwarder.asia/api/teacher/classes/${classId}/assessments/essay/${assignment.id}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",

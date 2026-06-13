@@ -23,7 +23,7 @@ export default function ShareAssessmentModal({ open, onClose, assessment, curren
         setIsFetching(true);
         try {
             const token = localStorage.getItem("smartedu_token");
-            const response = await fetch("http://localhost:9999/api/teacher/my-classes", {
+            const response = await fetch("https://api.skytrustforwarder.asia/api/teacher/my-classes", {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const data = await response.json();
@@ -42,7 +42,7 @@ export default function ShareAssessmentModal({ open, onClose, assessment, curren
         if (!assessment) return;
         try {
             const token = localStorage.getItem("smartedu_token");
-            const response = await fetch(`http://localhost:9999/api/teacher/assessments/${assessment.id}/share-status`, {
+            const response = await fetch(`https://api.skytrustforwarder.asia/api/teacher/assessments/${assessment.id}/share-status`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const data = await response.json();
@@ -67,7 +67,7 @@ export default function ShareAssessmentModal({ open, onClose, assessment, curren
         setIsSharing(true);
         try {
             const token = localStorage.getItem("smartedu_token");
-            const response = await fetch(`http://localhost:9999/api/teacher/assessments/${assessment.id}/share`, {
+            const response = await fetch(`https://api.skytrustforwarder.asia/api/teacher/assessments/${assessment.id}/share`, {
                 method: "POST",
                 headers: { 
                     "Content-Type": "application/json",

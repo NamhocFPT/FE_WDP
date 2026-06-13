@@ -1,7 +1,7 @@
 import { io } from "socket.io-client";
 import { store } from "./store";
 
-const SOCKET_URL = "http://localhost:9999";
+const SOCKET_URL = "https://api.skytrustforwarder.asia";
 
 class SocketService {
   constructor() {

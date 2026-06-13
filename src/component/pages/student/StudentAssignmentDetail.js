@@ -17,7 +17,7 @@ export default function StudentAssignmentDetail() {
     const fetchData = async () => {
         try {
             const token = localStorage.getItem("smartedu_token");
-            const res = await fetch(`http://localhost:9999/api/student/assessments/${assessmentId}`, {
+            const res = await fetch(`https://api.skytrustforwarder.asia/api/student/assessments/${assessmentId}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const result = await res.json();
@@ -35,7 +35,7 @@ export default function StudentAssignmentDetail() {
     }, [assessmentId]);
 
     const handleDownload = async (fileUrl, originalName) => {
-        const BASE_URL = "http://localhost:9999";
+        const BASE_URL = "https://api.skytrustforwarder.asia";
         try {
             // Chuẩn hóa URL nếu là đường dẫn tương đối
             let targetUrl = fileUrl?.startsWith('http') ? fileUrl : `${BASE_URL}${fileUrl}`;
@@ -136,7 +136,7 @@ export default function StudentAssignmentDetail() {
             const uploadFormData = new FormData();
             selectedFiles.forEach(file => uploadFormData.append("files", file));
             
-            const uploadRes = await fetch("http://localhost:9999/api/upload", {
+            const uploadRes = await fetch("https://api.skytrustforwarder.asia/api/upload", {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${token}` },
                 body: uploadFormData
@@ -148,7 +148,7 @@ export default function StudentAssignmentDetail() {
                 throw new Error(uploadData.message || "Lỗi khi tải file lên.");
             }
 
-            const res = await fetch(`http://localhost:9999/api/student/assessments/${assessmentId}/submit`, {
+            const res = await fetch(`https://api.skytrustforwarder.asia/api/student/assessments/${assessmentId}/submit`, {
                 method: "POST",
                 headers: { 
                     "Content-Type": "application/json",

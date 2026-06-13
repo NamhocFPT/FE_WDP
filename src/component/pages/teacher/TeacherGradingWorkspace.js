@@ -33,7 +33,7 @@ export default function TeacherGradingWorkspace() {
     const fetchData = async () => {
         try {
             const token = localStorage.getItem("smartedu_token");
-            const res = await fetch(`http://localhost:9999/api/teacher/submissions/${submissionId}/grading`, {
+            const res = await fetch(`https://api.skytrustforwarder.asia/api/teacher/submissions/${submissionId}/grading`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const result = await res.json();
@@ -55,7 +55,7 @@ export default function TeacherGradingWorkspace() {
 
     // Hàm tải file thông minh: Tự động đoán và gắn lại đuôi file nếu bị mất
     const handleDownload = async (fileUrl, originalName) => {
-        const BASE_URL = "http://localhost:9999";
+        const BASE_URL = "https://api.skytrustforwarder.asia";
         try {
             let targetUrl = fileUrl?.startsWith('http') ? fileUrl : `${BASE_URL}${fileUrl}`;
             
@@ -147,7 +147,7 @@ export default function TeacherGradingWorkspace() {
         setIsSaving(true);
         try {
             const token = localStorage.getItem("smartedu_token");
-            const res = await fetch(`http://localhost:9999/api/teacher/submissions/${submissionId}/grade`, {
+            const res = await fetch(`https://api.skytrustforwarder.asia/api/teacher/submissions/${submissionId}/grade`, {
                 method: "POST",
                 headers: { 
                     "Content-Type": "application/json",
@@ -178,7 +178,7 @@ export default function TeacherGradingWorkspace() {
         setAiResult(null);
         try {
             const token = localStorage.getItem("smartedu_token");
-            const res = await fetch(`http://localhost:9999/api/teacher/submissions/${submissionId}/ai-grade`, {
+            const res = await fetch(`https://api.skytrustforwarder.asia/api/teacher/submissions/${submissionId}/ai-grade`, {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${token}` }
             });

@@ -29,8 +29,8 @@ export default function TeacherGradebook() {
         await Promise.all(assessmentsData.map(async (a) => {
             try {
                 const url = String(a.type).toUpperCase() === 'QUIZ'
-                    ? `http://localhost:9999/api/teacher/quizzes/${a.id}/attempts`
-                    : `http://localhost:9999/api/teacher/assessments/${a.id}/submissions`;
+                    ? `https://api.skytrustforwarder.asia/api/teacher/quizzes/${a.id}/attempts`
+                    : `https://api.skytrustforwarder.asia/api/teacher/assessments/${a.id}/submissions`;
 
                 const res = await fetch(url, {
                     headers: { "Authorization": `Bearer ${token}` }
@@ -80,14 +80,14 @@ export default function TeacherGradebook() {
             const token = localStorage.getItem("smartedu_token");
 
             // 1. Fetch Quizzes
-            const quizzesRes = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/quizzes`, {
+            const quizzesRes = await fetch(`https://api.skytrustforwarder.asia/api/teacher/classes/${classId}/quizzes`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const quizzesResult = await quizzesRes.json();
             const quizzes = quizzesResult.success && Array.isArray(quizzesResult.data) ? quizzesResult.data.map(q => ({ ...q, type: 'QUIZ' })) : [];
 
             // 2. Fetch Essays / Assignments
-            const res = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/assessments`, {
+            const res = await fetch(`https://api.skytrustforwarder.asia/api/teacher/classes/${classId}/assessments`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const result = await res.json();
@@ -101,7 +101,7 @@ export default function TeacherGradebook() {
             const loadedAssessments = combinedAssessments;
 
             // Fetch Students List
-            const studentsRes = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/students`, {
+            const studentsRes = await fetch(`https://api.skytrustforwarder.asia/api/teacher/classes/${classId}/students`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const studentsResult = await studentsRes.json();

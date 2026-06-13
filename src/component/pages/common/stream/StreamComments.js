@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const BASE_URL = "http://localhost:9999";
+const BASE_URL = "https://api.skytrustforwarder.asia";
 
 function getFileIcon(fileName) {
   const ext = fileName?.split(".").pop()?.toLowerCase();

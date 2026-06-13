@@ -1,6 +1,6 @@
 import { store } from '../service/store';
 
-const API_DOMAIN = 'http://localhost:9999/'
+const API_DOMAIN = 'https://api.skytrustforwarder.asia/'
 
 export const get = async (path) => {
     const token = store.getToken();

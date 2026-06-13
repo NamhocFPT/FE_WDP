@@ -14,7 +14,7 @@ export default function TeacherStudentList() {
             setIsLoading(true);
             try {
                 const token = localStorage.getItem("smartedu_token");
-                const res = await fetch(`http://localhost:9999/api/teacher/classes/${classId}/students`, {
+                const res = await fetch(`https://api.skytrustforwarder.asia/api/teacher/classes/${classId}/students`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 const result = await res.json();

@@ -18,7 +18,7 @@ const fetchSubmissions = async () => {
         setIsFetching(true);
         try {
             const token = localStorage.getItem("smartedu_token");
-            const res = await fetch(`http://localhost:9999/api/teacher/assessments/${assessmentId}/submissions`, {
+            const res = await fetch(`https://api.skytrustforwarder.asia/api/teacher/assessments/${assessmentId}/submissions`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             const result = await res.json();
@@ -56,7 +56,7 @@ const fetchSubmissions = async () => {
 
     // Hàm tải file thông minh: Tự động đoán và gắn lại đuôi file nếu bị mất
     const handleDownload = async (fileUrl, originalName) => {
-        const BASE_URL = "http://localhost:9999";
+        const BASE_URL = "https://api.skytrustforwarder.asia";
         try {
             let targetUrl = fileUrl?.startsWith('http') ? fileUrl : `${BASE_URL}${fileUrl}`;
             
